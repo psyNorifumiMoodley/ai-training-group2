@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NonInteractive -NoProfile -File .claude/hooks/log-prompt-hook.ps1",
+            "statusMessage": "Logging prompt...",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}
