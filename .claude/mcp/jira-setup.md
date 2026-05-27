@@ -33,8 +33,8 @@ I need you to set up my personal Jira MCP credentials for this project.
    ```json
    {
      "env": {
-       "ATLASSIAN_EMAIL": "<>",
-       "ATLASSIAN_API_TOKEN": "<>"
+       "ATLASSIAN_EMAIL": "<my email>",
+       "ATLASSIAN_API_TOKEN": "<my token>"
      },
      "enabledMcpjsonServers": ["jira"]
    }
