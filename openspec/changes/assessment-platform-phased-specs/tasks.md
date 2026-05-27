@@ -69,31 +69,32 @@
 - [ ] 3.1 Create stub `QuestionBankController` with empty responses for `POST /api/question-banks` and `GET /api/question-banks`
 - [ ] 3.2 Create stub `QuestionController` with empty responses for `POST /api/question-banks/{bankId}/questions` and `GET /api/question-banks/{bankId}/questions`
 - [ ] 3.3 Define request/response DTOs for all question types (MCQ, text, doc, group)
-- [ ] 3.4 Create Angular `QuestionBankService` with stub methods
+- [ ] 3.4 Define `AssessmentQuestion` abstract entity (`TABLE_PER_CLASS`) as the shared base class for `McqQuestion`, `TextQuestion`, `DocQuestion`, and `QuestionGroup` — must exist before any question-type slice begins
+- [ ] 3.5 Create Angular `QuestionBankService` with stub methods
 
 ### Slice: Question Bank CRUD
-- [ ] 3.5 Implement `QuestionBank` entity and `QuestionBankRepository`
-- [ ] 3.6 Implement `QuestionBankService` with create, list (paginated), and get-by-id
-- [ ] 3.7 Wire `QuestionBankController` to service with `MARKER` role restriction
-- [ ] 3.8 Write tests for question bank CRUD
+- [ ] 3.6 Implement `QuestionBank` entity and `QuestionBankRepository`
+- [ ] 3.7 Implement `QuestionBankService` with create, list (paginated), and get-by-id
+- [ ] 3.8 Wire `QuestionBankController` to service with `MARKER` role restriction
+- [ ] 3.9 Write tests for question bank CRUD
 
 ### Slice: MCQ and Text Questions
-- [ ] 3.9 Implement `AssessmentQuestion` abstract entity (`TABLE_PER_CLASS`), `McqQuestion`, and `TextQuestion` entities
-- [ ] 3.10 Implement `QuestionService` with MCQ validation (at least one correct answer required) and text question creation
-- [ ] 3.11 Wire `QuestionController` for MCQ and text question creation
-- [ ] 3.12 Write tests including validation boundary cases (zero correct answers rejected)
+- [ ] 3.10 Implement `McqQuestion` and `TextQuestion` entities extending `AssessmentQuestion` (defined in Slice 0)
+- [ ] 3.11 Implement `QuestionService` with MCQ validation (at least one correct answer required) and text question creation
+- [ ] 3.12 Wire `QuestionController` for MCQ and text question creation
+- [ ] 3.13 Write tests including validation boundary cases (zero correct answers rejected)
 
 ### Slice: Doc and Group Questions
-- [ ] 3.13 Implement `DocQuestion` and `QuestionGroup` entities
-- [ ] 3.14 Implement `QuestionService` methods for doc and group question creation
-- [ ] 3.15 Wire `QuestionController` for doc and group question creation
-- [ ] 3.16 Write tests for doc and group question persistence
+- [ ] 3.14 Implement `DocQuestion` and `QuestionGroup` entities extending `AssessmentQuestion` (defined in Slice 0)
+- [ ] 3.15 Implement `QuestionService` methods for doc and group question creation
+- [ ] 3.16 Wire `QuestionController` for doc and group question creation
+- [ ] 3.17 Write tests for doc and group question persistence
 
 ### Slice: Angular Question Bank UI
-- [ ] 3.17 Implement `QuestionBankListComponent` and `QuestionBankDetailComponent`
-- [ ] 3.18 Implement dynamic question creation form (type selector drives which fields render)
-- [ ] 3.19 Implement MCQ option builder with correct-answer toggle (single vs multi)
-- [ ] 3.20 Wire Angular `QuestionBankService` to real API; remove stubs
+- [ ] 3.18 Implement `QuestionBankListComponent` and `QuestionBankDetailComponent`
+- [ ] 3.19 Implement dynamic question creation form (type selector drives which fields render)
+- [ ] 3.20 Implement MCQ option builder with correct-answer toggle (single vs multi)
+- [ ] 3.21 Wire Angular `QuestionBankService` to real API; remove stubs
 
 ---
 
@@ -107,12 +108,12 @@
 
 ### Slice: Assessment Generation Logic
 - [ ] 4.4 Implement `Assessment` entity with `status` enum (`PENDING`, `IN_PROGRESS`, `SUBMITTED`, `MARKED`), `invitation_token`, `time_limit_minutes`
-- [ ] 4.5 Implement no-repeat question rule in `AssessmentService` (query prior submitted assessments for candidate)
-- [ ] 4.6 Implement doc question limit enforcement (max 1 per assessment) in `AssessmentService`
+- [ ] 4.5 Implement no-repeat question rule in `AssessmentService` (query prior submitted assessments for the candidate within the current calendar year — questions from a previous calendar year are eligible again)
+- [ ] 4.6 Implement doc question limit enforcement in `AssessmentService`; the maximum number of doc questions per assessment MUST be read from a configurable property (e.g. `assessment.doc-question-limit=1` in `application.properties`) injected via `@Value` — do not hardcode the value
 - [ ] 4.7 Write tests for no-repeat rule and doc question limit boundary cases
 
 ### Slice: Invitation Token & Email
-- [ ] 4.8 Implement short-lived signed JWT generation for invitation tokens (separate from login JWT)
+- [ ] 4.8 Implement signed JWT generation for invitation tokens (separate from login JWT); the token's `exp` claim MUST be tied to the assessment session — it expires when the assessment time limit elapses from first access (`start_time + time_limit_minutes`), not at a fixed duration from creation
 - [ ] 4.9 Implement email service for sending candidate invitation email with token link
 - [ ] 4.10 Ensure email failure does not roll back assessment creation (async or try-catch with logging)
 - [ ] 4.11 Write tests for token generation and email service mock
@@ -140,7 +141,7 @@
 - [ ] 5.7 Write tests for status transitions and duplicate submission rejection
 
 ### Slice: Response Persistence & Auto-Save
-- [ ] 5.8 Implement `Response` abstract entity (`TABLE_PER_CLASS`) and concrete types: `McqResponse`, `TextResponse`, `DocResponse`
+- [ ] 5.8 Implement `Response` abstract entity (`TABLE_PER_CLASS`) and concrete types: `McqResponse`, `TextResponse`, `DocResponse`, `QuestionGroupResponse`
 - [ ] 5.9 Implement `PUT /api/assessments/{id}/responses/{questionId}` for saving/updating each response type
 - [ ] 5.10 Enforce that responses cannot be saved on a `SUBMITTED` assessment
 - [ ] 5.11 Write tests for each response type persistence
@@ -168,8 +169,8 @@
 - [ ] 6.2 Create stub for `GET /api/assessments/{id}/responses` returning hardcoded responses
 - [ ] 6.3 Create stub for `PATCH /api/assessments/{id}/responses/{responseId}` returning HTTP 200
 - [ ] 6.4 Create stub for `POST /api/assessments/{id}/finalise` returning HTTP 200
-- [ ] 6.5 Create stub for `GET /api/assessments/{id}/results` returning hardcoded results
-- [ ] 6.6 Create Angular `MarkingService` and `ResultsService` with stub methods
+- [ ] 6.5 Create stub for `GET /api/assessments/{id}/feedback` returning hardcoded per-question feedback entries
+- [ ] 6.6 Create Angular `MarkingService` and `FeedbackService` with stub methods
 
 ### Slice: Marking Queue & Response Review
 - [ ] 6.7 Implement `GET /api/assessments?status=SUBMITTED` with MARKER role restriction and pagination
@@ -182,15 +183,16 @@
 - [ ] 6.12 Enforce idempotency: reject finalisation if already `MARKED` or not yet `SUBMITTED`
 - [ ] 6.13 Write tests for finalisation boundary cases
 
-### Slice: Result Email & Candidate Results View
-- [ ] 6.14 Implement result email triggered by finalisation: sends Marker feedback per question to candidate (no scores)
-- [ ] 6.15 Implement `GET /api/assessments/{id}/results` returning feedback per question for the authenticated candidate
-- [ ] 6.16 Enforce that results are only accessible after `MARKED` status
-- [ ] 6.17 Write tests for result email content (assert no score data) and results endpoint access control
+### Slice: Feedback Email & Candidate Feedback View
+- [ ] 6.14 On finalisation, auto-generate a feedback entry per question: MCQ responses get a system-drafted message (e.g. "Correct" / "Incorrect — review this topic"); text and doc responses get an empty draft the Marker must fill before finalising
+- [ ] 6.15 Implement `PATCH /api/assessments/{id}/feedback/{questionId}` so the Marker can edit any auto-generated feedback entry before or during finalisation
+- [ ] 6.16 Implement feedback email triggered by finalisation: sends the curated per-question feedback entries to the candidate — no scores, no marks
+- [ ] 6.17 Implement `GET /api/assessments/{id}/feedback` returning per-question feedback for the authenticated candidate (accessible only after `MARKED` status)
+- [ ] 6.18 Write tests asserting auto-generated feedback content, that no score data appears in the email or feedback response, and that the endpoint is inaccessible before `MARKED`
 
 ### Slice: Angular Marking UI
-- [ ] 6.18 Implement `MarkingQueueComponent` with list of submitted assessments
-- [ ] 6.19 Implement `MarkingDetailComponent` with per-question response view, MCQ result display, and feedback text inputs for text/doc responses
-- [ ] 6.20 Implement finalise flow with confirmation dialog
-- [ ] 6.21 Implement `CandidateResultsComponent` for candidates to view their marked assessment feedback
-- [ ] 6.22 Wire Angular `MarkingService` and `ResultsService` to real API; remove stubs
+- [ ] 6.19 Implement `MarkingQueueComponent` with list of submitted assessments
+- [ ] 6.20 Implement `MarkingDetailComponent` showing per-question responses; MCQ rows display the auto-generated feedback draft (editable); text/doc rows show the candidate's answer alongside an editable feedback text input
+- [ ] 6.21 Implement finalise flow with confirmation dialog; block finalisation if any text/doc feedback entry is still empty
+- [ ] 6.22 Implement `CandidateFeedbackComponent` for candidates to view per-question feedback after `MARKED` status
+- [ ] 6.23 Wire Angular `MarkingService` and `FeedbackService` to real API; remove stubs

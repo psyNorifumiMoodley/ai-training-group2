@@ -18,7 +18,7 @@ A candidate SHALL be able to access their assessment using only the invitation t
 ---
 
 ### Requirement: Candidate Saves Responses
-A candidate SHALL be able to save and update their responses at any time while the assessment is `IN_PROGRESS`.
+A candidate SHALL be able to save and update their responses at any time while the assessment is `IN_PROGRESS`. Supported response types are MCQ, text, doc, and question group (which aggregates child responses).
 
 #### Scenario: Save MCQ response
 - **WHEN** a candidate sends PUT `/api/assessments/{id}/responses/{questionId}` with selected answer(s) while the assessment is `IN_PROGRESS`
@@ -27,6 +27,10 @@ A candidate SHALL be able to save and update their responses at any time while t
 #### Scenario: Save text response
 - **WHEN** a candidate sends PUT `/api/assessments/{id}/responses/{questionId}` with a text body
 - **THEN** the text response is persisted and the API returns HTTP 200
+
+#### Scenario: Save question group response
+- **WHEN** a candidate sends PUT `/api/assessments/{id}/responses/{questionId}` for a group question containing child question responses
+- **THEN** the `QuestionGroupResponse` and all its child responses are persisted and the API returns HTTP 200
 
 #### Scenario: Saving responses after submission is rejected
 - **WHEN** a candidate attempts to save a response on an assessment with status `SUBMITTED`

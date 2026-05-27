@@ -14,41 +14,49 @@ A Marker SHALL be able to generate a tailored assessment and assign it to a spec
 ---
 
 ### Requirement: No-Repeat Question Rule
-The system SHALL prevent any question from appearing in an assessment if the same candidate has already seen that question in a previously submitted assessment.
+The system SHALL prevent any question from appearing in an assessment if the same candidate has already seen that question in a previously submitted assessment within the same calendar year. Questions from prior calendar years are eligible again.
 
-#### Scenario: Previously seen question is excluded
-- **WHEN** an assessment is generated for a candidate who has submitted a prior assessment containing question X
+#### Scenario: Previously seen question (same year) is excluded
+- **WHEN** an assessment is generated for a candidate who has submitted a prior assessment in the same calendar year containing question X
 - **THEN** the generated assessment MUST NOT include question X, even if it was explicitly requested
 
-#### Scenario: Assessment generation fails when all requested questions have been seen
-- **WHEN** all questions in the generation request have been seen by the candidate in prior submitted assessments
+#### Scenario: Previously seen question (prior year) is eligible
+- **WHEN** an assessment is generated for a candidate whose only prior submission containing question X was in a previous calendar year
+- **THEN** question X MAY be included in the new assessment
+
+#### Scenario: Assessment generation fails when all requested questions have been seen this year
+- **WHEN** all questions in the generation request have been seen by the candidate in submitted assessments within the current calendar year
 - **THEN** the response is HTTP 422 with a message indicating no eligible questions remain
 
 ---
 
 ### Requirement: Doc Question Limit Per Assessment
-Each assessment SHALL contain at most one doc-type question.
+Each assessment SHALL contain no more doc-type questions than the configured limit. The limit is defined by the server-side property `assessment.doc-question-limit` and MUST NOT be hardcoded.
 
-#### Scenario: Assessment with two doc questions is rejected
-- **WHEN** a Marker attempts to generate an assessment with two or more `DOC`-type questions in the question list
-- **THEN** the response is HTTP 400 with a message indicating the doc question limit of 1 has been exceeded
+#### Scenario: Assessment exceeding the configured doc question limit is rejected
+- **WHEN** a Marker attempts to generate an assessment with more `DOC`-type questions than the configured limit
+- **THEN** the response is HTTP 400 with a message indicating the configured doc question limit has been exceeded
 
-#### Scenario: Assessment with exactly one doc question is accepted
-- **WHEN** a Marker generates an assessment with exactly one `DOC`-type question
+#### Scenario: Assessment at or below the configured limit is accepted
+- **WHEN** a Marker generates an assessment with a number of `DOC`-type questions equal to or less than the configured limit
 - **THEN** the assessment is created successfully
 
 ---
 
 ### Requirement: Invitation Token Generation
-The system SHALL generate a short-lived signed JWT invitation token for each assessment and store it on the assessment record.
+The system SHALL generate a signed JWT invitation token for each assessment and store it on the assessment record. The token's expiry is tied to the assessment session — it becomes invalid once the assessment time limit has elapsed from first access (`start_time + time_limit_minutes`). No fixed TTL is set at creation time.
 
 #### Scenario: Invitation token is created with the assessment
 - **WHEN** an assessment is successfully generated
-- **THEN** the assessment record contains a non-null `invitation_token` (a signed JWT) that encodes the assessment UUID and an expiry
+- **THEN** the assessment record contains a non-null `invitation_token` (a signed JWT) that encodes the assessment UUID; no `exp` claim is set at generation time
 
-#### Scenario: Expired invitation token is rejected
-- **WHEN** a candidate attempts to access an assessment using an invitation token whose `exp` claim is in the past
-- **THEN** the response is HTTP 401 with a message indicating the token has expired
+#### Scenario: Token is invalidated once the session has expired
+- **WHEN** a candidate attempts to access an assessment using a valid invitation token but the assessment's `start_time + time_limit_minutes` is in the past
+- **THEN** the response is HTTP 401 with a message indicating the assessment session has expired
+
+#### Scenario: Token is invalidated once the assessment is submitted
+- **WHEN** a candidate attempts to access an assessment using a valid invitation token but the assessment status is `SUBMITTED` or `MARKED`
+- **THEN** the response is HTTP 409 with a message indicating the assessment has already been submitted
 
 ---
 
