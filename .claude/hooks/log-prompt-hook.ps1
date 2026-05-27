@@ -21,7 +21,7 @@ $logFile = ".claude/logs/$date.md"
 
 if (-not (Test-Path $logFile)) {
     Set-Content -Path $logFile -Encoding utf8 -Value @"
-# Prompt Log — $date
+# Prompt Log - $date
 
 ---
 "@
