@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "jira": {
+      "command": "mcp-atlassian",
+      "env": {
+        "ATLASSIAN_BASE_URL": "https://psybergate.atlassian.net"
+      }
+    }
+  }
+}
