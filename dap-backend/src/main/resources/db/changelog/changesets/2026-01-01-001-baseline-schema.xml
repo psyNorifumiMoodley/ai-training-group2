@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="2026-01-01-001-baseline-schema" author="platform-team">
+
+        <!-- app_user -->
+        <createTable tableName="app_user">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_app_user_email"/>
+            </column>
+            <column name="password_hash" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ"/>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <!-- candidate -->
+        <createTable tableName="candidate">
+            <column name="candidate_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"
+                             foreignKeyName="fk_candidate_app_user"
+                             references="app_user(id)"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ"/>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <!-- question_bank -->
+        <createTable tableName="question_bank">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ"/>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <!-- assessment_question (abstract, TABLE_PER_CLASS base) -->
+        <createTable tableName="assessment_question">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="dtype" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="question_bank_id" type="UUID">
+                <constraints foreignKeyName="fk_assessment_question_bank"
+                             references="question_bank(id)"/>
+            </column>
+            <column name="body" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ"/>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <!-- mcq_question -->
+        <createTable tableName="mcq_question">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"
+                             foreignKeyName="fk_mcq_question_assessment_question"
+                             references="assessment_question(id)"/>
+            </column>
+            <column name="options" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+            <column name="correct_answers" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- text_question -->
+        <createTable tableName="text_question">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"
+                             foreignKeyName="fk_text_question_assessment_question"
+                             references="assessment_question(id)"/>
+            </column>
+        </createTable>
+
+        <!-- doc_question -->
+        <createTable tableName="doc_question">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"
+                             foreignKeyName="fk_doc_question_assessment_question"
+                             references="assessment_question(id)"/>
+            </column>
+        </createTable>
+
+        <!-- question_group -->
+        <createTable tableName="question_group">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"
+                             foreignKeyName="fk_question_group_assessment_question"
+                             references="assessment_question(id)"/>
+            </column>
+        </createTable>
+
+        <!-- question_group_member (join table) -->
+        <createTable tableName="question_group_member">
+            <column name="group_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_qgm_group"
+                             references="question_group(id)"/>
+            </column>
+            <column name="question_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_qgm_question"
+                             references="assessment_question(id)"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="question_group_member" columnNames="group_id,question_id"
+                       constraintName="pk_question_group_member"/>
+
+        <!-- assessment -->
+        <createTable tableName="assessment">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="candidate_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_assessment_candidate"
+                             references="candidate(candidate_id)"/>
+            </column>
+            <column name="status" type="VARCHAR(50)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="invitation_token" type="TEXT"/>
+            <column name="time_limit_minutes" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="start_time" type="TIMESTAMPTZ"/>
+            <column name="auto_submitted" type="BOOLEAN" defaultValueBoolean="false"/>
+            <column name="created_at" type="TIMESTAMPTZ"/>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <!-- assessment_question_link (join table) -->
+        <createTable tableName="assessment_question_link">
+            <column name="assessment_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_aql_assessment"
+                             references="assessment(id)"/>
+            </column>
+            <column name="question_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_aql_question"
+                             references="assessment_question(id)"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="assessment_question_link" columnNames="assessment_id,question_id"
+                       constraintName="pk_assessment_question_link"/>
+
+        <!-- submission -->
+        <createTable tableName="submission">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="assessment_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             uniqueConstraintName="uq_submission_assessment"
+                             foreignKeyName="fk_submission_assessment"
+                             references="assessment(id)"/>
+            </column>
+            <column name="submitted_at" type="TIMESTAMPTZ">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ"/>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <!-- response (abstract base) -->
+        <createTable tableName="response">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="dtype" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="assessment_id" type="UUID">
+                <constraints foreignKeyName="fk_response_assessment"
+                             references="assessment(id)"/>
+            </column>
+            <column name="question_id" type="UUID">
+                <constraints foreignKeyName="fk_response_question"
+                             references="assessment_question(id)"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ"/>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <!-- mcq_response -->
+        <createTable tableName="mcq_response">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"
+                             foreignKeyName="fk_mcq_response_response"
+                             references="response(id)"/>
+            </column>
+            <column name="selected_answers" type="JSONB"/>
+            <column name="correct" type="BOOLEAN"/>
+        </createTable>
+
+        <!-- text_response -->
+        <createTable tableName="text_response">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"
+                             foreignKeyName="fk_text_response_response"
+                             references="response(id)"/>
+            </column>
+            <column name="answer" type="TEXT"/>
+        </createTable>
+
+        <!-- doc_response -->
+        <createTable tableName="doc_response">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"
+                             foreignKeyName="fk_doc_response_response"
+                             references="response(id)"/>
+            </column>
+            <column name="file_path" type="VARCHAR(1024)"/>
+        </createTable>
+
+        <!-- question_group_response -->
+        <createTable tableName="question_group_response">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"
+                             foreignKeyName="fk_qgr_response"
+                             references="response(id)"/>
+            </column>
+        </createTable>
+
+        <!-- feedback -->
+        <createTable tableName="feedback">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="assessment_id" type="UUID">
+                <constraints foreignKeyName="fk_feedback_assessment"
+                             references="assessment(id)"/>
+            </column>
+            <column name="question_id" type="UUID">
+                <constraints foreignKeyName="fk_feedback_question"
+                             references="assessment_question(id)"/>
+            </column>
+            <column name="draft" type="TEXT"/>
+            <column name="finalised" type="BOOLEAN" defaultValueBoolean="false"/>
+            <column name="created_at" type="TIMESTAMPTZ"/>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="feedback"/>
+            <dropTable tableName="question_group_response"/>
+            <dropTable tableName="doc_response"/>
+            <dropTable tableName="text_response"/>
+            <dropTable tableName="mcq_response"/>
+            <dropTable tableName="response"/>
+            <dropTable tableName="submission"/>
+            <dropTable tableName="assessment_question_link"/>
+            <dropTable tableName="assessment"/>
+            <dropTable tableName="question_group_member"/>
+            <dropTable tableName="question_group"/>
+            <dropTable tableName="doc_question"/>
+            <dropTable tableName="text_question"/>
+            <dropTable tableName="mcq_question"/>
+            <dropTable tableName="assessment_question"/>
+            <dropTable tableName="question_bank"/>
+            <dropTable tableName="candidate"/>
+            <dropTable tableName="app_user"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>
