@@ -1,2 +1,3 @@
 .idea/
 .claude/settings.local.json
+/.claude/tmp-epic-payload.json
