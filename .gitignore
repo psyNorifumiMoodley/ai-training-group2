@@ -1,2 +1,15 @@
 .idea/
 .claude/settings.local.json
+/.claude/tmp-epic-payload.json
+
+# Backend
+dap-backend/target/
+dap-backend/.mvn/wrapper/maven-wrapper.jar
+
+# Frontend
+dap-frontend/node_modules/
+dap-frontend/dist/
+dap-frontend/.angular/
+
+# Environment
+.env
