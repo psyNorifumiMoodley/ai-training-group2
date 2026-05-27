@@ -68,7 +68,6 @@
 | Service | Tool |
 |---|---|
 | Local dependencies | Docker / Docker Compose |
-| CI/CD | *(to be defined per project)* |
 
 ### Local Ports
 
