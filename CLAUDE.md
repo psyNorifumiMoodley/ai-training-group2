@@ -4,6 +4,14 @@ This file gives Claude context about the project. Read it fully before writing a
 
 ---
 
+## Workflow
+
+All work on this project is tracked via **Jira**. Every code change, feature, bug fix, or task must correspond to a Jira ticket. Branch names and commit messages should reference the Jira issue key (e.g., `ATG-123`).
+
+> **Reminder:** When you begin work on a task, move the corresponding Jira ticket to **In Progress**. When the work is complete, move it to **Done**.
+
+---
+
 ## What This Project Is
 
 A **Developer Assessment Platform** that enables companies to register candidates, build question banks, generate tailored technical assessments, distribute them securely via email, and evaluate submissions through automated MCQ marking and manual marker review.
