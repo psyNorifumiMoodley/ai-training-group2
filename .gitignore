@@ -13,3 +13,6 @@ dap-frontend/.angular/
 
 # Environment
 .env
+
+# SETUP
+AGENTS.md
