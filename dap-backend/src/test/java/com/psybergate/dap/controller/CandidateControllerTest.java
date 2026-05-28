@@ -64,7 +64,7 @@ class CandidateControllerTest {
         admin.setId(java.util.UUID.randomUUID());
         String token = jwtUtil.generateToken(admin);
 
-        CandidateRequest request = new CandidateRequest("Jane Doe", "jane@example.com", "password123");
+        CandidateRequest request = new CandidateRequest("Jane Doe", "jane@example.com");
 
         mockMvc.perform(post("/api/candidates")
                         .header("Authorization", "Bearer " + token)
@@ -83,7 +83,7 @@ class CandidateControllerTest {
         marker.setId(java.util.UUID.randomUUID());
         String token = jwtUtil.generateToken(marker);
 
-        CandidateRequest request = new CandidateRequest("Jane Doe", "jane@example.com", "password123");
+        CandidateRequest request = new CandidateRequest("Jane Doe", "jane@example.com");
 
         mockMvc.perform(post("/api/candidates")
                         .header("Authorization", "Bearer " + token)
@@ -94,7 +94,7 @@ class CandidateControllerTest {
 
     @Test
     void registerCandidate_withoutToken_returns401() throws Exception {
-        CandidateRequest request = new CandidateRequest("Jane Doe", "jane@example.com", "password123");
+        CandidateRequest request = new CandidateRequest("Jane Doe", "jane@example.com");
 
         mockMvc.perform(post("/api/candidates")
                         .contentType(MediaType.APPLICATION_JSON)

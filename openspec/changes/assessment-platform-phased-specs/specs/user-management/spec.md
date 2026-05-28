@@ -4,7 +4,7 @@
 An Admin SHALL be able to register a new Candidate by providing their details. Candidates cannot self-register.
 
 #### Scenario: Successful candidate registration
-- **WHEN** an authenticated Admin sends a POST to `/api/candidates` with a valid name, email, and password
+- **WHEN** an authenticated Admin sends a POST to `/api/candidates` with a valid name and email
 - **THEN** the response is HTTP 201 with the created candidate's UUID, name, and email; a corresponding `app_user` record with role `CANDIDATE` is persisted
 
 #### Scenario: Duplicate email is rejected
