@@ -26,12 +26,10 @@ export class CandidateFormComponent {
   readonly form = this.fb.nonNullable.group({
     name: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]],
   });
 
   get nameControl() { return this.form.controls.name; }
   get emailControl() { return this.form.controls.email; }
-  get passwordControl() { return this.form.controls.password; }
 
   submit(): void {
     if (this.form.invalid || this.submitting()) return;
