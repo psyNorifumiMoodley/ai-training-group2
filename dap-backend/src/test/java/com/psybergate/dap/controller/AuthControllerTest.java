@@ -3,6 +3,7 @@ package com.psybergate.dap.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.psybergate.dap.config.JwtAuthFilter;
 import com.psybergate.dap.config.JwtUtil;
+import com.psybergate.dap.config.PasswordEncoderConfig;
 import com.psybergate.dap.config.SecurityConfig;
 import com.psybergate.dap.domain.Role;
 import com.psybergate.dap.dto.LoginRequest;
@@ -26,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AuthController.class)
-@Import({SecurityConfig.class, JwtAuthFilter.class, JwtUtil.class})
+@Import({SecurityConfig.class, JwtAuthFilter.class, JwtUtil.class, PasswordEncoderConfig.class})
 @TestPropertySource(properties = {
         "jwt.secret=test-secret-key-that-is-long-enough-for-hs256-at-least-64-chars!",
         "jwt.expiration-hours=24"
