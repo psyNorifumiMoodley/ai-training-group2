@@ -1,8 +1,14 @@
 package com.psybergate.dap.service;
 
 import com.psybergate.dap.domain.*;
+import com.psybergate.dap.domain.GroupQuestion;
+import com.psybergate.dap.domain.TextQuestion;
+import com.psybergate.dap.domain.ValidationException;
 import com.psybergate.dap.dto.*;
 import com.psybergate.dap.repository.*;
+import com.psybergate.dap.repository.AssessmentQuestionRepository;
+import com.psybergate.dap.repository.GroupQuestionRepository;
+import com.psybergate.dap.repository.TextQuestionRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
