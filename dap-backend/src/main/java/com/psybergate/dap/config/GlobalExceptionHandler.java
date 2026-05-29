@@ -1,5 +1,6 @@
 package com.psybergate.dap.config;
 
+import com.psybergate.dap.domain.ConflictException;
 import com.psybergate.dap.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,12 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(400, "Bad Request", message, Instant.now()));
     }
 
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(409, "Conflict", ex.getMessage(), Instant.now()));
+    }
+
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(NoSuchElementException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -30,7 +37,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGeneral(Exception ex) {
+    public ResponseEntity<ErrorResponse> handleGeneral(Exception ex) throws Exception {
+        if (ex instanceof org.springframework.security.access.AccessDeniedException) {
+            throw ex;
+        }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse(500, "Internal Server Error", ex.getMessage(), Instant.now()));
     }

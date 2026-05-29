@@ -6,21 +6,31 @@ import com.psybergate.dap.config.JwtUtil;
 import com.psybergate.dap.config.PasswordEncoderConfig;
 import com.psybergate.dap.config.SecurityConfig;
 import com.psybergate.dap.domain.AppUser;
+import com.psybergate.dap.domain.ConflictException;
 import com.psybergate.dap.domain.Role;
 import com.psybergate.dap.dto.CandidateRequest;
+import com.psybergate.dap.dto.CandidateResponse;
+import com.psybergate.dap.dto.PageResponse;
 import com.psybergate.dap.service.AuthService;
+import com.psybergate.dap.service.CandidateService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,63 +52,100 @@ class CandidateControllerTest {
     @Autowired
     private JwtUtil jwtUtil;
 
-    @org.springframework.boot.test.mock.mockito.MockBean
+    @MockBean
     private AuthService authService;
 
+    @MockBean
+    private CandidateService candidateService;
+
+    private String adminToken;
+
     @BeforeEach
-    void stubUserDetailsService() {
+    void setUp() {
         when(authService.loadUserByUsername(anyString())).thenAnswer(inv -> {
             String email = inv.getArgument(0);
             Role role = email.startsWith("admin") ? Role.ADMIN
                     : email.startsWith("marker") ? Role.MARKER : Role.CANDIDATE;
             AppUser user = AppUser.builder().email(email).passwordHash("x").name("User").role(role).build();
-            user.setId(java.util.UUID.randomUUID());
+            user.setId(UUID.randomUUID());
             return user;
         });
+
+        AppUser admin = AppUser.builder()
+                .email("admin@example.com").passwordHash("x").name("Admin").role(Role.ADMIN).build();
+        admin.setId(UUID.randomUUID());
+        adminToken = jwtUtil.generateToken(admin);
     }
 
     @Test
-    void registerCandidate_asAdmin_returns201() throws Exception {
-        AppUser admin = AppUser.builder()
-                .email("admin@example.com").passwordHash("x").name("Admin").role(Role.ADMIN).build();
-        admin.setId(java.util.UUID.randomUUID());
-        String token = jwtUtil.generateToken(admin);
-
-        CandidateRequest request = new CandidateRequest("Jane Doe", "jane@example.com");
+    void register_asAdmin_returns201() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(candidateService.register(any(CandidateRequest.class)))
+                .thenReturn(new CandidateResponse(id, "Jane Doe", "jane@example.com"));
 
         mockMvc.perform(post("/api/candidates")
-                        .header("Authorization", "Bearer " + token)
+                        .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(new CandidateRequest("Jane Doe", "jane@example.com"))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.email").value("jane@example.com"))
                 .andExpect(jsonPath("$.name").value("Jane Doe"))
-                .andExpect(jsonPath("$.id").isNotEmpty());
+                .andExpect(jsonPath("$.id").value(id.toString()));
     }
 
     @Test
-    void registerCandidate_asMarker_returns403() throws Exception {
-        AppUser marker = AppUser.builder()
-                .email("marker@example.com").passwordHash("x").name("Marker").role(Role.MARKER).build();
-        marker.setId(java.util.UUID.randomUUID());
-        String token = jwtUtil.generateToken(marker);
-
-        CandidateRequest request = new CandidateRequest("Jane Doe", "jane@example.com");
+    void register_duplicateEmail_returns409() throws Exception {
+        when(candidateService.register(any(CandidateRequest.class)))
+                .thenThrow(new ConflictException("Email already registered: jane@example.com"));
 
         mockMvc.perform(post("/api/candidates")
-                        .header("Authorization", "Bearer " + token)
+                        .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(new CandidateRequest("Jane Doe", "jane@example.com"))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+    }
+
+    @Test
+    void register_missingEmail_returns400() throws Exception {
+        mockMvc.perform(post("/api/candidates")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Jane Doe\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void register_asMarker_returns403() throws Exception {
+        AppUser marker = AppUser.builder()
+                .email("marker@example.com").passwordHash("x").name("Marker").role(Role.MARKER).build();
+        marker.setId(UUID.randomUUID());
+
+        mockMvc.perform(post("/api/candidates")
+                        .header("Authorization", "Bearer " + jwtUtil.generateToken(marker))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CandidateRequest("Jane Doe", "jane@example.com"))))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void registerCandidate_withoutToken_returns401() throws Exception {
-        CandidateRequest request = new CandidateRequest("Jane Doe", "jane@example.com");
-
+    void register_withoutToken_returns401() throws Exception {
         mockMvc.perform(post("/api/candidates")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(new CandidateRequest("Jane Doe", "jane@example.com"))))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void list_asAdmin_returns200() throws Exception {
+        when(candidateService.listCandidates(0, 20))
+                .thenReturn(new PageResponse<>(List.of(), 0, 0));
+
+        mockMvc.perform(get("/api/candidates")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 }
