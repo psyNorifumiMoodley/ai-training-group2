@@ -1,15 +1,16 @@
-# Phase 2 — Question Bank
+# Phase 2 — Question Management
 
-> **Epic:** Phase 2 — Question Bank
-> **Delivery:** Slice 0 (including `AssessmentQuestion` abstract entity) merges first; all other slices run in parallel.
+> **Epic:** Phase 2 — Question Management
+> **Delivery:** Slice 0 merges first; remaining three slices run in parallel (one dev each).
 > **Dependency:** Phase 0 fully merged. Phase 1 not required.
+> **Note:** "Question Bank" is a conceptual term only — there is no `QuestionBank` entity in the domain. Questions are categorised via a `category` string field on `AssessmentQuestion`.
 
 ---
 
 ## Slice 0: Backend API Contracts + AssessmentQuestion Base *(merge first)*
 
 ### Agent Brief
-Define all Phase 2 DTOs, stub controllers, and — critically — the `AssessmentQuestion` abstract JPA entity. All concrete question-type slices (MCQ/Text, Doc/Group) extend `AssessmentQuestion`, so it must exist and compile before those slices branch. Also create the Angular `QuestionBankService` stub so the UI slice can start immediately.
+Define all Phase 2 DTOs, stub controllers, and — critically — the `AssessmentQuestion` abstract JPA entity. All concrete question-type slices depend on it compiling first. Also create the Angular `QuestionService` stub so the UI slice can start immediately.
 
 ### Package Tree Additions
 
@@ -20,19 +21,16 @@ src/main/java/com/psybergate/dap/
     AssessmentQuestion.java       ← abstract entity, TABLE_PER_CLASS
     QuestionType.java             ← enum: MCQ, TEXT, DOC, GROUP
   dto/
-    QuestionBankRequest.java      ← record { String name }
-    QuestionBankResponse.java     ← record { UUID id, String name }
-    McqQuestionRequest.java       ← record { String body, List<String> options, List<String> correctAnswers }
-    McqQuestionResponse.java      ← record { UUID id, QuestionType type, String body, List<String> options }
-    TextQuestionRequest.java      ← record { String body }
-    TextQuestionResponse.java     ← record { UUID id, QuestionType type, String body }
-    DocQuestionRequest.java       ← record { String body }
-    DocQuestionResponse.java      ← record { UUID id, QuestionType type, String body }
-    GroupQuestionRequest.java     ← record { String body, List<UUID> childQuestionIds }
-    GroupQuestionResponse.java    ← record { UUID id, QuestionType type, String body, List<UUID> childIds }
-    QuestionResponse.java         ← sealed interface / union response type
+    McqQuestionRequest.java       ← record { String category, String question, List<String> options, List<String> correctAnswers }
+    McqQuestionResponse.java      ← record { UUID id, QuestionType type, String category, String question, List<String> options, List<String> correctAnswers }
+    TextQuestionRequest.java      ← record { String category, String question, List<String> keywords }
+    TextQuestionResponse.java     ← record { UUID id, QuestionType type, String category, String question, List<String> keywords }
+    DocQuestionRequest.java       ← record { String category, String question }
+    DocQuestionResponse.java      ← record { UUID id, QuestionType type, String category, String question }
+    GroupQuestionRequest.java     ← record { String category, String question, boolean ordered, List<UUID> followUpQuestionIds }
+    GroupQuestionResponse.java    ← record { UUID id, QuestionType type, String category, String question, boolean ordered, List<TextQuestionResponse> followUpQuestions }
+    QuestionResponse.java         ← sealed interface; permits McqQuestionResponse, TextQuestionResponse, DocQuestionResponse, GroupQuestionResponse
   controller/
-    QuestionBankController.java   ← stub
     QuestionController.java       ← stub
 ```
 
@@ -41,22 +39,22 @@ src/main/java/com/psybergate/dap/
 src/app/
   core/
     services/
-      question-bank.service.ts    ← stub
+      question.service.ts         ← stub
     models/
-      question-bank.model.ts
+      question.model.ts
 ```
 
 ### Entities
 
 **`AssessmentQuestion`** — abstract base
 - Table strategy: `@Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)`
-- Annotations: `@Entity`, `@Table(name = "assessment_question")`
+- Annotations: `@Entity`
 - Extends: `BaseEntity`
 - Lombok: `@Getter @Setter @NoArgsConstructor @AllArgsConstructor`
 - Fields:
-  - `@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "question_bank_id") QuestionBank questionBank`
-  - `@Column(nullable = false, columnDefinition = "TEXT") String body`
-  - `@Enumerated(EnumType.STRING) QuestionType type`
+  - `@Column(nullable = false) String category`
+  - `@Column(nullable = false, columnDefinition = "TEXT") String question`
+  - `@Enumerated(EnumType.STRING) @Column(nullable = false) QuestionType type`
 
 ### Liquibase Changesets
 None — all question tables exist from Phase 0 baseline.
@@ -69,46 +67,39 @@ None in this slice.
 
 ### Controllers
 
-**`QuestionBankController`** — stubs
-```
-POST /api/question-banks       → 201 QuestionBankResponse (hardcoded)
-GET  /api/question-banks       → 200 PageResponse<QuestionBankResponse> (empty)
-```
-
 **`QuestionController`** — stubs
 ```
-POST /api/question-banks/{bankId}/questions  → 201 (hardcoded)
-GET  /api/question-banks/{bankId}/questions  → 200 PageResponse (empty)
+POST /api/questions              → 201 (hardcoded)
+GET  /api/questions              → 200 PageResponse (empty)
+GET  /api/questions/categories   → 200 List<String> (empty)
 ```
-Both secured with `@PreAuthorize("hasRole('MARKER')")`.
+All endpoints secured with `@PreAuthorize("hasAnyRole('MARKER', 'ADMIN')")`.
 
 ### Frontend Type Definitions
 ```typescript
-// core/models/question-bank.model.ts
+// core/models/question.model.ts
 export type QuestionType = 'MCQ' | 'TEXT' | 'DOC' | 'GROUP';
 
-export interface QuestionBankRequest { name: string; }
-export interface QuestionBankResponse { id: string; name: string; }
+export interface McqQuestionRequest  { category: string; question: string; options: string[]; correctAnswers: string[]; }
+export interface TextQuestionRequest { category: string; question: string; keywords: string[]; }
+export interface DocQuestionRequest  { category: string; question: string; }
+export interface GroupQuestionRequest { category: string; question: string; ordered: boolean; followUpQuestionIds: string[]; }
 
-export interface McqQuestionRequest { body: string; options: string[]; correctAnswers: string[]; }
-export interface TextQuestionRequest { body: string; }
-export interface DocQuestionRequest  { body: string; }
-export interface GroupQuestionRequest { body: string; childQuestionIds: string[]; }
-
-export interface BaseQuestionResponse { id: string; type: QuestionType; body: string; }
-export interface McqQuestionResponse extends BaseQuestionResponse { options: string[]; }
-export interface GroupQuestionResponse extends BaseQuestionResponse { childIds: string[]; }
-export type QuestionResponse = McqQuestionResponse | BaseQuestionResponse | GroupQuestionResponse;
+export interface BaseQuestionResponse { id: string; type: QuestionType; category: string; question: string; }
+export interface McqQuestionResponse  extends BaseQuestionResponse { options: string[]; correctAnswers: string[]; }
+export interface TextQuestionResponse extends BaseQuestionResponse { keywords: string[]; }
+export interface DocQuestionResponse  extends BaseQuestionResponse {}
+export interface GroupQuestionResponse extends BaseQuestionResponse { ordered: boolean; followUpQuestions: TextQuestionResponse[]; }
+export type QuestionResponse = McqQuestionResponse | TextQuestionResponse | DocQuestionResponse | GroupQuestionResponse;
 ```
 
 ### Frontend Services
 
-**`QuestionBankService`** — stubs returning `EMPTY`
+**`QuestionService`** — stubs returning `EMPTY`
 ```typescript
-createBank(request: QuestionBankRequest): Observable<QuestionBankResponse>
-getBanks(page: number, size: number): Observable<PageResponse<QuestionBankResponse>>
-addQuestion(bankId: string, request: unknown): Observable<QuestionResponse>
-getQuestions(bankId: string, page: number, size: number): Observable<PageResponse<QuestionResponse>>
+createQuestion(request: McqQuestionRequest | TextQuestionRequest | DocQuestionRequest | GroupQuestionRequest): Observable<QuestionResponse>
+getQuestions(page: number, size: number, category?: string): Observable<PageResponse<QuestionResponse>>
+getCategories(): Observable<string[]>
 ```
 
 ### Frontend Components
@@ -124,94 +115,15 @@ None.
 ### Done When
 - `AssessmentQuestion` abstract entity compiles with `TABLE_PER_CLASS` inheritance
 - Stub controllers return hardcoded 201/200 with MARKER role JWT
-- Non-MARKER callers receive 403
-- Angular `QuestionBankService` compiles with correct type signatures
+- Non-MARKER/ADMIN callers receive 403
+- Angular `QuestionService` compiles with correct type signatures
 
 ---
 
-## Slice: Question Bank CRUD
+## Slice: MCQuestion + DocQuestion
 
 ### Agent Brief
-Implement full persistence for `QuestionBank`. A question bank is a named container owned (implicitly) by markers. Implement create and paginated list. `QuestionBankController` is already stubbed — replace its service calls with the real implementation.
-
-### Package Tree Additions
-
-**Backend**
-```
-src/main/java/com/psybergate/dap/
-  domain/
-    QuestionBank.java
-  repository/
-    QuestionBankRepository.java
-  service/
-    QuestionBankService.java
-```
-
-### Entities
-
-**`QuestionBank`**
-- Table: `question_bank`
-- Extends: `BaseEntity`
-- Lombok: `@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor`
-- Fields:
-  - `@Column(nullable = false) String name`
-  - `@OneToMany(mappedBy = "questionBank", fetch = FetchType.LAZY) List<AssessmentQuestion> questions`
-  - `@ToString.Exclude` on `questions`
-
-### Liquibase Changesets
-None.
-
-### Repositories
-
-**`QuestionBankRepository extends JpaRepository<QuestionBank, UUID>`**
-```java
-Page<QuestionBank> findAll(Pageable pageable);
-boolean existsById(UUID id);
-```
-
-### Services
-
-**`QuestionBankService`**
-```java
-QuestionBankResponse create(QuestionBankRequest request);
-// Saves new QuestionBank; returns response
-
-PageResponse<QuestionBankResponse> list(int page, int size);
-
-QuestionBank getOrThrow(UUID id);
-// Used internally by QuestionService; throws NotFoundException if not found
-```
-
-### Controllers
-`QuestionBankController` wired to `QuestionBankService` (replace stubs).
-
-### Frontend Type Definitions
-Already defined in Slice 0.
-
-### Frontend Services
-Real implementation in Angular UI slice.
-
-### Frontend Components
-None.
-
-### Route Additions
-None.
-
-### Testing
-- `QuestionBankRepositoryTest` (`@DataJpaTest`): save and retrieve; `findAll` pagination
-- `QuestionBankServiceTest` (unit): create → persists; `getOrThrow` → throws `NotFoundException` for unknown UUID
-- `QuestionBankControllerTest` (`@WebMvcTest`): POST → 201; GET paginated → 200; CANDIDATE JWT → 403
-
-### Done When
-- `POST /api/question-banks` creates and returns a question bank
-- `GET /api/question-banks?page=0&size=20` returns paginated list
-
----
-
-## Slice: MCQ and Text Questions
-
-### Agent Brief
-Implement `McqQuestion` and `TextQuestion` concrete entities extending `AssessmentQuestion`. Wire question creation for these two types through `QuestionService` and `QuestionController`. MCQ validation rule: at least one correct answer required; correct answers must be a subset of provided options.
+Implement `McqQuestion` and `DocQuestion` concrete entities extending `AssessmentQuestion`. Wire question creation and listing for both types through `QuestionService` and `QuestionController`. MCQ validation: at least one option required; at least one correct answer required; correct answers must be a strict subset of provided options.
 
 ### Package Tree Additions
 
@@ -220,7 +132,7 @@ Implement `McqQuestion` and `TextQuestion` concrete entities extending `Assessme
 src/main/java/com/psybergate/dap/
   domain/
     McqQuestion.java
-    TextQuestion.java
+    DocQuestion.java
   repository/
     AssessmentQuestionRepository.java
   service/
@@ -230,13 +142,15 @@ src/main/java/com/psybergate/dap/
 ### Entities
 
 **`McqQuestion extends AssessmentQuestion`**
-- Table: `mcq_question` (TABLE_PER_CLASS)
+- Table: `mcq_question` (TABLE_PER_CLASS — owns all base columns)
+- Lombok: `@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor`
 - Fields:
-  - `@JdbcTypeCode(SqlTypes.JSON) @Column(columnDefinition = "jsonb") List<String> options`
-  - `@JdbcTypeCode(SqlTypes.JSON) @Column(columnDefinition = "jsonb") List<String> correctAnswers`
+  - `@JdbcTypeCode(SqlTypes.JSON) @Column(columnDefinition = "jsonb", nullable = false) List<String> options`
+  - `@JdbcTypeCode(SqlTypes.JSON) @Column(columnDefinition = "jsonb", nullable = false) List<String> correctAnswers`
 
-**`TextQuestion extends AssessmentQuestion`**
-- Table: `text_question`
+**`DocQuestion extends AssessmentQuestion`**
+- Table: `doc_question` (TABLE_PER_CLASS — owns all base columns)
+- Lombok: `@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor`
 - No additional fields
 
 ### Liquibase Changesets
@@ -246,33 +160,39 @@ None.
 
 **`AssessmentQuestionRepository extends JpaRepository<AssessmentQuestion, UUID>`**
 ```java
-Page<AssessmentQuestion> findByQuestionBankId(UUID bankId, Pageable pageable);
-List<AssessmentQuestion> findAllByIdIn(List<UUID> ids);
+Page<AssessmentQuestion> findByCategoryIgnoreCase(String category, Pageable pageable);
+
+// Polymorphic query across all concrete tables via TABLE_PER_CLASS union:
+@Query("SELECT DISTINCT q.category FROM AssessmentQuestion q ORDER BY q.category ASC")
+List<String> findDistinctCategories();
 ```
 
 ### Services
 
-**`QuestionService`**
+**`QuestionService`** (initial — MCQ and DOC types only)
 ```java
-QuestionResponse addQuestion(UUID bankId, Object request);
-// Dispatches based on request type; validates bank exists via QuestionBankService.getOrThrow()
-// MCQ: validates correctAnswers non-empty and subset of options
-// TEXT: validates body non-empty
+QuestionResponse addQuestion(Object request);
+// Dispatches on request type; validates per-type rules
+// MCQ: options non-empty; correctAnswers non-empty and a subset of options
+// DOC: question non-empty
 
-McqQuestion createMcq(UUID bankId, McqQuestionRequest request);
-TextQuestion createText(UUID bankId, TextQuestionRequest request);
+McqQuestion createMcq(McqQuestionRequest request);
+DocQuestion createDoc(DocQuestionRequest request);
 
-PageResponse<QuestionResponse> listQuestions(UUID bankId, int page, int size);
+PageResponse<QuestionResponse> listQuestions(String category, int page, int size);
+// category null → all questions; category provided → filter by category (case-insensitive)
+
+List<String> listCategories();
 ```
 
 ### Controllers
-`QuestionController` wired to `QuestionService` for MCQ and TEXT types.
+`QuestionController` wired to `QuestionService` for MCQ and DOC types.
 
 ### Frontend Type Definitions
 Already defined in Slice 0.
 
 ### Frontend Services
-Real implementation in Angular UI slice.
+Real implementation deferred to Angular UI slice.
 
 ### Frontend Components
 None.
@@ -281,21 +201,23 @@ None.
 None.
 
 ### Testing
-- `McqQuestionTest` (unit): zero correct answers → `ValidationException`; correct answer not in options → `ValidationException`
-- `QuestionServiceTest` (unit): MCQ and text creation → correct entity type persisted
-- `QuestionControllerTest` (`@WebMvcTest`): POST MCQ → 201; POST TEXT → 201; zero correctAnswers → 400
+- `McqQuestionTest` (unit): empty options → `ValidationException`; empty correctAnswers → `ValidationException`; correctAnswer not in options → `ValidationException`
+- `QuestionServiceTest` (unit): MCQ and DOC creation → correct entity type persisted
+- `QuestionControllerTest` (`@WebMvcTest`): POST MCQ → 201; POST DOC → 201; zero correctAnswers → 400; CANDIDATE JWT → 403
 
 ### Done When
-- `POST /api/question-banks/{bankId}/questions` with `type=MCQ` persists `mcq_question` row
-- `POST /api/question-banks/{bankId}/questions` with `type=TEXT` persists `text_question` row
+- `POST /api/questions` with `type=MCQ` persists `mcq_question` row
+- `POST /api/questions` with `type=DOC` persists `doc_question` row
 - Zero correctAnswers returns 400
+- `GET /api/questions?category=Java` returns only questions in that category
+- `GET /api/questions/categories` returns sorted, distinct category strings
 
 ---
 
-## Slice: Doc and Group Questions
+## Slice: TextQuestion + GroupQuestion
 
 ### Agent Brief
-Implement `DocQuestion` and `QuestionGroup` concrete entities. Doc questions have no special fields beyond the base entity. Question groups reference child question IDs — all child IDs must resolve to existing questions in the same bank.
+Implement `TextQuestion` and `GroupQuestion`. `TextQuestion` carries a `keywords` list as a guide for markers when evaluating open-ended responses. `GroupQuestion` extends `TextQuestion` (and thus `AssessmentQuestion`) but does not use the inherited `keywords` field — instead it holds an ordered or unordered collection of `TextQuestion` follow-up questions, controlled by a boolean `ordered` flag set at creation time.
 
 ### Package Tree Additions
 
@@ -303,47 +225,73 @@ Implement `DocQuestion` and `QuestionGroup` concrete entities. Doc questions hav
 ```
 src/main/java/com/psybergate/dap/
   domain/
-    DocQuestion.java
-    QuestionGroup.java
+    TextQuestion.java
+    GroupQuestion.java
 ```
 
 ### Entities
 
-**`DocQuestion extends AssessmentQuestion`**
-- Table: `doc_question`
-- No additional fields
-
-**`QuestionGroup extends AssessmentQuestion`**
-- Table: `question_group`
+**`TextQuestion extends AssessmentQuestion`**
+- Table: `text_question` (TABLE_PER_CLASS — owns all base columns)
+- Lombok: `@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor`
 - Fields:
-  - `@ManyToMany(fetch = FetchType.LAZY) @JoinTable(name = "question_group_member", joinColumns = @JoinColumn(name = "group_id"), inverseJoinColumns = @JoinColumn(name = "question_id")) List<AssessmentQuestion> children`
-  - `@ToString.Exclude` on `children`
+  - `@JdbcTypeCode(SqlTypes.JSON) @Column(columnDefinition = "jsonb") List<String> keywords` — optional; may be empty
+
+**`GroupQuestion extends TextQuestion`**
+- Table: `group_question` (TABLE_PER_CLASS — inherits all `TextQuestion` columns; `keywords` column is always null for group rows)
+- Lombok: `@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor`
+- Fields:
+  - `@Column(nullable = false) boolean ordered` — if `true`, the order of `followUpQuestions` is preserved and must be respected at assessment generation time
+  - `@ManyToMany(fetch = FetchType.LAZY) @JoinTable(name = "group_question_follow_up", joinColumns = @JoinColumn(name = "group_id"), inverseJoinColumns = @JoinColumn(name = "question_id")) @OrderColumn(name = "display_order") List<TextQuestion> followUpQuestions`
+  - `@ToString.Exclude` on `followUpQuestions`
+
+> The `@OrderColumn` always persists `display_order` in the join table. The `ordered` flag is business metadata that determines whether callers and assessment generators respect that order.
 
 ### Liquibase Changesets
-None.
+
+**`2026-05-29-001-group-question-follow-up-join-table`**
+```sql
+CREATE TABLE group_question_follow_up (
+    group_id      UUID    NOT NULL REFERENCES group_question(id),
+    question_id   UUID    NOT NULL REFERENCES text_question(id),
+    display_order INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (group_id, question_id)
+);
+```
+Rollback: `DROP TABLE group_question_follow_up;`
 
 ### Repositories
-Uses `AssessmentQuestionRepository` (already created in MCQ/Text slice).
+Uses `AssessmentQuestionRepository` (created in MCQ/Doc slice).
+
+Add to `AssessmentQuestionRepository`:
+```java
+@Query("SELECT q FROM TextQuestion q WHERE q.id IN :ids")
+List<TextQuestion> findTextQuestionsByIds(@Param("ids") List<UUID> ids);
+// Used by GroupQuestion creation to validate followUpQuestionIds
+```
 
 ### Services
 
 Extend `QuestionService`:
 ```java
-DocQuestion createDoc(UUID bankId, DocQuestionRequest request);
+TextQuestion createText(TextQuestionRequest request);
 
-QuestionGroup createGroup(UUID bankId, GroupQuestionRequest request);
-// Validates all childQuestionIds exist in the same bankId
-// Throws ValidationException if any child ID not found in bank
+GroupQuestion createGroup(GroupQuestionRequest request);
+// Fetches TextQuestions for all followUpQuestionIds
+// Throws ValidationException if any ID does not resolve to a TextQuestion
+// Preserves insertion order when saving followUpQuestions list
+
+PageResponse<QuestionResponse> listQuestions(...);  // already implemented — no change needed
 ```
 
 ### Controllers
-`QuestionController` extended to handle `DOC` and `GROUP` types.
+`QuestionController` extended to handle `TEXT` and `GROUP` types.
 
 ### Frontend Type Definitions
 Already defined in Slice 0.
 
 ### Frontend Services
-Real implementation in Angular UI slice.
+Real implementation deferred to Angular UI slice.
 
 ### Frontend Components
 None.
@@ -352,41 +300,42 @@ None.
 None.
 
 ### Testing
-- `DocQuestionTest` (unit): creates doc question with body
-- `QuestionGroupTest` (unit): unknown child question ID → `ValidationException`; child from different bank → `ValidationException`
-- `QuestionControllerTest` additions: POST DOC → 201; POST GROUP with valid children → 201; invalid child ID → 400
+- `TextQuestionTest` (unit): creates text question with keywords; creates with empty keywords list
+- `GroupQuestionTest` (unit): unknown `followUpQuestionId` → `ValidationException`; ID that resolves to non-TextQuestion type → `ValidationException`
+- `QuestionControllerTest` additions: POST TEXT → 201; POST GROUP with valid `followUpQuestionIds` → 201; invalid ID → 400
+- Integration test: `group_question` row has null `keywords` column
 
 ### Done When
-- `POST .../questions` with `type=DOC` persists `doc_question` row
-- `POST .../questions` with `type=GROUP` and valid children persists group + `question_group_member` rows
-- Invalid child ID returns 400
+- `POST /api/questions` with `type=TEXT` persists `text_question` row with keywords JSONB
+- `POST /api/questions` with `type=GROUP` with valid `followUpQuestionIds` persists `group_question` row and `group_question_follow_up` rows with `display_order`
+- Invalid or non-TextQuestion `followUpQuestionId` returns 400
 
 ---
 
-## Slice: Angular Question Bank UI
+## Slice: Angular Question UI
 
 ### Agent Brief
-Build the Angular screens for Markers to manage question banks and add questions. Replace all `QuestionBankService` stubs with real HTTP calls. The question creation form is dynamic — the selected question type determines which fields render.
+Build the Angular screens for Markers to manage questions. Replace all `QuestionService` stubs with real HTTP calls. The question creation form is dynamic — the selected type determines which fields render. Questions are browsable by category via a filter dropdown.
 
 ### Package Tree Additions
 
 **Frontend**
 ```
-src/app/features/question-bank/
+src/app/features/question-management/
   components/
-    question-bank-list/
-      question-bank-list.component.ts
-      question-bank-list.component.html
-    question-bank-detail/
-      question-bank-detail.component.ts
-      question-bank-detail.component.html
+    question-list/
+      question-list.component.ts
+      question-list.component.html
     question-form/
       question-form.component.ts
       question-form.component.html
     mcq-option-builder/
       mcq-option-builder.component.ts
       mcq-option-builder.component.html
-  question-bank.routes.ts
+    keyword-list/
+      keyword-list.component.ts
+      keyword-list.component.html
+  question-management.routes.ts
 ```
 
 ### Entities
@@ -406,66 +355,65 @@ Already defined in Slice 0.
 
 ### Frontend Services
 
-**`QuestionBankService`** — real implementation:
+**`QuestionService`** — real implementation:
 ```typescript
-createBank(request: QuestionBankRequest): Observable<QuestionBankResponse>
-// POST /api/question-banks
+createQuestion(request: McqQuestionRequest | TextQuestionRequest | DocQuestionRequest | GroupQuestionRequest): Observable<QuestionResponse>
+// POST /api/questions
 
-getBanks(page: number, size: number): Observable<PageResponse<QuestionBankResponse>>
-// GET /api/question-banks?page=&size=
+getQuestions(page: number, size: number, category?: string): Observable<PageResponse<QuestionResponse>>
+// GET /api/questions?page=&size=[&category=]
 
-addQuestion(bankId: string, type: QuestionType, request: unknown): Observable<QuestionResponse>
-// POST /api/question-banks/{bankId}/questions
-
-getQuestions(bankId: string, page: number, size: number): Observable<PageResponse<QuestionResponse>>
-// GET /api/question-banks/{bankId}/questions?page=&size=
+getCategories(): Observable<string[]>
+// GET /api/questions/categories
 ```
 
 ### Frontend Components
 
-**`QuestionBankListComponent`**
+**`QuestionListComponent`**
 - `changeDetection: OnPush`
-- Lists all question banks with name and question count
-- "Create Question Bank" button → inline form or modal
-- Navigates to `QuestionBankDetailComponent` on row click
-
-**`QuestionBankDetailComponent`**
-- Receives `bankId` as route param (`input()` signal)
-- Shows bank name, paginated question list
+- Shows paginated question list (type badge, category, question text per row)
+- Category filter dropdown populated from `getCategories()`; selecting a category re-fetches with `?category=X`
 - "Add Question" button opens `QuestionFormComponent`
 
 **`QuestionFormComponent`**
 - Type selector: MCQ | TEXT | DOC | GROUP
 - Reactive form — fields rendered conditionally based on `type` signal:
-  - MCQ: body + dynamic option list + correct-answer toggle
-  - TEXT / DOC: body only
-  - GROUP: body + child question picker (select from existing bank questions)
+  - **MCQ**: category + question + `McqOptionBuilderComponent`
+  - **TEXT**: category + question + `KeywordListComponent` (optional)
+  - **DOC**: category + question only
+  - **GROUP**: category + question + `ordered` toggle + multi-select picker for existing TextQuestions (loaded from `getQuestions()` filtered to `type=TEXT`)
 - Emits `questionAdded` output signal on success
 
 **`McqOptionBuilderComponent`**
 - Manages a dynamic list of option strings
 - Toggle per option: "mark as correct answer" (supports multi-correct)
-- Validates: at least one option, at least one marked correct
+- Validates: at least one option, at least one marked correct; submit disabled until valid
+
+**`KeywordListComponent`**
+- Manages a dynamic list of keyword strings (chip/tag UI)
+- Optional — markers can submit with an empty keyword list
 
 ### Route Additions
 ```typescript
-// question-bank.routes.ts
-export const questionBankRoutes: Routes = [
-  { path: '', component: QuestionBankListComponent, canActivate: [RoleGuard], data: { role: 'MARKER' } },
-  { path: ':bankId', component: QuestionBankDetailComponent, canActivate: [RoleGuard], data: { role: 'MARKER' } }
+// question-management.routes.ts
+export const questionManagementRoutes: Routes = [
+  { path: '', component: QuestionListComponent, canActivate: [RoleGuard], data: { role: 'MARKER' } }
 ];
 
 // app.routes.ts
-{ path: 'question-banks', loadChildren: () => import('./features/question-bank/question-bank.routes') }
+{ path: 'questions', loadChildren: () => import('./features/question-management/question-management.routes') }
 ```
 
 ### Testing
-- `QuestionBankService` unit test: each method maps to the correct HTTP call
+- `QuestionService` unit test: each method maps to the correct HTTP call; `category` query param included when provided
 - `QuestionFormComponent` unit test: type change re-renders correct fields; MCQ with no correct answer disables submit; valid MCQ form calls service
-- `McqOptionBuilderComponent` unit test: adds options; toggles correct answer; emits correct value
+- `McqOptionBuilderComponent` unit test: adds options; toggles correct answer; disables submit when none correct; emits correct value
+- `KeywordListComponent` unit test: adds and removes keywords; emits current list
 
 ### Done When
-- Marker navigates to `/question-banks`, sees list, creates a new bank
-- Marker clicks into a bank, sees questions, adds MCQ/text/doc/group questions via form
-- MCQ form prevents submission with no correct answer selected
+- Marker navigates to `/questions` and sees a paginated question list
+- Marker filters questions by category using the dropdown
+- Marker creates MCQ, TEXT, DOC, and GROUP questions via the type-specific form
+- MCQ form prevents submission when no correct answer is selected
+- GROUP form allows selecting existing TextQuestions as follow-up questions, with an ordered toggle
 - All API calls succeed end-to-end against the real backend
