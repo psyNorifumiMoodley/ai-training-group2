@@ -95,7 +95,7 @@ class RbacPhase1Test {
 
     @Test
     void registerCandidate_asCandidate_returns403() throws Exception {
-        CandidateRequest req = new CandidateRequest("Jane Doe", "jane@test.com", "password123");
+        CandidateRequest req = new CandidateRequest("Jane Doe", "jane@test.com");
         mockMvc.perform(post("/api/candidates")
                         .header("Authorization", "Bearer " + candidateToken)
                         .contentType(MediaType.APPLICATION_JSON)
