@@ -17,7 +17,7 @@ Define all DTOs and stub controllers for Phase 1 so that the Angular UI slice an
 ```
 src/main/java/com/psybergate/dap/
   dto/
-    CandidateRequest.java         ← record { String name, String email, String password }
+    CandidateRequest.java         ← record { String name, String email }
     CandidateResponse.java        ← record { UUID id, String name, String email }
     MarkerRequest.java            ← record { String name, String email, String password }
     MarkerResponse.java           ← record { UUID id, String name, String email }
@@ -68,7 +68,7 @@ Both secured with `@PreAuthorize("hasRole('ADMIN')")` — returns 403 for non-ad
 ### Frontend Type Definitions
 ```typescript
 // core/models/user.model.ts
-export interface CandidateRequest { name: string; email: string; password: string; }
+export interface CandidateRequest { name: string; email: string; }
 export interface CandidateResponse { id: string; name: string; email: string; }
 export interface MarkerRequest { name: string; email: string; password: string; }
 export interface MarkerResponse { id: string; name: string; email: string; }
@@ -150,8 +150,7 @@ Page<Candidate> findAll(Pageable pageable);
 ```java
 CandidateResponse register(CandidateRequest request);
 // Checks AppUserRepository.existsByEmail → throws ConflictException (409) if taken
-// Hashes password with BCryptPasswordEncoder
-// Saves AppUser(role=CANDIDATE) then Candidate
+// Saves AppUser(role=CANDIDATE, passwordHash=random unusable hash) then Candidate
 // Returns CandidateResponse mapped from saved entity
 
 PageResponse<CandidateResponse> listCandidates(int page, int size);
@@ -403,7 +402,7 @@ getMarkers(page: number, size: number): Observable<PageResponse<MarkerResponse>>
 - Uses `takeUntilDestroyed()` for subscription cleanup
 
 **`CandidateFormComponent`**
-- Reactive form: `name (required)`, `email (required, email validator)`, `password (required, minLength 8)`
+- Reactive form: `name (required)`, `email (required, email validator)`
 - Inline validation messages per field
 - On submit: calls `UserService.registerCandidate()`, refreshes list on success, shows error message on 409
 
