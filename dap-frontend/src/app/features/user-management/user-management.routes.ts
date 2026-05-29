@@ -4,8 +4,8 @@ import { CandidateListComponent } from './components/candidate-list/candidate-li
 import { MarkerListComponent } from './components/marker-list/marker-list.component';
 
 const userManagementRoutes: Routes = [
-  { path: '', component: CandidateListComponent, canActivate: [roleGuard], data: { role: 'ADMIN' } },
-  { path: 'markers', component: MarkerListComponent, canActivate: [roleGuard], data: { role: 'ADMIN' } },
+  { path: '', component: CandidateListComponent, canActivate: [roleGuard], data: { roles: ['ADMIN', 'MARKER'] } },
+  { path: 'markers', component: MarkerListComponent, canActivate: [roleGuard], data: { roles: ['ADMIN'] } },
 ];
 
 export default userManagementRoutes;
