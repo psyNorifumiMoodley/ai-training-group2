@@ -10,5 +10,5 @@ public record GroupQuestionRequest(
         @NotBlank String question,
         boolean ordered,
         List<UUID> followUpQuestionIds
-) {
+) implements QuestionRequest {
 }

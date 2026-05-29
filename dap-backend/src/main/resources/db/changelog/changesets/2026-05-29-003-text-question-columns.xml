@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Restructures text_question for TABLE_PER_CLASS inheritance.
+        The baseline created text_question with only an id FK to assessment_question.
+        TABLE_PER_CLASS requires each concrete table to contain all inherited columns.
+        Drop the FK and add the missing columns so Hibernate validation passes.
+    -->
+    <changeSet id="2026-05-29-003-text-question-columns" author="gregory.robson">
+
+        <dropForeignKeyConstraint baseTableName="text_question"
+                                  constraintName="fk_text_question_assessment_question"/>
+
+        <addColumn tableName="text_question">
+            <column name="category" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="text_question">
+            <column name="question" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="text_question">
+            <column name="created_at" type="TIMESTAMPTZ"/>
+        </addColumn>
+
+        <addColumn tableName="text_question">
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </addColumn>
+
+        <addColumn tableName="text_question">
+            <column name="keywords" type="JSONB"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="text_question" columnName="keywords"/>
+            <dropColumn tableName="text_question" columnName="updated_at"/>
+            <dropColumn tableName="text_question" columnName="created_at"/>
+            <dropColumn tableName="text_question" columnName="question"/>
+            <dropColumn tableName="text_question" columnName="category"/>
+            <addForeignKeyConstraint baseTableName="text_question"
+                                     baseColumnNames="id"
+                                     constraintName="fk_text_question_assessment_question"
+                                     referencedTableName="assessment_question"
+                                     referencedColumnNames="id"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

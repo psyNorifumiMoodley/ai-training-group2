@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="2026-05-29-005-group-question-follow-up-join-table" author="gregory.robson">
+
+        <createTable tableName="group_question_follow_up">
+            <column name="group_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_gqfu_group"
+                             references="group_question(id)"/>
+            </column>
+            <column name="question_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_gqfu_question"
+                             references="text_question(id)"/>
+            </column>
+            <column name="display_order" type="INTEGER" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <addPrimaryKey tableName="group_question_follow_up"
+                       columnNames="group_id,question_id"
+                       constraintName="pk_group_question_follow_up"/>
+
+        <rollback>
+            <dropTable tableName="group_question_follow_up"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>
