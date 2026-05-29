@@ -19,16 +19,15 @@ Define all Phase 2 DTOs, stub controllers, and — critically — the `Assessmen
 src/main/java/com/psybergate/dap/
   domain/
     AssessmentQuestion.java       ← abstract entity, TABLE_PER_CLASS
-    QuestionType.java             ← enum: MCQ, TEXT, DOC, GROUP
   dto/
     McqQuestionRequest.java       ← record { String category, String question, List<String> options, List<String> correctAnswers }
-    McqQuestionResponse.java      ← record { UUID id, QuestionType type, String category, String question, List<String> options, List<String> correctAnswers }
+    McqQuestionResponse.java      ← record { UUID id, String category, String question, List<String> options, List<String> correctAnswers }
     TextQuestionRequest.java      ← record { String category, String question, List<String> keywords }
-    TextQuestionResponse.java     ← record { UUID id, QuestionType type, String category, String question, List<String> keywords }
+    TextQuestionResponse.java     ← record { UUID id, String category, String question, List<String> keywords }
     DocQuestionRequest.java       ← record { String category, String question }
-    DocQuestionResponse.java      ← record { UUID id, QuestionType type, String category, String question }
+    DocQuestionResponse.java      ← record { UUID id, String category, String question }
     GroupQuestionRequest.java     ← record { String category, String question, boolean ordered, List<UUID> followUpQuestionIds }
-    GroupQuestionResponse.java    ← record { UUID id, QuestionType type, String category, String question, boolean ordered, List<TextQuestionResponse> followUpQuestions }
+    GroupQuestionResponse.java    ← record { UUID id, String category, String question, boolean ordered, List<TextQuestionResponse> followUpQuestions }
     QuestionResponse.java         ← sealed interface; permits McqQuestionResponse, TextQuestionResponse, DocQuestionResponse, GroupQuestionResponse
   controller/
     QuestionController.java       ← stub
@@ -78,14 +77,12 @@ All endpoints secured with `@PreAuthorize("hasAnyRole('MARKER', 'ADMIN')")`.
 ### Frontend Type Definitions
 ```typescript
 // core/models/question.model.ts
-export type QuestionType = 'MCQ' | 'TEXT' | 'DOC' | 'GROUP';
-
 export interface McqQuestionRequest  { category: string; question: string; options: string[]; correctAnswers: string[]; }
 export interface TextQuestionRequest { category: string; question: string; keywords: string[]; }
 export interface DocQuestionRequest  { category: string; question: string; }
 export interface GroupQuestionRequest { category: string; question: string; ordered: boolean; followUpQuestionIds: string[]; }
 
-export interface BaseQuestionResponse { id: string; type: QuestionType; category: string; question: string; }
+export interface BaseQuestionResponse { id: string; category: string; question: string; }
 export interface McqQuestionResponse  extends BaseQuestionResponse { options: string[]; correctAnswers: string[]; }
 export interface TextQuestionResponse extends BaseQuestionResponse { keywords: string[]; }
 export interface DocQuestionResponse  extends BaseQuestionResponse {}
