@@ -39,7 +39,10 @@ export class LoginComponent {
       .subscribe({
         next: () => {
           this.submitting.set(false);
-          this.router.navigateByUrl('/admin/users');
+          const role = this.authService.currentUser()?.role;
+          if (role === 'ADMIN' || role === 'MARKER') {
+            this.router.navigateByUrl('/admin/users');
+          }
         },
         error: (err: HttpErrorResponse) => {
           this.submitting.set(false);
