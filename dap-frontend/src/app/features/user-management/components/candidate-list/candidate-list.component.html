@@ -1,0 +1,53 @@
+<div class="p-6">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-xl font-semibold text-gray-900">Candidates</h1>
+    <button (click)="openForm()"
+            class="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700">
+      <i class="pi pi-plus"></i> Register Candidate
+    </button>
+  </div>
+
+  @if (loading()) {
+    <p class="text-sm text-gray-500">Loading...</p>
+  } @else if (candidates().length === 0) {
+    <p class="text-sm text-gray-500">No candidates registered yet.</p>
+  } @else {
+    <table class="w-full text-sm border-collapse">
+      <thead>
+        <tr class="border-b text-left text-gray-500 font-medium">
+          <th class="pb-2 pr-4">Name</th>
+          <th class="pb-2">Email</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (candidate of candidates(); track candidate.id) {
+          <tr class="border-b last:border-0 hover:bg-gray-50">
+            <td class="py-3 pr-4">{{ candidate.name }}</td>
+            <td class="py-3">{{ candidate.email }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    @if (totalPages() > 1) {
+      <div class="flex items-center justify-between mt-4 text-sm text-gray-600">
+        <span>{{ totalElements() }} total</span>
+        <div class="flex items-center gap-2">
+          <button (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 0"
+                  class="px-3 py-1 border rounded disabled:opacity-40 hover:bg-gray-50">
+            <i class="pi pi-chevron-left"></i>
+          </button>
+          <span>Page {{ currentPage() + 1 }} of {{ totalPages() }}</span>
+          <button (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() >= totalPages() - 1"
+                  class="px-3 py-1 border rounded disabled:opacity-40 hover:bg-gray-50">
+            <i class="pi pi-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    }
+  }
+</div>
+
+@if (showForm()) {
+  <app-candidate-form (saved)="onFormSaved()" (cancelled)="onFormCancelled()" />
+}

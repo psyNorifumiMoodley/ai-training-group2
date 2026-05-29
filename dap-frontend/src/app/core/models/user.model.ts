@@ -1,7 +1,6 @@
 export interface CandidateRequest {
   name: string;
   email: string;
-  password: string;
 }
 
 export interface CandidateResponse {

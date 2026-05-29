@@ -1,3 +1,11 @@
-import { Routes } from '@angular/router';
+import {Routes} from '@angular/router';
 
-export const routes: Routes = [];
+export const routes: Routes = [
+    {path: '', redirectTo: 'login', pathMatch: 'full'},
+    {path: 'login', loadChildren: () => import('./features/auth/auth.routes')},
+    {
+        path: 'admin/users',
+        loadChildren: () => import('./features/user-management/user-management.routes'),
+    },
+];
+
