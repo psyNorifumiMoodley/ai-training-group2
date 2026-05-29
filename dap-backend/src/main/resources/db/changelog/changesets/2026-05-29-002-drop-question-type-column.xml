@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        The `type` column is redundant — the concrete subclass already expresses the question type
+        via TABLE_PER_CLASS inheritance. QuestionType enum and the type field on AssessmentQuestion
+        have been removed from the domain model.
+    -->
+    <changeSet id="2026-05-29-002-drop-question-type-column" author="norifumi.moodley">
+
+        <dropColumn tableName="assessment_question" columnName="type"/>
+
+        <rollback>
+            <addColumn tableName="assessment_question">
+                <column name="type" type="VARCHAR(50)" defaultValue="MCQ">
+                    <constraints nullable="false"/>
+                </column>
+            </addColumn>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

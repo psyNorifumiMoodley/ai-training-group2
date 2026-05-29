@@ -7,5 +7,6 @@
 
     <include file="db/changelog/changesets/2026-01-01-001-baseline-schema.xml"/>
     <include file="db/changelog/changesets/2026-05-29-001-assessment-question-phase2-columns.xml"/>
+    <include file="db/changelog/changesets/2026-05-29-002-drop-question-type-column.xml"/>
 
 </databaseChangeLog>

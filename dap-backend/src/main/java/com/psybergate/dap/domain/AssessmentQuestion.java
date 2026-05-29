@@ -19,8 +19,4 @@ public abstract class AssessmentQuestion extends BaseEntity {
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String question;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private QuestionType type;
 }

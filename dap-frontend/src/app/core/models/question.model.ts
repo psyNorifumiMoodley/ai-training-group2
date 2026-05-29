@@ -1,5 +1,3 @@
-export type QuestionType = 'MCQ' | 'TEXT' | 'DOC' | 'GROUP';
-
 export interface McqQuestionRequest {
   category: string;
   question: string;
@@ -27,7 +25,6 @@ export interface GroupQuestionRequest {
 
 export interface BaseQuestionResponse {
   id: string;
-  type: QuestionType;
   category: string;
   question: string;
 }
