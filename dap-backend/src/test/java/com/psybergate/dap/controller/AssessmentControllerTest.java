@@ -8,6 +8,8 @@ import com.psybergate.dap.config.SecurityConfig;
 import com.psybergate.dap.domain.AppUser;
 import com.psybergate.dap.domain.Role;
 import com.psybergate.dap.dto.AssessmentRequest;
+import com.psybergate.dap.dto.AssessmentResponse;
+import com.psybergate.dap.service.AssessmentService;
 import com.psybergate.dap.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,9 +21,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -48,6 +52,9 @@ class AssessmentControllerTest {
     @MockBean
     private AuthService authService;
 
+    @MockBean
+    private AssessmentService assessmentService;
+
     @BeforeEach
     void stubUserDetailsService() {
         when(authService.loadUserByUsername(anyString())).thenAnswer(inv -> {
@@ -73,6 +80,14 @@ class AssessmentControllerTest {
     @Test
     void generateAssessment_asMarker_returns201WithBody() throws Exception {
         String token = tokenFor("marker@example.com", Role.MARKER);
+        UUID candidateId = UUID.randomUUID();
+        AssessmentResponse stubResponse = new AssessmentResponse(
+                UUID.fromString("00000000-0000-0000-0000-000000000001"),
+                candidateId, "PENDING",
+                "http://localhost:4200/assessment/stub-token",
+                60, Instant.now().toString()
+        );
+        when(assessmentService.generate(any(AssessmentRequest.class))).thenReturn(stubResponse);
 
         mockMvc.perform(post("/api/assessments")
                         .header("Authorization", "Bearer " + token)
