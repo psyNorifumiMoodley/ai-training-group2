@@ -1,8 +1,12 @@
 package com.psybergate.dap.service;
 
-import com.psybergate.dap.domain.*;
+import com.psybergate.dap.domain.GroupQuestion;
+import com.psybergate.dap.domain.TextQuestion;
+import com.psybergate.dap.domain.ValidationException;
 import com.psybergate.dap.dto.*;
-import com.psybergate.dap.repository.*;
+import com.psybergate.dap.repository.AssessmentQuestionRepository;
+import com.psybergate.dap.repository.GroupQuestionRepository;
+import com.psybergate.dap.repository.TextQuestionRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -26,12 +30,6 @@ class QuestionServiceTest {
     private AssessmentQuestionRepository assessmentQuestionRepository;
 
     @Mock
-    private McqQuestionRepository mcqQuestionRepository;
-
-    @Mock
-    private DocQuestionRepository docQuestionRepository;
-
-    @Mock
     private TextQuestionRepository textQuestionRepository;
 
     @Mock
@@ -39,42 +37,6 @@ class QuestionServiceTest {
 
     @InjectMocks
     private QuestionService questionService;
-
-    @Test
-    void createMcq_persistsMcqQuestion() {
-        McqQuestionRequest request = new McqQuestionRequest("Java", "Which keyword declares a variable?", List.of("int", "for", "class"), List.of("int"));
-
-        McqQuestion saved = new McqQuestion();
-        saved.setId(UUID.randomUUID());
-        saved.setCategory("Java");
-        saved.setQuestion("Which keyword declares a variable?");
-        saved.setOptions(List.of("int", "for", "class"));
-        saved.setCorrectAnswers(List.of("int"));
-        when(mcqQuestionRepository.save(any(McqQuestion.class))).thenReturn(saved);
-
-        QuestionResponse response = questionService.create(request);
-
-        assertThat(response).isInstanceOf(McqQuestionResponse.class);
-        McqQuestionResponse mcqResponse = (McqQuestionResponse) response;
-        assertThat(mcqResponse.options()).containsExactly("int", "for", "class");
-        assertThat(mcqResponse.correctAnswers()).containsExactly("int");
-    }
-
-    @Test
-    void createDoc_persistsDocQuestion() {
-        DocQuestionRequest request = new DocQuestionRequest("Java", "Upload your design document");
-
-        DocQuestion saved = new DocQuestion();
-        saved.setId(UUID.randomUUID());
-        saved.setCategory("Java");
-        saved.setQuestion("Upload your design document");
-        when(docQuestionRepository.save(any(DocQuestion.class))).thenReturn(saved);
-
-        QuestionResponse response = questionService.create(request);
-
-        assertThat(response).isInstanceOf(DocQuestionResponse.class);
-        assertThat(((DocQuestionResponse) response).category()).isEqualTo("Java");
-    }
 
     @Test
     void createText_withKeywords_persistsAndReturnsResponse() {

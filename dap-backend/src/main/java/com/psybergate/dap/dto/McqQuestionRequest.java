@@ -10,5 +10,5 @@ public record McqQuestionRequest(
         @NotBlank String question,
         @NotEmpty List<String> options,
         @NotEmpty List<String> correctAnswers
-) implements QuestionRequest {
+) {
 }

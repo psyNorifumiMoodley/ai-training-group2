@@ -1,15 +1,19 @@
 package com.psybergate.dap.service;
 
-import com.psybergate.dap.domain.*;
+import com.psybergate.dap.domain.AssessmentQuestion;
+import com.psybergate.dap.domain.GroupQuestion;
+import com.psybergate.dap.domain.TextQuestion;
+import com.psybergate.dap.domain.ValidationException;
 import com.psybergate.dap.dto.*;
-import com.psybergate.dap.repository.*;
+import com.psybergate.dap.repository.AssessmentQuestionRepository;
+import com.psybergate.dap.repository.GroupQuestionRepository;
+import com.psybergate.dap.repository.TextQuestionRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -18,31 +22,19 @@ import java.util.UUID;
 public class QuestionService {
 
     private final AssessmentQuestionRepository assessmentQuestionRepository;
-    private final McqQuestionRepository mcqQuestionRepository;
-    private final DocQuestionRepository docQuestionRepository;
     private final TextQuestionRepository textQuestionRepository;
     private final GroupQuestionRepository groupQuestionRepository;
 
     public QuestionService(AssessmentQuestionRepository assessmentQuestionRepository,
-                           McqQuestionRepository mcqQuestionRepository,
-                           DocQuestionRepository docQuestionRepository,
                            TextQuestionRepository textQuestionRepository,
                            GroupQuestionRepository groupQuestionRepository) {
         this.assessmentQuestionRepository = assessmentQuestionRepository;
-        this.mcqQuestionRepository = mcqQuestionRepository;
-        this.docQuestionRepository = docQuestionRepository;
         this.textQuestionRepository = textQuestionRepository;
         this.groupQuestionRepository = groupQuestionRepository;
     }
 
     @Transactional
     public QuestionResponse create(QuestionRequest request) {
-        if (request instanceof McqQuestionRequest r) {
-            return toResponse(createMcq(r));
-        }
-        if (request instanceof DocQuestionRequest r) {
-            return toResponse(createDoc(r));
-        }
         if (request instanceof TextQuestionRequest r) {
             return toResponse(createText(r));
         }
@@ -77,21 +69,6 @@ public class QuestionService {
         AssessmentQuestion existing = assessmentQuestionRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Question not found: " + id));
 
-        if (request instanceof McqQuestionRequest r && existing instanceof McqQuestion mq) {
-            validateMcq(r.options(), r.correctAnswers());
-            mq.setCategory(r.category());
-            mq.setQuestion(r.question());
-            mq.setOptions(r.options());
-            mq.setCorrectAnswers(r.correctAnswers());
-            return toResponse(mcqQuestionRepository.save(mq));
-        }
-
-        if (request instanceof DocQuestionRequest r && existing instanceof DocQuestion dq) {
-            dq.setCategory(r.category());
-            dq.setQuestion(r.question());
-            return toResponse(docQuestionRepository.save(dq));
-        }
-
         if (request instanceof TextQuestionRequest r && isExactTextQuestion(existing)) {
             TextQuestion tq = (TextQuestion) existing;
             tq.setCategory(r.category());
@@ -120,23 +97,6 @@ public class QuestionService {
         assessmentQuestionRepository.delete(q);
     }
 
-    McqQuestion createMcq(McqQuestionRequest request) {
-        validateMcq(request.options(), request.correctAnswers());
-        McqQuestion q = new McqQuestion();
-        q.setCategory(request.category());
-        q.setQuestion(request.question());
-        q.setOptions(request.options());
-        q.setCorrectAnswers(request.correctAnswers());
-        return mcqQuestionRepository.save(q);
-    }
-
-    DocQuestion createDoc(DocQuestionRequest request) {
-        DocQuestion q = new DocQuestion();
-        q.setCategory(request.category());
-        q.setQuestion(request.question());
-        return docQuestionRepository.save(q);
-    }
-
     private TextQuestion createText(TextQuestionRequest request) {
         TextQuestion q = new TextQuestion();
         q.setCategory(request.category());
@@ -156,18 +116,6 @@ public class QuestionService {
         return groupQuestionRepository.save(q);
     }
 
-    private void validateMcq(List<String> options, List<String> correctAnswers) {
-        if (options == null || options.isEmpty()) {
-            throw new ValidationException("MCQ must have at least one option");
-        }
-        if (correctAnswers == null || correctAnswers.isEmpty()) {
-            throw new ValidationException("MCQ must have at least one correct answer");
-        }
-        if (!new HashSet<>(options).containsAll(correctAnswers)) {
-            throw new ValidationException("All correct answers must be present in the options list");
-        }
-    }
-
     private List<TextQuestion> resolveFollowUpQuestions(List<UUID> ids) {
         if (ids == null || ids.isEmpty()) {
             return new ArrayList<>();
@@ -183,12 +131,6 @@ public class QuestionService {
     }
 
     private QuestionResponse toResponse(AssessmentQuestion q) {
-        if (q instanceof McqQuestion mq) {
-            return toMcqResponse(mq);
-        }
-        if (q instanceof DocQuestion dq) {
-            return toDocResponse(dq);
-        }
         if (q instanceof GroupQuestion gq) {
             return toGroupResponse(gq);
         }
@@ -196,14 +138,6 @@ public class QuestionService {
             return toTextResponse(tq);
         }
         throw new UnsupportedOperationException("Unmapped question type: " + q.getClass());
-    }
-
-    private McqQuestionResponse toMcqResponse(McqQuestion q) {
-        return new McqQuestionResponse(q.getId(), q.getCategory(), q.getQuestion(), q.getOptions(), q.getCorrectAnswers());
-    }
-
-    private DocQuestionResponse toDocResponse(DocQuestion q) {
-        return new DocQuestionResponse(q.getId(), q.getCategory(), q.getQuestion());
     }
 
     private TextQuestionResponse toTextResponse(TextQuestion q) {
