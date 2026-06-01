@@ -13,7 +13,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard',      icon: 'pi-home',      route: '/dashboard',      roles: ['ADMIN', 'MARKER'] },
   { label: 'Candidates',     icon: 'pi-users',     route: '/candidates',     roles: ['ADMIN', 'MARKER'] },
-  { label: 'Assessments',    icon: 'pi-list',      route: '/assessments',    roles: ['ADMIN', 'MARKER'] },
+  { label: 'Assessments',    icon: 'pi-list',        route: '/assessments',          roles: ['ADMIN', 'MARKER'] },
   { label: 'Question banks', icon: 'pi-folder',    route: '/question-banks', roles: ['ADMIN', 'MARKER'] },
   { label: 'Questions',      icon: 'pi-list-check', route: '/questions',      roles: ['ADMIN', 'MARKER'] },
   { label: 'Markers',        icon: 'pi-id-card',   route: '/markers',        roles: ['ADMIN'] },

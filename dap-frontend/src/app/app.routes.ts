@@ -50,6 +50,14 @@ export const routes: Routes = [
                 .then(m => m.AssessmentListComponent),
           },
           {
+            path: 'generate',
+            canActivate: [roleGuard],
+            data: { roles: ['ADMIN', 'MARKER'] },
+            loadComponent: () =>
+              import('./features/assessment-generation/components/question-selection/question-selection.component')
+                .then(m => m.QuestionSelectionComponent),
+          },
+          {
             path: ':assessmentId/marking',
             canActivate: [roleGuard],
             data: { roles: ['MARKER'] },
