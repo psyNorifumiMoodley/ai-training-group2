@@ -54,14 +54,12 @@
               <p class="text-caption text-gray-800 line-clamp-2 flex-1">{{ q.question }}</p>
               <div class="flex items-center gap-1 flex-shrink-0">
                 <button (click)="openEdit(q)"
-                        class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
-                        title="Edit question">
-                  <i class="pi pi-pencil text-xs"></i>
+                        class="px-3 py-1 rounded-input bg-white text-primary border border-primary text-caption font-medium hover:bg-primary-light transition-colors">
+                  Edit
                 </button>
                 <button (click)="requestDelete(q)"
-                        class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-md text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors"
-                        title="Delete question">
-                  <i class="pi pi-trash text-xs"></i>
+                        class="px-3 py-1 rounded-input bg-white text-red-600 border border-red-500 text-caption font-medium hover:bg-red-50 transition-colors">
+                  Delete
                 </button>
               </div>
             </div>
