@@ -1,54 +1,97 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { QuestionService } from '../../../core/services/question.service';
+import { QuestionResponse, QuestionType } from '../../../core/models/question.model';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { TagComponent } from '../../../shared/components/tag/tag.component';
-import { AddQuestionModalComponent } from '../add-question-modal/add-question-modal.component';
-import { QuestionBank, Question, QuestionType } from '../../../core/models/assessment.model';
+import { QuestionFormComponent } from '../../question-management/components/question-form/question-form.component';
 
-// TODO: replace with API call
-const STUB_BANKS: QuestionBank[] = [
-  { id: 'b1', name: 'Java Core',   description: 'OOP, collections, concurrency', questionCount: 24 },
-  { id: 'b2', name: 'Angular',     description: 'Components, RxJS, signals',     questionCount: 18 },
-  { id: 'b3', name: 'Spring Boot', description: 'REST, JPA, security',           questionCount: 31 },
-  { id: 'b4', name: 'SQL Basics',  description: 'Queries, joins, aggregates',    questionCount: 15 },
-];
-
-// TODO: replace with API call
-const STUB_QUESTIONS: Question[] = [
-  { id: 'q1', type: 'MCQ',  bankId: 'b1', questionText: 'What is the difference between an abstract class and an interface in Java?', marks: 2, difficulty: 'MEDIUM', tags: ['oop', 'interfaces'] },
-  { id: 'q2', type: 'MCQ',  bankId: 'b1', questionText: 'Which collection type maintains insertion order and allows duplicates?', marks: 1, difficulty: 'EASY',   tags: ['collections'] },
-  { id: 'q3', type: 'TEXT', bankId: 'b1', questionText: 'Explain how the Java garbage collector works and describe the generational GC model.', marks: 5, difficulty: 'HARD', tags: ['gc', 'memory'] },
-  { id: 'q4', type: 'MCQ',  bankId: 'b1', questionText: 'What does the volatile keyword guarantee in a multithreaded context?', marks: 2, difficulty: 'MEDIUM', tags: ['concurrency'] },
-];
+interface Bank {
+  name: string;
+  questionCount: number;
+}
 
 @Component({
   selector: 'dap-bank-list',
   standalone: true,
-  imports: [ButtonComponent, TagComponent, AddQuestionModalComponent],
+  imports: [ButtonComponent, TagComponent, QuestionFormComponent],
   templateUrl: './bank-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BankListComponent {
-  readonly banks     = STUB_BANKS;
-  readonly questions = STUB_QUESTIONS;
+  private readonly questionService = inject(QuestionService);
+  private readonly destroyRef = inject(DestroyRef);
 
-  readonly activeBank    = signal<QuestionBank>(STUB_BANKS[0]);
-  readonly showModal     = signal(false);
-  readonly searchQuery   = signal('');
-  readonly activeFilter  = signal<QuestionType | 'ALL'>('ALL');
+  readonly allQuestions = signal<QuestionResponse[]>([]);
+  readonly selectedCategory = signal<string>('');
+  readonly loading = signal(false);
+  readonly showForm = signal(false);
 
-  readonly filterTypes: Array<QuestionType | 'ALL'> = ['ALL', 'MCQ', 'TEXT', 'DOC'];
+  readonly banks = computed<Bank[]>(() => {
+    const counts = new Map<string, number>();
+    for (const q of this.allQuestions()) {
+      counts.set(q.category, (counts.get(q.category) ?? 0) + 1);
+    }
+    return Array.from(counts.entries()).map(([name, questionCount]) => ({ name, questionCount }));
+  });
 
-  filteredQuestions(): Question[] {
-    return this.questions.filter(q => {
-      const matchBank   = q.bankId === this.activeBank().id;
-      const matchFilter = this.activeFilter() === 'ALL' || q.type === this.activeFilter();
-      const matchSearch = !this.searchQuery() || q.questionText.toLowerCase().includes(this.searchQuery().toLowerCase());
-      return matchBank && matchFilter && matchSearch;
-    });
+  readonly filteredQuestions = computed(() => {
+    const cat = this.selectedCategory();
+    return cat ? this.allQuestions().filter(q => q.category === cat) : this.allQuestions();
+  });
+
+  readonly activeBank = computed(() =>
+    this.banks().find(b => b.name === this.selectedCategory()) ?? null
+  );
+
+  constructor() {
+    this.loadQuestions();
   }
 
-  typeVariant(type: QuestionType): 'mcq' | 'text' | 'doc' {
-    const map: Record<QuestionType, 'mcq' | 'text' | 'doc'> = { MCQ: 'mcq', TEXT: 'text', DOC: 'doc' };
+  selectBank(name: string): void {
+    this.selectedCategory.set(name);
+  }
+
+  onQuestionAdded(): void {
+    this.showForm.set(false);
+    this.loadQuestions();
+  }
+
+  typeVariant(type: QuestionType): 'mcq' | 'text' | 'doc' | 'info' {
+    const map: Record<QuestionType, 'mcq' | 'text' | 'doc' | 'info'> = {
+      MCQ: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info',
+    };
     return map[type];
+  }
+
+  resolveType(q: QuestionResponse): QuestionType {
+    if (q.type) return q.type;
+    if ('correctAnswers' in q) return 'MCQ';
+    if ('followUpQuestions' in q) return 'GROUP';
+    if ('keywords' in q) return 'TEXT';
+    return 'DOC';
+  }
+
+  private loadQuestions(): void {
+    this.loading.set(true);
+    this.questionService.getQuestions(0, 1000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: page => {
+          this.allQuestions.set(page.content);
+          if (!this.selectedCategory() && page.content.length > 0) {
+            this.selectedCategory.set(page.content[0].category);
+          }
+          this.loading.set(false);
+        },
+        error: () => this.loading.set(false),
+      });
   }
 }
