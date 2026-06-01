@@ -1,0 +1,16 @@
+<div class="fixed inset-0 z-60 flex items-center justify-center bg-black/50" (click)="cancelled.emit()">
+  <div class="bg-white rounded-modal shadow-xl w-full max-w-[22rem] mx-4 p-6"
+       (click)="$event.stopPropagation()">
+    <h3 class="text-[0.9375rem] font-medium text-gray-900 mb-2">{{ title() }}</h3>
+    <p class="text-caption text-gray-500 mb-5">{{ message() }}</p>
+    <div class="flex justify-end gap-2">
+      <dap-button variant="ghost" (clicked)="cancelled.emit()">Cancel</dap-button>
+      <button
+        type="button"
+        (click)="confirmed.emit()"
+        class="rounded-input px-4 py-2 text-caption font-medium bg-red-600 text-white hover:bg-red-700 active:bg-red-800 transition-colors cursor-pointer">
+        {{ confirmLabel() }}
+      </button>
+    </div>
+  </div>
+</div>

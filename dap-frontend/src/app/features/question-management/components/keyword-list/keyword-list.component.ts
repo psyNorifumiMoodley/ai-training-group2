@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, OnInit, output, signal } from '@angular/core';
 
 @Component({
   selector: 'dap-keyword-list',
@@ -6,11 +6,17 @@ import { ChangeDetectionStrategy, Component, output, signal } from '@angular/cor
   templateUrl: './keyword-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class KeywordListComponent {
+export class KeywordListComponent implements OnInit {
+  readonly initialKeywords = input<string[]>([]);
   readonly keywordsChange = output<string[]>();
 
   readonly keywords = signal<string[]>([]);
   readonly inputValue = signal('');
+
+  ngOnInit(): void {
+    const init = this.initialKeywords();
+    if (init.length > 0) this.keywords.set([...init]);
+  }
 
   addKeyword(): void {
     const val = this.inputValue().trim();
