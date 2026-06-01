@@ -1,0 +1,29 @@
+<div class="space-y-2">
+  @if (keywords().length > 0) {
+    <div class="flex flex-wrap gap-1.5">
+      @for (kw of keywords(); track kw) {
+        <span class="inline-flex items-center gap-1 bg-primary-fill text-primary-text text-[11px] font-medium rounded-badge px-[7px] py-[2px]">
+          {{ kw }}
+          <button type="button" (click)="removeKeyword(kw)"
+                  class="hover:text-primary-pressed transition-colors leading-none">
+            <i class="pi pi-times text-[9px]"></i>
+          </button>
+        </span>
+      }
+    </div>
+  }
+  <div class="flex items-center gap-2">
+    <input
+      type="text"
+      [value]="inputValue()"
+      (input)="onInputChange($any($event.target).value)"
+      (keydown)="onInputKeyDown($event)"
+      placeholder="Type a keyword and press Enter"
+      class="flex-1 border border-gray-200 rounded-input px-3 py-[0.4375rem] text-caption focus:outline-none focus:ring-2 focus:ring-primary/30"
+    />
+    <button type="button" (click)="addKeyword()"
+            class="px-3 py-[0.4375rem] border border-gray-200 rounded-input text-caption text-gray-500 hover:bg-gray-50 transition-colors">
+      Add
+    </button>
+  </div>
+</div>

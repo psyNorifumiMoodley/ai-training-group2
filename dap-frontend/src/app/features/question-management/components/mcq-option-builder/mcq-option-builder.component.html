@@ -1,0 +1,42 @@
+<div class="space-y-2">
+  @for (opt of options(); track $index; let i = $index) {
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        (click)="toggleCorrect(i)"
+        [title]="opt.correct ? 'Correct answer' : 'Mark as correct'"
+        [class]="'w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors ' +
+          (opt.correct ? 'bg-primary border-primary text-white' : 'border-gray-300 hover:border-primary')">
+        @if (opt.correct) {
+          <i class="pi pi-check text-[8px]"></i>
+        }
+      </button>
+      <input
+        type="text"
+        [value]="opt.text"
+        (input)="updateOptionText(i, $any($event.target).value)"
+        [placeholder]="'Option ' + (i + 1)"
+        class="flex-1 border border-gray-200 rounded-input px-3 py-1.5 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30"
+      />
+      @if (options().length > 2) {
+        <button
+          type="button"
+          (click)="removeOption(i)"
+          class="w-7 h-7 flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
+          <i class="pi pi-times text-xs"></i>
+        </button>
+      }
+    </div>
+  }
+
+  <button
+    type="button"
+    (click)="addOption()"
+    class="text-xs text-primary hover:text-primary-hover flex items-center gap-1 mt-1 transition-colors">
+    <i class="pi pi-plus text-[0.6875rem]"></i> Add option
+  </button>
+
+  @if (!isValid && hasAnyText) {
+    <p class="text-[0.6875rem] text-amber-600 mt-1">Mark at least one option as correct.</p>
+  }
+</div>
