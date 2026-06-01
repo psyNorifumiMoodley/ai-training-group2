@@ -1,4 +1,19 @@
 export type AssessmentStatus = 'PENDING' | 'IN_PROGRESS' | 'SUBMITTED' | 'MARKED';
+
+export interface AssessmentRequest {
+  candidateId: string;
+  questionIds: string[];
+  timeLimitMinutes: number;
+}
+
+export interface AssessmentResponse {
+  id: string;
+  candidateId: string;
+  status: AssessmentStatus;
+  invitationLink: string;
+  timeLimitMinutes: number;
+  createdAt: string;
+}
 export type QuestionType = 'MCQ' | 'TEXT' | 'DOC';
 export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
 
