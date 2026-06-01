@@ -26,6 +26,7 @@ export class QuestionListComponent {
   readonly questions = signal<QuestionResponse[]>([]);
   readonly categories = signal<string[]>([]);
   readonly selectedCategory = signal<string>('');
+  readonly typeFilter = signal<QuestionType | 'ALL'>('ALL');
   readonly page = signal(0);
   readonly totalPages = signal(0);
   readonly totalElements = signal(0);
@@ -33,6 +34,13 @@ export class QuestionListComponent {
   readonly showForm = signal(false);
 
   readonly PAGE_SIZE = 20;
+  readonly filterTypes: Array<QuestionType | 'ALL'> = ['ALL', 'MCQ', 'TEXT', 'DOC', 'GROUP'];
+
+  filteredQuestions(): QuestionResponse[] {
+    const type = this.typeFilter();
+    if (type === 'ALL') return this.questions();
+    return this.questions().filter(q => q.type === type);
+  }
 
   constructor() {
     this.loadCategories();
