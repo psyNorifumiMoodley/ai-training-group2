@@ -39,14 +39,17 @@
           <!-- Category -->
           <div>
             <label class="block text-xs font-medium text-gray-500 mb-1">Category</label>
-            <input
-              type="text"
+            <select
               formControlName="category"
-              placeholder="e.g. Java Core, Angular, SQL"
-              class="w-full border border-gray-200 rounded-input px-3 py-[0.4375rem] text-caption focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
+              class="w-full border border-gray-200 rounded-input px-3 py-[0.4375rem] text-caption text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30">
+              <option value="" disabled>Select category</option>
+              <option value="Java Core">Java Core</option>
+              <option value="Angular">Angular</option>
+              <option value="Spring Boot">Spring Boot</option>
+              <option value="SQL Basics">SQL Basics</option>
+            </select>
             @if (form.controls.category.invalid && form.controls.category.touched) {
-              <p class="text-[0.6875rem] text-red-500 mt-1">Category is required (min 2 characters).</p>
+              <p class="text-[0.6875rem] text-red-500 mt-1">Please select a category.</p>
             }
           </div>
 

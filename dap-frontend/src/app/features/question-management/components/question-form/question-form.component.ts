@@ -48,7 +48,7 @@ export class QuestionFormComponent {
   readonly keywordList = viewChild<KeywordListComponent>('keywordList');
 
   readonly form = this.fb.nonNullable.group({
-    category: ['', [Validators.required, Validators.minLength(2)]],
+    category: ['', Validators.required],
     questionText: ['', [Validators.required, Validators.minLength(10)]],
   });
 
