@@ -292,7 +292,7 @@ None.
 ## Slice: Angular Assessment Generation UI
 
 ### Agent Brief
-Build the Marker-facing screen for generating and assigning assessments. The form lets the Marker pick a candidate, browse question banks, select questions, and set a time limit. Questions already seen by the candidate this year should show a warning indicator. After generation, display the invitation link.
+Build the Marker-facing screen for generating and assigning assessments. The Marker selects a candidate and time limit. A checkbox controls whether questions are manually chosen — unchecked sends an empty `questionIds` array (system assigns); checked navigates to a dedicated question selection page. The question selection page filters by type (MCQ / TEXT / DOC / GROUP) and subject (= category), both independently. Questions previously seen by the candidate this year show a warning badge. Submission happens directly from the question page and shows the invitation link inline.
 
 ### Package Tree Additions
 
@@ -301,14 +301,13 @@ Build the Marker-facing screen for generating and assigning assessments. The for
 src/app/features/assessment-generation/
   components/
     assessment-generate/
-      assessment-generate.component.ts
+      assessment-generate.component.ts       ← candidate selector + time limit + manual checkbox
       assessment-generate.component.html
-    question-picker/
-      question-picker.component.ts
-      question-picker.component.html
+    question-selection/                       ← separate page, reached only via manual checkbox
+      question-selection.component.ts
+      question-selection.component.html
     assessment-confirmation/
-      assessment-confirmation.component.ts
-      assessment-confirmation.component.html
+      assessment-confirmation.component.ts   ← inline, shown after submit on either page
   assessment-generation.routes.ts
 ```
 
@@ -333,49 +332,59 @@ Already defined in Slice 0.
 ```typescript
 generateAssessment(request: AssessmentRequest): Observable<AssessmentResponse>
 // POST /api/assessments
+// questionIds: [] when auto-assign; populated array when manual
 
 getSeenQuestionIds(candidateId: string): Observable<string[]>
 // GET /api/candidates/{candidateId}/seen-questions
-// Backend endpoint needed: returns list of question UUIDs seen this year by candidate
+// Returns question UUIDs seen by the candidate this calendar year
 ```
 
 ### Frontend Components
 
-**`AssessmentGenerateComponent`**
+**`AssessmentGenerateComponent`** (`/assessments/generate`)
 - `changeDetection: OnPush`
-- Step 1: Candidate selector (dropdown backed by `UserService.getCandidates()`)
-- Step 2: Question bank selector + `QuestionPickerComponent`
-- Step 3: Time limit input (number, min 5 minutes)
-- On submit: calls `AssessmentService.generateAssessment()`
-- On success: navigates to `AssessmentConfirmationComponent` with result
+- Candidate list (cards, click to select) backed by `UserService.getCandidates()`
+- Time limit input (number, min 5 minutes, default 60)
+- Checkbox: "Manually select questions"
+  - **Unchecked**: "Generate assessment" button → `generateAssessment({ questionIds: [] })` → inline confirmation
+  - **Checked**: "Select questions" button → `router.navigate(['questions'], { queryParams: { candidateId, candidateName, timeLimit } })`
 
-**`QuestionPickerComponent`**
-- `input()`: `bankId: string`, `seenQuestionIds: string[]` (Signal inputs)
-- Displays paginated question list from selected bank
-- Each question row: checkbox to select + warning badge if `id` is in `seenQuestionIds`
-- `output()`: `questionsSelected` — emits `string[]` of selected question IDs
+**`QuestionSelectionComponent`** (`/assessments/generate/questions`)
+- `changeDetection: OnPush`
+- Reads `candidateId`, `candidateName`, `timeLimit` from query params on init
+- Loads `getSeenQuestionIds(candidateId)` on init
+- **Type filter pills**: All / MCQ / TEXT / DOC / GROUP — filters question list
+- **Subject filter pills**: All / [unique categories from questions] — filters question list independently
+- Both filters apply simultaneously (AND logic)
+- Question rows: checkbox + type tag + category label + amber "Already seen" badge if ID is in seenQuestionIds
+- "Generate assessment (N selected)" button in header → `generateAssessment(...)` → inline `AssessmentConfirmationComponent`
 
 **`AssessmentConfirmationComponent`**
-- `input()`: `assessment: AssessmentResponse` (Signal input)
-- Displays assessment ID, candidate, time limit, and copyable invitation link
+- Signal inputs: `assessment: AssessmentResponse`, `candidateName: string`, `questionCount: number`
+- Displays candidate, question count, time limit, status
+- Copyable invitation link with clipboard feedback
 
 ### Route Additions
 ```typescript
 // assessment-generation.routes.ts
 export const assessmentGenerationRoutes: Routes = [
-  { path: '', component: AssessmentGenerateComponent, canActivate: [RoleGuard], data: { role: 'MARKER' } }
+  { path: '',          loadComponent: () => AssessmentGenerateComponent  },
+  { path: 'questions', loadComponent: () => QuestionSelectionComponent   },
 ];
 
-// app.routes.ts
-{ path: 'assessments/generate', loadChildren: () => import('./features/assessment-generation/assessment-generation.routes') }
+// app.routes.ts (already wired)
+{ path: 'assessments/generate', canActivate: [roleGuard], data: { roles: ['MARKER'] },
+  loadChildren: () => import('./features/assessment-generation/assessment-generation.routes') }
 ```
 
 ### Testing
-- `AssessmentService` unit test: `generateAssessment()` posts to correct endpoint; error responses mapped correctly
-- `QuestionPickerComponent` unit test: seen question shows warning badge; unselected question can be toggled; selection emits correct IDs
-- `AssessmentGenerateComponent` unit test: form invalid without candidate/questions/time limit; valid submit calls service
+- `AssessmentService` unit test: `generateAssessment()` posts to correct endpoint; empty `questionIds` sends valid request
+- `QuestionSelectionComponent` unit test: type + subject filters both narrow the list; seen question shows amber badge; selection emits correct IDs; submit calls service with correct payload
+- `AssessmentGenerateComponent` unit test: unchecked checkbox calls service directly; checked checkbox navigates to questions route with correct query params
 
 ### Done When
-- Marker can navigate to `/assessments/generate`, select candidate, pick questions (with seen-question warnings), set time, and submit
-- After submission, invitation link is displayed and copyable
-- Seen-question warnings visible before submission
+- Marker at `/assessments/generate` can select a candidate + time limit and submit without manual questions
+- Marker can tick "Manually select questions" → navigate to `/assessments/generate/questions`
+- Question selection page filters by type AND subject independently
+- Seen-question amber badge visible before submission
+- After submission on either path, invitation link is displayed and copyable

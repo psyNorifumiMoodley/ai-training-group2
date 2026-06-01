@@ -1,6 +1,6 @@
 <div class="flex items-center justify-between mb-4">
   <h1 class="text-h2 text-gray-900">Assessments</h1>
-  <dap-button iconLeft="pi-plus">New assessment</dap-button>
+  <dap-button iconLeft="pi-plus" (clicked)="showModal.set(true)">New assessment</dap-button>
 </div>
 
 <div class="bg-white border border-gray-200 rounded-card p-3.5">
@@ -38,3 +38,12 @@
     </tbody>
   </table>
 </div>
+
+<!-- New assessment modal -->
+@if (showModal()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <dap-assessment-generate
+      (cancelled)="showModal.set(false)"
+      (navigateToQuestions)="onNavigateToQuestions($event)" />
+  </div>
+}

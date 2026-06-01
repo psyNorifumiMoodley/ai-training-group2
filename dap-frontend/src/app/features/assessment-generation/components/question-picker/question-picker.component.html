@@ -1,0 +1,80 @@
+<div class="flex gap-4">
+  <!-- Bank sidebar -->
+  <div class="w-[12.5rem] flex-shrink-0 space-y-2">
+    @if (loading()) {
+      <p class="text-caption text-gray-400 text-center py-4">Loading...</p>
+    } @else {
+      @for (bank of banks(); track bank.name) {
+        <button
+          (click)="selectBank(bank.name)"
+          [class]="'w-full text-left bg-white border rounded-card py-[0.6875rem] px-3 cursor-pointer transition-colors ' +
+            (selectedCategory() === bank.name ? 'border-primary' : 'border-gray-200 hover:border-gray-300')">
+          <div class="flex items-center justify-between">
+            <span class="text-caption font-medium text-gray-800 truncate">{{ bank.name }}</span>
+            <span class="inline-block rounded-badge px-[0.4375rem] py-0.5 text-[0.6875rem] font-medium bg-primary-fill text-primary-text flex-shrink-0 ml-1">
+              {{ bank.questionCount }}
+            </span>
+          </div>
+        </button>
+      }
+    }
+  </div>
+
+  <!-- Question list -->
+  <div class="flex-1 min-w-0 flex flex-col">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-sm font-medium text-gray-800">
+        {{ selectedCategory() || 'All questions' }}
+        · {{ filteredQuestions().length }} question{{ filteredQuestions().length !== 1 ? 's' : '' }}
+      </h3>
+      <span class="text-caption text-gray-500">{{ checkedCount() }} selected</span>
+    </div>
+
+    @if (loading()) {
+      <p class="text-caption text-gray-400 text-center py-8">Loading questions...</p>
+    } @else if (filteredQuestions().length === 0) {
+      <p class="text-caption text-gray-400 text-center py-8">No questions in this bank.</p>
+    } @else {
+      <div class="space-y-2 flex-1">
+        @for (q of filteredQuestions(); track q.id) {
+          <div
+            (click)="toggle(q.id)"
+            [class]="'bg-white border rounded-card py-[0.8125rem] px-3.5 cursor-pointer transition-colors ' +
+              (isChecked(q.id) ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300')">
+            <div class="flex items-start gap-3">
+              <!-- Custom checkbox -->
+              <div [class]="'w-4 h-4 rounded border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ' +
+                (isChecked(q.id) ? 'border-primary bg-primary' : 'border-gray-300')">
+                @if (isChecked(q.id)) {
+                  <i class="pi pi-check text-white text-[0.5625rem]"></i>
+                }
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-caption text-gray-800 line-clamp-2">{{ q.question }}</p>
+                <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                  <dap-tag [label]="q.type" [variant]="typeVariant(q.type)" />
+                  @if (isSeen(q.id)) {
+                    <span class="inline-flex items-center gap-1 text-[0.6875rem] font-medium text-amber-600 bg-amber-50 rounded-badge px-[0.4375rem] py-0.5">
+                      <i class="pi pi-eye text-[0.625rem]"></i>
+                      Already seen
+                    </span>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Footer actions -->
+    <div class="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">
+      <span class="text-caption text-gray-500">
+        {{ checkedCount() }} question{{ checkedCount() !== 1 ? 's' : '' }} selected
+      </span>
+      <dap-button [disabled]="checkedCount() === 0" (clicked)="confirm()">
+        Continue
+      </dap-button>
+    </div>
+  </div>
+</div>
