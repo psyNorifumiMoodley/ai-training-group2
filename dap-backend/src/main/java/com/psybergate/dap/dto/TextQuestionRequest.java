@@ -8,5 +8,5 @@ public record TextQuestionRequest(
         @NotBlank String category,
         @NotBlank String question,
         List<String> keywords
-) {
+) implements QuestionRequest {
 }

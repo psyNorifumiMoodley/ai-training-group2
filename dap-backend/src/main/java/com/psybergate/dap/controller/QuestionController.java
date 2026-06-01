@@ -1,22 +1,31 @@
 package com.psybergate.dap.controller;
 
 import com.psybergate.dap.dto.PageResponse;
+import com.psybergate.dap.dto.QuestionRequest;
 import com.psybergate.dap.dto.QuestionResponse;
+import com.psybergate.dap.service.QuestionService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/questions")
 @PreAuthorize("hasAnyRole('MARKER', 'ADMIN')")
 public class QuestionController {
 
+    private final QuestionService questionService;
+
+    public QuestionController(QuestionService questionService) {
+        this.questionService = questionService;
+    }
+
     @PostMapping
-    public ResponseEntity<Void> createQuestion(@RequestBody Object request) {
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<QuestionResponse> createQuestion(@Valid @RequestBody QuestionRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(questionService.create(request));
     }
 
     @GetMapping
@@ -24,11 +33,24 @@ public class QuestionController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String category) {
-        return ResponseEntity.ok(new PageResponse<>(List.of(), 0, 0));
+        return ResponseEntity.ok(questionService.list(page, size, category));
     }
 
-    @GetMapping("/categories")
-    public ResponseEntity<List<String>> listCategories() {
-        return ResponseEntity.ok(List.of());
+    @GetMapping("/{id}")
+    public ResponseEntity<QuestionResponse> getQuestion(@PathVariable UUID id) {
+        return ResponseEntity.ok(questionService.getById(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<QuestionResponse> updateQuestion(
+            @PathVariable UUID id,
+            @Valid @RequestBody QuestionRequest request) {
+        return ResponseEntity.ok(questionService.update(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteQuestion(@PathVariable UUID id) {
+        questionService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
