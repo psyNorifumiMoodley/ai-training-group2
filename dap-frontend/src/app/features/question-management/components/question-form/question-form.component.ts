@@ -148,10 +148,20 @@ export class QuestionFormComponent {
       .subscribe({
         next: page => {
           this.textQuestions.set(
-            page.content.filter((q): q is TextQuestionResponse => q.type === 'TEXT')
+            page.content.filter((q): q is TextQuestionResponse => this.resolveType(q) === 'TEXT')
           );
         },
         error: () => {},
       });
+  }
+
+  // Falls back to structural detection when the Jackson type discriminator is
+  // absent from the response (can occur with generic PageResponse<QuestionResponse>).
+  private resolveType(q: QuestionResponse): QuestionType {
+    if (q.type) return q.type;
+    if ('correctAnswers' in q) return 'MCQ';
+    if ('followUpQuestions' in q) return 'GROUP';
+    if ('keywords' in q) return 'TEXT';
+    return 'DOC';
   }
 }

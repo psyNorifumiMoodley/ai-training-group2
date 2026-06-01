@@ -25,7 +25,7 @@ export class QuestionListComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly questions = signal<QuestionResponse[]>([]);
-  readonly categories = signal<string[]>([]);
+  readonly categories = ['Java Core', 'Angular', 'Spring Boot', 'SQL Basics'];
   readonly selectedCategory = signal<string>('');
   readonly typeFilter = signal<QuestionType | 'ALL'>('ALL');
   readonly page = signal(0);
@@ -55,7 +55,6 @@ export class QuestionListComponent {
   }
 
   constructor() {
-    this.loadCategories();
     this.loadQuestions();
   }
 
@@ -82,7 +81,6 @@ export class QuestionListComponent {
   onQuestionAdded(): void {
     this.showForm.set(false);
     this.page.set(0);
-    this.loadCategories();
     this.loadQuestions();
   }
 
@@ -112,12 +110,4 @@ export class QuestionListComponent {
       });
   }
 
-  private loadCategories(): void {
-    this.questionService.getCategories()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: cats => this.categories.set(cats),
-        error: () => {},
-      });
-  }
 }
