@@ -1,0 +1,151 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" (click)="cancel()">
+  <div class="bg-white rounded-modal shadow-xl w-full max-w-[34rem] mx-4 max-h-[90vh] flex flex-col"
+       (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+      <h2 class="text-[0.9375rem] font-medium text-gray-900">Add question</h2>
+      <button type="button" (click)="cancel()"
+              class="text-gray-400 hover:text-gray-600 w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100">
+        <i class="pi pi-times text-caption"></i>
+      </button>
+    </div>
+
+    <!-- Form (scrollable body + footer) -->
+    <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col flex-1 min-h-0">
+
+      <!-- Scrollable fields -->
+      <div class="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+
+        <!-- Type selector -->
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Question type</label>
+          <div class="flex gap-2 flex-wrap">
+            @for (type of questionTypes; track type) {
+              <button
+                type="button"
+                (click)="onTypeChange(type)"
+                [class]="'px-3 py-[0.3125rem] text-xs font-medium rounded-badge border transition-colors ' +
+                  (selectedType() === type
+                    ? 'border-primary bg-primary-light text-primary-text'
+                    : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50')">
+                {{ type }}
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (selectedType()) {
+          <!-- Category -->
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">Category</label>
+            <select
+              formControlName="category"
+              class="w-full border border-gray-200 rounded-input px-3 py-[0.4375rem] text-caption text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30">
+              <option value="" disabled>Select category</option>
+              <option value="Java Core">Java Core</option>
+              <option value="Angular">Angular</option>
+              <option value="Spring Boot">Spring Boot</option>
+              <option value="SQL Basics">SQL Basics</option>
+            </select>
+            @if (form.controls.category.invalid && form.controls.category.touched) {
+              <p class="text-[0.6875rem] text-red-500 mt-1">Please select a category.</p>
+            }
+          </div>
+
+          <!-- Question text -->
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">Question</label>
+            <textarea
+              formControlName="questionText"
+              rows="3"
+              placeholder="Enter the question (min 10 characters)..."
+              class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+            ></textarea>
+            @if (form.controls.questionText.invalid && form.controls.questionText.touched) {
+              <p class="text-[0.6875rem] text-red-500 mt-1">Question must be at least 10 characters.</p>
+            }
+          </div>
+
+          <!-- MCQ: option builder -->
+          @if (selectedType() === 'MCQ') {
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-2">Options
+                <span class="text-gray-400 font-normal">(check box to mark correct)</span>
+              </label>
+              <dap-mcq-option-builder #mcqBuilder (valueChange)="onMcqValueChange($event)" />
+            </div>
+          }
+
+          <!-- TEXT: keyword list -->
+          @if (selectedType() === 'TEXT') {
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-2">Keywords
+                <span class="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <dap-keyword-list #keywordList (keywordsChange)="onKeywordsChange($event)" />
+            </div>
+          }
+
+          <!-- GROUP: ordered toggle + follow-up picker -->
+          @if (selectedType() === 'GROUP') {
+            <div class="space-y-3">
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  (click)="orderedGroup.set(!orderedGroup())"
+                  [class]="'w-8 h-4 rounded-full transition-colors relative flex-shrink-0 ' +
+                    (orderedGroup() ? 'bg-primary' : 'bg-gray-200')">
+                  <span [class]="'absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ' +
+                    (orderedGroup() ? 'translate-x-4' : 'translate-x-0.5')"></span>
+                </button>
+                <span class="text-xs text-gray-600">Ordered follow-up questions</span>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-500 mb-2">Follow-up text questions</label>
+                @if (textQuestions().length === 0) {
+                  <p class="text-caption text-gray-400 italic">No text questions found. Create text questions first.</p>
+                } @else {
+                  <div class="space-y-1 max-h-40 overflow-y-auto border border-gray-100 rounded-input p-2">
+                    @for (tq of textQuestions(); track tq.id) {
+                      <label class="flex items-start gap-2 cursor-pointer hover:bg-gray-50 rounded p-1 transition-colors">
+                        <input
+                          type="checkbox"
+                          [checked]="selectedFollowUpIds().includes(tq.id)"
+                          (change)="toggleFollowUp(tq.id)"
+                          class="mt-0.5 accent-primary flex-shrink-0"
+                        />
+                        <span class="text-caption text-gray-700 line-clamp-2">{{ tq.question }}</span>
+                      </label>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        }
+
+        <!-- Error message -->
+        @if (errorMsg()) {
+          <p class="text-[0.6875rem] text-red-500">{{ errorMsg() }}</p>
+        }
+
+      </div>
+
+      <!-- Footer (inside form so submit button works) -->
+      <div class="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 flex-shrink-0">
+        <dap-button variant="ghost" type="button" (clicked)="cancel()">Cancel</dap-button>
+        <dap-button
+          variant="primary"
+          type="submit"
+          [loading]="saving()"
+          [disabled]="!selectedType()">
+          Save question
+        </dap-button>
+      </div>
+
+    </form>
+
+  </div>
+</div>

@@ -68,6 +68,14 @@ export const routes: Routes = [
             .then(m => m.BankListComponent),
       },
       {
+        path: 'questions',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'MARKER'] },
+        loadChildren: () =>
+          import('./features/question-management/question-management.routes')
+            .then(m => m.questionManagementRoutes),
+      },
+      {
         path: 'markers',
         canActivate: [roleGuard],
         data: { roles: ['ADMIN'] },

@@ -1,93 +1,83 @@
 <!-- Toolbar -->
 <div class="flex items-center justify-between mb-4">
   <div class="flex items-center gap-2">
-    <!-- Search -->
+    <!-- Search (client-side, applied to filteredQuestions in the template) -->
     <div class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-input px-2.5 py-1.5 max-w-60">
       <i class="pi pi-search text-gray-400 text-caption"></i>
       <input type="text" placeholder="Search questions..."
-             [value]="searchQuery()"
-             (input)="searchQuery.set($any($event.target).value)"
+             #searchInput
              class="flex-1 text-caption outline-none bg-transparent text-gray-700 placeholder:text-gray-400">
     </div>
-    <!-- Filter pills -->
-    @for (f of filterTypes; track f) {
-      <button
-        (click)="activeFilter.set(f)"
-        [class]="'px-3 py-[0.3125rem] text-xs font-medium rounded-badge border transition-colors ' +
-          (activeFilter() === f
-            ? 'border-primary bg-primary-light text-primary-text'
-            : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50')">
-        {{ f === 'ALL' ? 'All' : f }}
-      </button>
-    }
   </div>
-  <dap-button iconLeft="pi-plus" (clicked)="showModal.set(true)">Add question</dap-button>
+  <dap-button iconLeft="pi-plus" (clicked)="showForm.set(true)">Add question</dap-button>
 </div>
 
 <div class="flex gap-4">
   <!-- Bank list sidebar -->
   <div class="w-[12.5rem] flex-shrink-0 space-y-2">
-    @for (bank of banks; track bank.id) {
-      <button
-        (click)="activeBank.set(bank)"
-        [class]="'w-full text-left bg-white border rounded-card py-[0.6875rem] px-3 cursor-pointer transition-colors ' +
-          (activeBank().id === bank.id ? 'border-primary' : 'border-gray-200 hover:border-gray-300')">
-        <div class="flex items-center justify-between mb-[0.1875rem]">
-          <span class="text-caption font-medium text-gray-800">{{ bank.name }}</span>
-          <span class="inline-block rounded-badge px-[0.4375rem] py-0.5 text-[0.6875rem] font-medium bg-primary-fill text-primary-text">
-            {{ bank.questionCount }}
-          </span>
-        </div>
-        <p class="text-[0.6875rem] text-gray-400">{{ bank.description }}</p>
-      </button>
+    @if (loading()) {
+      <p class="text-caption text-gray-400 text-center py-4">Loading...</p>
+    } @else if (banks().length === 0) {
+      <p class="text-caption text-gray-400 text-center py-4">No banks yet.</p>
+    } @else {
+      @for (bank of banks(); track bank.name) {
+        <button
+          (click)="selectBank(bank.name)"
+          [class]="'w-full text-left bg-white border rounded-card py-[0.6875rem] px-3 cursor-pointer transition-colors ' +
+            (selectedCategory() === bank.name ? 'border-primary' : 'border-gray-200 hover:border-gray-300')">
+          <div class="flex items-center justify-between mb-[0.1875rem]">
+            <span class="text-caption font-medium text-gray-800 truncate">{{ bank.name }}</span>
+            <span class="inline-block rounded-badge px-[0.4375rem] py-0.5 text-[0.6875rem] font-medium bg-primary-fill text-primary-text flex-shrink-0 ml-1">
+              {{ bank.questionCount }}
+            </span>
+          </div>
+        </button>
+      }
     }
-    <!-- New bank -->
-    <button class="w-full border-2 border-dashed border-gray-200 rounded-card py-[0.6875rem] px-3 text-caption text-gray-400 hover:border-gray-300 hover:text-gray-500 transition-colors flex items-center justify-center gap-1">
-      <i class="pi pi-plus text-xs"></i> New bank
-    </button>
   </div>
 
   <!-- Question list -->
   <div class="flex-1 min-w-0">
-    <h2 class="text-sm font-medium text-gray-800 mb-3">
-      {{ activeBank().name }} · {{ filteredQuestions().length }} questions
-    </h2>
+    @if (activeBank()) {
+      <h2 class="text-sm font-medium text-gray-800 mb-3">
+        {{ activeBank()!.name }} · {{ filteredQuestions().length }} question{{ filteredQuestions().length !== 1 ? 's' : '' }}
+      </h2>
+    } @else if (!loading()) {
+      <h2 class="text-sm font-medium text-gray-800 mb-3">All questions</h2>
+    }
 
     <div class="space-y-2">
-      @for (q of filteredQuestions(); track q.id) {
-        <div class="bg-white border border-gray-200 rounded-card py-[0.8125rem] px-3.5">
-          <div class="flex items-start justify-between gap-3">
-            <p class="text-caption text-gray-800 line-clamp-2 flex-1">{{ q.questionText }}</p>
-            <div class="flex items-center gap-1 flex-shrink-0">
-              <button class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors">
-                <i class="pi pi-pencil text-xs"></i>
-              </button>
-              <button class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-md text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors">
-                <i class="pi pi-trash text-xs"></i>
-              </button>
+      @if (loading()) {
+        <p class="text-caption text-gray-400 text-center py-8">Loading questions...</p>
+      } @else if (filteredQuestions().length === 0) {
+        <p class="text-caption text-gray-400 text-center py-8">No questions in this bank.</p>
+      } @else {
+        @for (q of filteredQuestions(); track q.id) {
+          <div class="bg-white border border-gray-200 rounded-card py-[0.8125rem] px-3.5">
+            <div class="flex items-start justify-between gap-3">
+              <p class="text-caption text-gray-800 line-clamp-2 flex-1">{{ q.question }}</p>
+              <div class="flex items-center gap-1 flex-shrink-0">
+                <button class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors">
+                  <i class="pi pi-pencil text-xs"></i>
+                </button>
+                <button class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-md text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors">
+                  <i class="pi pi-trash text-xs"></i>
+                </button>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 mt-2">
+              <dap-tag [label]="resolveType(q)" [variant]="typeVariant(resolveType(q))" />
+              <span class="text-[0.6875rem] text-gray-400">{{ q.category }}</span>
             </div>
           </div>
-          <div class="flex items-center gap-1.5 mt-2">
-            <dap-tag [label]="q.type" [variant]="typeVariant(q.type)" />
-            <dap-tag [label]="q.difficulty" variant="default" />
-            @for (tag of q.tags; track tag) {
-              <dap-tag [label]="tag" variant="info" />
-            }
-            <span class="ml-auto text-[0.6875rem] text-gray-400">{{ q.marks }} mark{{ q.marks !== 1 ? 's' : '' }}</span>
-          </div>
-        </div>
-      }
-
-      @if (filteredQuestions().length === 0) {
-        <p class="text-caption text-gray-400 text-center py-8">No questions found.</p>
+        }
       }
     </div>
   </div>
 </div>
 
-@if (showModal()) {
-  <dap-add-question-modal
-    [bankId]="activeBank().id"
-    (submitted)="showModal.set(false)"
-    (cancelled)="showModal.set(false)" />
+@if (showForm()) {
+  <dap-question-form
+    (questionAdded)="onQuestionAdded()"
+    (cancelled)="showForm.set(false)" />
 }
