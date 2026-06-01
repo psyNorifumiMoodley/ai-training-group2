@@ -1,0 +1,13 @@
+<nav class="w-[11rem] h-full flex-shrink-0 bg-sidebar border-r border-border-dark flex flex-col pt-3">
+  <p class="text-[0.625rem] font-medium text-[#484f58] tracking-[0.07em] px-4 pb-1.5 uppercase">Manage</p>
+
+  @for (item of visibleItems(); track item.route) {
+    <a
+      [routerLink]="item.route"
+      routerLinkActive="bg-primary/15 !text-[#e6edf3]"
+      class="flex items-center gap-2 px-2 py-[0.4375rem] text-[#8b949e] text-caption rounded-md mx-2 transition-colors hover:bg-white/5 mb-0.5">
+      <i [class]="'pi text-base ' + item.icon"></i>
+      <span>{{ item.label }}</span>
+    </a>
+  }
+</nav>

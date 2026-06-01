@@ -1,52 +1,59 @@
-<div class="p-6">
-  <div class="flex items-center justify-between mb-4">
-    <h1 class="text-xl font-semibold text-gray-900">Candidates</h1>
-    <button (click)="openForm()"
-            class="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700">
-      <i class="pi pi-plus"></i> Register Candidate
-    </button>
-  </div>
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-h2 text-gray-900">Candidates</h1>
+  <button (click)="openForm()"
+          class="flex items-center gap-[0.3125rem] px-4 py-2 text-caption font-medium text-white bg-primary rounded-input hover:bg-primary-hover active:bg-primary-pressed transition-colors">
+    <i class="pi pi-plus text-caption"></i> Register candidate
+  </button>
+</div>
 
-  @if (loading()) {
-    <p class="text-sm text-gray-500">Loading...</p>
-  } @else if (candidates().length === 0) {
-    <p class="text-sm text-gray-500">No candidates registered yet.</p>
-  } @else {
-    <table class="w-full text-sm border-collapse">
+@if (loading()) {
+  <p class="text-caption text-gray-400">Loading...</p>
+} @else if (candidates().length === 0) {
+  <p class="text-caption text-gray-400">No candidates registered yet.</p>
+} @else {
+  <div class="bg-white border border-gray-200 rounded-card p-3.5">
+    <table class="w-full text-caption">
       <thead>
-        <tr class="border-b text-left text-gray-500 font-medium">
-          <th class="pb-2 pr-4">Name</th>
-          <th class="pb-2">Email</th>
+        <tr class="border-b border-gray-100">
+          <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Name</th>
+          <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2">Email</th>
         </tr>
       </thead>
       <tbody>
         @for (candidate of candidates(); track candidate.id) {
-          <tr class="border-b last:border-0 hover:bg-gray-50">
-            <td class="py-3 pr-4">{{ candidate.name }}</td>
-            <td class="py-3">{{ candidate.email }}</td>
+          <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
+            <td class="py-2.5 pr-4">
+              <div class="flex items-center gap-2">
+                <div class="w-[1.375rem] h-[1.375rem] rounded-avatar bg-primary-fill text-primary-text flex items-center justify-center text-[0.625rem] font-medium flex-shrink-0">
+                  {{ candidate.name.charAt(0).toUpperCase() }}
+                </div>
+                <span class="text-gray-800">{{ candidate.name }}</span>
+              </div>
+            </td>
+            <td class="py-2.5 text-gray-500">{{ candidate.email }}</td>
           </tr>
         }
       </tbody>
     </table>
 
     @if (totalPages() > 1) {
-      <div class="flex items-center justify-between mt-4 text-sm text-gray-600">
+      <div class="flex items-center justify-between mt-4 text-xs text-gray-400 border-t border-gray-100 pt-3">
         <span>{{ totalElements() }} total</span>
         <div class="flex items-center gap-2">
           <button (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 0"
-                  class="px-3 py-1 border rounded disabled:opacity-40 hover:bg-gray-50">
-            <i class="pi pi-chevron-left"></i>
+                  class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-40 transition-colors">
+            <i class="pi pi-chevron-left text-[0.6875rem]"></i>
           </button>
-          <span>Page {{ currentPage() + 1 }} of {{ totalPages() }}</span>
+          <span>{{ currentPage() + 1 }} / {{ totalPages() }}</span>
           <button (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() >= totalPages() - 1"
-                  class="px-3 py-1 border rounded disabled:opacity-40 hover:bg-gray-50">
-            <i class="pi pi-chevron-right"></i>
+                  class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-40 transition-colors">
+            <i class="pi pi-chevron-right text-[0.6875rem]"></i>
           </button>
         </div>
       </div>
     }
-  }
-</div>
+  </div>
+}
 
 @if (showForm()) {
   <app-candidate-form (saved)="onFormSaved()" (cancelled)="onFormCancelled()" />

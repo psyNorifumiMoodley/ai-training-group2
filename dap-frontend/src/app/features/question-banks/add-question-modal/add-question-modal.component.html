@@ -1,0 +1,104 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" (click)="cancel()">
+  <div class="bg-white rounded-modal shadow-xl w-full max-w-[32.5rem] mx-4" (click)="$event.stopPropagation()">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+      <h2 class="text-[0.9375rem] font-medium text-gray-900">Add question</h2>
+      <button type="button" (click)="cancel()" class="text-gray-400 hover:text-gray-600 w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100">
+        <i class="pi pi-times text-caption"></i>
+      </button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="px-6 py-4 space-y-4">
+
+      <!-- Type + Bank row -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Question type</label>
+          <select formControlName="type"
+                  class="w-full border border-gray-200 rounded-input px-3 py-[0.4375rem] text-caption focus:outline-none focus:ring-2 focus:ring-primary/30">
+            <option value="" disabled>Select type</option>
+            <option value="MCQ">MCQ</option>
+            <option value="TEXT">Text</option>
+            <option value="DOC">Document</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Question bank</label>
+          <select formControlName="bankId"
+                  class="w-full border border-gray-200 rounded-input px-3 py-[0.4375rem] text-caption focus:outline-none focus:ring-2 focus:ring-primary/30">
+            <option value="" disabled>Select bank</option>
+            @for (bank of banks; track bank.id) {
+              <option [value]="bank.id">{{ bank.name }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Question text -->
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Question</label>
+        <textarea formControlName="questionText" rows="3"
+                  placeholder="Enter the question (min 10 characters)..."
+                  class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"></textarea>
+        @if (form.controls.questionText.invalid && form.controls.questionText.touched) {
+          <p class="text-[0.6875rem] text-red-500 mt-1">Question must be at least 10 characters.</p>
+        }
+      </div>
+
+      <!-- MCQ options (shown only when type = MCQ) -->
+      @if (isMcq) {
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-2">Options</label>
+          <div [formArrayName]="'options'" class="space-y-2">
+            @for (ctrl of optionsArray.controls; track $index) {
+              <div class="flex items-center gap-2">
+                <input type="checkbox"
+                       class="w-4 h-4 accent-primary"
+                       [checked]="form.controls.correctOptions.value.includes($index)"
+                       (change)="$event">
+                <input [formControlName]="$index"
+                       [placeholder]="'Option ' + ($index + 1)"
+                       class="flex-1 border border-gray-200 rounded-input px-3 py-1.5 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30">
+              </div>
+            }
+          </div>
+          <button type="button" (click)="addOption()"
+                  class="mt-2 text-xs text-primary hover:text-primary-hover flex items-center gap-1">
+            <i class="pi pi-plus text-[0.6875rem]"></i> Add option
+          </button>
+        </div>
+      }
+
+      <!-- Marks + Difficulty row -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Marks</label>
+          <input type="number" formControlName="marks" min="1"
+                 class="w-full border border-gray-200 rounded-input px-3 py-[0.4375rem] text-caption focus:outline-none focus:ring-2 focus:ring-primary/30">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Difficulty</label>
+          <select formControlName="difficulty"
+                  class="w-full border border-gray-200 rounded-input px-3 py-[0.4375rem] text-caption focus:outline-none focus:ring-2 focus:ring-primary/30">
+            <option value="" disabled>Select</option>
+            <option value="EASY">Easy</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HARD">Hard</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tags -->
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Tags <span class="text-gray-400 font-normal">(comma-separated, optional)</span></label>
+        <input type="text" formControlName="tags" placeholder="arrays, recursion, oop"
+               class="w-full border border-gray-200 rounded-input px-3 py-[0.4375rem] text-caption focus:outline-none focus:ring-2 focus:ring-primary/30">
+      </div>
+
+      <!-- Footer -->
+      <div class="flex justify-end gap-2 pt-2 border-t border-gray-100">
+        <dap-button variant="ghost" type="button" (clicked)="cancel()">Cancel</dap-button>
+        <dap-button variant="primary" type="submit">Save question</dap-button>
+      </div>
+    </form>
+  </div>
+</div>

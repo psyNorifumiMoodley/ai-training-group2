@@ -1,0 +1,112 @@
+<div class="flex flex-col h-screen bg-gray-50">
+  <!-- Topbar -->
+  <header class="h-[2.875rem] bg-shell border-b border-border-dark flex items-center justify-between px-4 flex-shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-[1.375rem] h-[1.375rem] bg-primary rounded-[0.3125rem]"></div>
+      <span class="text-caption text-[#e6edf3] truncate max-w-80">{{ assessmentTitle }}</span>
+    </div>
+    <div class="bg-primary/15 border border-primary/50 rounded-full px-3 py-1">
+      <span class="text-caption font-medium text-[#93c5fd]">38:00</span>
+    </div>
+  </header>
+
+  <!-- Progress bar -->
+  <dap-progress-bar [value]="(answeredCount() / questions.length) * 100" color="bg-primary" height="xs" />
+
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Question nav sidebar -->
+    <aside class="w-48 flex-shrink-0 bg-sidebar border-r border-border-dark flex flex-col p-4">
+      <p class="text-[0.625rem] font-medium text-[#484f58] uppercase tracking-[0.07em] mb-3">Questions</p>
+      <div class="grid grid-cols-5 gap-1 mb-4">
+        @for (q of questions; track q.id; let i = $index) {
+          <dap-question-nav-dot [number]="i + 1" [state]="navState(i)" />
+        }
+      </div>
+      <!-- Legend -->
+      <div class="space-y-1.5 text-[0.6875rem] text-[#8b949e] mb-4">
+        <div class="flex items-center gap-2">
+          <dap-question-nav-dot [number]="1" state="done" />
+          <span>Done</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <dap-question-nav-dot [number]="2" state="active" />
+          <span>Current</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <dap-question-nav-dot [number]="3" state="todo" />
+          <span>To do</span>
+        </div>
+      </div>
+      <div class="mt-auto space-y-1.5 text-xs text-[#8b949e]">
+        <p>Progress {{ answeredCount() }} / {{ questions.length }}</p>
+        <p>Time left 38 min</p>
+      </div>
+    </aside>
+
+    <!-- Question area -->
+    <main class="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
+      @let q = currentQuestion();
+
+      <div class="bg-white border border-gray-200 rounded-card p-[1.125rem]">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em]">
+            Question {{ currentIndex() + 1 }} of {{ questions.length }}
+          </span>
+        </div>
+        <p class="text-sm text-gray-800 mb-4">{{ q.questionText }}</p>
+
+        <!-- MCQ options -->
+        @if (q.type === 'MCQ') {
+          <div class="space-y-[0.4375rem]">
+            @for (opt of q.options ?? []; track $index) {
+              <div
+                (click)="selectOption($index)"
+                [class]="'flex items-center gap-2.5 py-[0.5625rem] px-3 border rounded-input cursor-pointer transition-colors ' +
+                  (selectedOption() === $index
+                    ? 'border-primary bg-primary-light'
+                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50')">
+                <div [class]="'w-[1.0625rem] h-[1.0625rem] rounded-full border-2 flex items-center justify-center flex-shrink-0 ' +
+                  (selectedOption() === $index ? 'border-primary' : 'border-gray-300')">
+                  @if (selectedOption() === $index) {
+                    <div class="w-[0.4375rem] h-[0.4375rem] rounded-full bg-primary"></div>
+                  }
+                </div>
+                <span class="text-caption text-gray-700">{{ opt }}</span>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Text question -->
+        @if (q.type === 'TEXT') {
+          <textarea rows="6" placeholder="Type your answer here..."
+                    class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-gray-400"></textarea>
+        }
+
+        <!-- Doc question -->
+        @if (q.type === 'DOC') {
+          <div class="border-2 border-dashed border-gray-200 rounded-card p-8 flex flex-col items-center justify-center gap-3 hover:border-primary/50 transition-colors cursor-pointer">
+            <i class="pi pi-upload text-gray-300 text-[2rem]"></i>
+            <p class="text-caption text-gray-400">Drop your file here, or</p>
+            <label class="text-caption text-primary font-medium cursor-pointer hover:text-primary-hover">
+              Choose file
+              <input type="file" class="hidden">
+            </label>
+          </div>
+        }
+      </div>
+
+      <!-- Navigation -->
+      <div class="flex items-center justify-between">
+        <dap-button variant="ghost" iconLeft="pi-arrow-left" [disabled]="currentIndex() === 0" (clicked)="prev()">
+          Previous
+        </dap-button>
+        @if (isLast()) {
+          <dap-button variant="primary" (clicked)="next()">Submit assessment</dap-button>
+        } @else {
+          <dap-button variant="primary" iconRight="pi-arrow-right" (clicked)="next()">Next</dap-button>
+        }
+      </div>
+    </main>
+  </div>
+</div>
