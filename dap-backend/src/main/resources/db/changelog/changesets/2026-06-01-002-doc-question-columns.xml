@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Restructures doc_question for TABLE_PER_CLASS inheritance.
+        The baseline created doc_question with only an id FK to assessment_question.
+        TABLE_PER_CLASS requires each concrete table to contain all inherited columns.
+        Drop the FK and add the missing columns so Hibernate validation passes.
+    -->
+    <changeSet id="2026-06-01-002-doc-question-columns" author="pierre.duplessis">
+
+        <dropForeignKeyConstraint baseTableName="doc_question"
+                                  constraintName="fk_doc_question_assessment_question"/>
+
+        <addColumn tableName="doc_question">
+            <column name="category" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="doc_question">
+            <column name="question" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <addColumn tableName="doc_question">
+            <column name="created_at" type="TIMESTAMPTZ"/>
+        </addColumn>
+
+        <addColumn tableName="doc_question">
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="doc_question" columnName="updated_at"/>
+            <dropColumn tableName="doc_question" columnName="created_at"/>
+            <dropColumn tableName="doc_question" columnName="question"/>
+            <dropColumn tableName="doc_question" columnName="category"/>
+            <addForeignKeyConstraint baseTableName="doc_question"
+                                     baseColumnNames="id"
+                                     constraintName="fk_doc_question_assessment_question"
+                                     referencedTableName="assessment_question"
+                                     referencedColumnNames="id"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>
