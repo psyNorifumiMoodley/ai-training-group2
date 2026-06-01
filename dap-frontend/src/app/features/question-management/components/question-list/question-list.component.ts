@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  computed,
   DestroyRef,
   inject,
   signal,
@@ -25,9 +24,8 @@ export class QuestionListComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly questions = signal<QuestionResponse[]>([]);
-  readonly categories = ['Java Core', 'Angular', 'Spring Boot', 'SQL Basics'];
+  readonly categories = signal<string[]>([]);
   readonly selectedCategory = signal<string>('');
-  readonly typeFilter = signal<QuestionType | 'ALL'>('ALL');
   readonly page = signal(0);
   readonly totalPages = signal(0);
   readonly totalElements = signal(0);
@@ -35,26 +33,9 @@ export class QuestionListComponent {
   readonly showForm = signal(false);
 
   readonly PAGE_SIZE = 20;
-  readonly filterTypes: Array<QuestionType | 'ALL'> = ['ALL', 'MCQ', 'TEXT', 'DOC', 'GROUP'];
-
-  readonly filteredQuestions = computed(() => {
-    const type = this.typeFilter();
-    if (type === 'ALL') return this.questions();
-    return this.questions().filter(q => this.resolveType(q) === type);
-  });
-
-  // Resolves the question type from the `type` discriminator field when present,
-  // falling back to structural detection in case the field is absent from the
-  // JSON response (e.g. when Jackson type-info is not serialised for generic PageResponse).
-  private resolveType(q: QuestionResponse): QuestionType {
-    if (q.type) return q.type;
-    if ('correctAnswers' in q) return 'MCQ';
-    if ('followUpQuestions' in q) return 'GROUP';
-    if ('keywords' in q) return 'TEXT';
-    return 'DOC';
-  }
 
   constructor() {
+    this.loadCategories();
     this.loadQuestions();
   }
 
@@ -81,6 +62,7 @@ export class QuestionListComponent {
   onQuestionAdded(): void {
     this.showForm.set(false);
     this.page.set(0);
+    this.loadCategories();
     this.loadQuestions();
   }
 
@@ -110,4 +92,12 @@ export class QuestionListComponent {
       });
   }
 
+  private loadCategories(): void {
+    this.questionService.getCategories()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: cats => this.categories.set(cats),
+        error: () => {},
+      });
+  }
 }
