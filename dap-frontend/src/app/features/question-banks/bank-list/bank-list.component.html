@@ -1,15 +1,11 @@
 <!-- Toolbar -->
 <div class="flex items-center justify-between mb-4">
-  <div class="flex items-center gap-2">
-    <!-- Search (client-side, applied to filteredQuestions in the template) -->
-    <div class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-input px-2.5 py-1.5 max-w-60">
-      <i class="pi pi-search text-gray-400 text-caption"></i>
-      <input type="text" placeholder="Search questions..."
-             #searchInput
-             class="flex-1 text-caption outline-none bg-transparent text-gray-700 placeholder:text-gray-400">
-    </div>
+  <div class="flex items-center gap-1.5 bg-white border border-gray-200 rounded-input px-2.5 py-1.5 max-w-60">
+    <i class="pi pi-search text-gray-400 text-caption"></i>
+    <input type="text" placeholder="Search questions..." #searchInput
+           class="flex-1 text-caption outline-none bg-transparent text-gray-700 placeholder:text-gray-400">
   </div>
-  <dap-button iconLeft="pi-plus" (clicked)="showForm.set(true)">Add question</dap-button>
+  <dap-button iconLeft="pi-plus" (clicked)="openAdd()">Add question</dap-button>
 </div>
 
 <div class="flex gap-4">
@@ -57,10 +53,14 @@
             <div class="flex items-start justify-between gap-3">
               <p class="text-caption text-gray-800 line-clamp-2 flex-1">{{ q.question }}</p>
               <div class="flex items-center gap-1 flex-shrink-0">
-                <button class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors">
+                <button (click)="openEdit(q)"
+                        class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+                        title="Edit question">
                   <i class="pi pi-pencil text-xs"></i>
                 </button>
-                <button class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-md text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors">
+                <button (click)="requestDelete(q)"
+                        class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-md text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors"
+                        title="Delete question">
                   <i class="pi pi-trash text-xs"></i>
                 </button>
               </div>
@@ -76,8 +76,27 @@
   </div>
 </div>
 
+<!-- Add modal -->
 @if (showForm()) {
   <dap-question-form
-    (questionAdded)="onQuestionAdded()"
+    (questionAdded)="onQuestionSaved()"
     (cancelled)="showForm.set(false)" />
+}
+
+<!-- Edit modal -->
+@if (editingQuestion()) {
+  <dap-question-form
+    [existingQuestion]="editingQuestion()!"
+    (questionAdded)="onQuestionSaved()"
+    (cancelled)="editingQuestion.set(null)" />
+}
+
+<!-- Delete confirmation -->
+@if (deletingQuestion()) {
+  <dap-confirm-modal
+    title="Delete question?"
+    message="This will permanently remove the question. This cannot be undone."
+    confirmLabel="Delete"
+    (confirmed)="confirmDelete()"
+    (cancelled)="deletingQuestion.set(null)" />
 }

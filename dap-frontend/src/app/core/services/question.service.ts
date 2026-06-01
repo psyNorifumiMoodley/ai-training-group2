@@ -27,6 +27,17 @@ export class QuestionService {
     return this.http.get<PageResponse<QuestionResponse>>(`${environment.apiBaseUrl}/questions`, { params });
   }
 
+  updateQuestion(
+    id: string,
+    request: McqQuestionRequest | TextQuestionRequest | DocQuestionRequest | GroupQuestionRequest
+  ): Observable<QuestionResponse> {
+    return this.http.put<QuestionResponse>(`${environment.apiBaseUrl}/questions/${id}`, request);
+  }
+
+  deleteQuestion(id: string): Observable<void> {
+    return this.http.delete<void>(`${environment.apiBaseUrl}/questions/${id}`);
+  }
+
   getCategories(): Observable<string[]> {
     return this.http.get<string[]>(`${environment.apiBaseUrl}/questions/categories`);
   }

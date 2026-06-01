@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, OnInit, output, signal } from '@angular/core';
 
 export interface McqBuilderValue {
   options: string[];
@@ -17,13 +17,19 @@ interface Option {
   templateUrl: './mcq-option-builder.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class McqOptionBuilderComponent {
+export class McqOptionBuilderComponent implements OnInit {
+  readonly initialOptions = input<Option[]>([]);
   readonly valueChange = output<McqBuilderValue>();
 
   readonly options = signal<Option[]>([
     { text: '', correct: false },
     { text: '', correct: false },
   ]);
+
+  ngOnInit(): void {
+    const init = this.initialOptions();
+    if (init.length > 0) this.options.set([...init]);
+  }
 
   get isValid(): boolean {
     const filled = this.options().filter(o => o.text.trim());
@@ -68,10 +74,7 @@ export class McqOptionBuilderComponent {
   }
 
   reset(): void {
-    this.options.set([
-      { text: '', correct: false },
-      { text: '', correct: false },
-    ]);
+    this.options.set([{ text: '', correct: false }, { text: '', correct: false }]);
   }
 
   private emit(): void {
