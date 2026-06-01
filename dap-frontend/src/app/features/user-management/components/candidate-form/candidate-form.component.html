@@ -1,50 +1,50 @@
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-  <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-    <div class="flex items-center justify-between px-6 py-4 border-b">
-      <h2 class="text-lg font-semibold text-gray-900">Register New Candidate</h2>
-      <button type="button" (click)="cancel()" class="text-gray-400 hover:text-gray-600">
-        <i class="pi pi-times"></i>
+  <div class="bg-white rounded-modal shadow-xl w-full max-w-md mx-4">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+      <h2 class="text-[0.9375rem] font-medium text-gray-900">Register new candidate</h2>
+      <button type="button" (click)="cancel()" class="text-gray-400 hover:text-gray-600 w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors">
+        <i class="pi pi-times text-caption"></i>
       </button>
     </div>
 
     <form [formGroup]="form" (ngSubmit)="submit()" class="px-6 py-4 space-y-4">
       @if (conflictError()) {
-        <p class="text-sm text-red-600 bg-red-50 rounded px-3 py-2">
+        <p class="text-caption text-red-500 bg-red-50 rounded-input px-3 py-2">
           A user with this email address already exists.
         </p>
       }
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1" for="c-name">Name</label>
+        <label class="block text-xs font-medium text-gray-500 mb-1" for="c-name">Name</label>
         <input id="c-name" formControlName="name" type="text" placeholder="Full name"
-               class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-               [class.border-red-500]="nameControl.invalid && nameControl.touched">
+               class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+               [class.border-red-400]="nameControl.invalid && nameControl.touched">
         @if (nameControl.invalid && nameControl.touched) {
-          <p class="text-xs text-red-500 mt-1">Name is required.</p>
+          <p class="text-[0.6875rem] text-red-500 mt-1">Name is required.</p>
         }
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1" for="c-email">Email</label>
+        <label class="block text-xs font-medium text-gray-500 mb-1" for="c-email">Email</label>
         <input id="c-email" formControlName="email" type="email" placeholder="email@example.com"
-               class="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-               [class.border-red-500]="emailControl.invalid && emailControl.touched">
+               class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+               [class.border-red-400]="emailControl.invalid && emailControl.touched">
         @if (emailControl.touched) {
           @if (emailControl.errors?.['required']) {
-            <p class="text-xs text-red-500 mt-1">Email is required.</p>
+            <p class="text-[0.6875rem] text-red-500 mt-1">Email is required.</p>
           } @else if (emailControl.errors?.['email']) {
-            <p class="text-xs text-red-500 mt-1">Please enter a valid email address.</p>
+            <p class="text-[0.6875rem] text-red-500 mt-1">Please enter a valid email address.</p>
           }
         }
       </div>
 
-      <div class="flex justify-end gap-3 pt-2">
+      <div class="flex justify-end gap-2 pt-2">
         <button type="button" (click)="cancel()"
-                class="px-4 py-2 text-sm text-gray-700 border rounded hover:bg-gray-50">
+                class="px-4 py-2 text-caption font-medium text-gray-500 border border-gray-300 rounded-input hover:bg-gray-50 transition-colors">
           Cancel
         </button>
         <button type="submit" [disabled]="submitting()"
-                class="px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50">
+                class="px-4 py-2 text-caption font-medium text-white bg-primary rounded-input hover:bg-primary-hover disabled:opacity-50 transition-colors">
           @if (submitting()) { Saving... } @else { Register }
         </button>
       </div>

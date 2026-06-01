@@ -41,7 +41,7 @@ export class LoginComponent {
           this.submitting.set(false);
           const role = this.authService.currentUser()?.role;
           if (role === 'ADMIN' || role === 'MARKER') {
-            this.router.navigateByUrl('/admin/users');
+            this.router.navigateByUrl('/dashboard');
           }
         },
         error: (err: HttpErrorResponse) => {

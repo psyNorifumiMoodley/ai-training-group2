@@ -1,0 +1,14 @@
+<header class="h-[2.875rem] bg-shell border-b border-border-dark flex items-center justify-between px-4 flex-shrink-0">
+  <div class="flex items-center gap-2">
+    <div class="w-[1.375rem] h-[1.375rem] bg-primary rounded-[0.3125rem]"></div>
+    <span class="text-sm font-medium text-[#e6edf3]">DAP</span>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <i class="pi pi-bell text-[#8b949e] text-lg"></i>
+    <div class="flex items-center gap-2">
+      <dap-avatar [name]="displayName()" size="md" />
+      <span class="text-caption text-[#e6edf3]">{{ displayName() }}</span>
+    </div>
+  </div>
+</header>

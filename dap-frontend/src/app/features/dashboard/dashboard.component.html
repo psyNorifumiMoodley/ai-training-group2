@@ -1,0 +1,91 @@
+<h1 class="text-h2 text-gray-900 mb-4">Dashboard</h1>
+
+<!-- Stat cards -->
+<div class="grid grid-cols-4 gap-2.5 mb-5">
+  <dap-stat-card label="Candidates"       value="142" sub="+8 this month"    subColor="primary" accentColor="#2563eb" />
+  <dap-stat-card label="Active"           value="23"  sub="6 in progress"    subColor="primary" accentColor="#f59e0b" />
+  <dap-stat-card label="Pending review"   value="11"  sub="Awaiting marker"  subColor="warning" accentColor="#f59e0b" />
+  <dap-stat-card label="Marked this week" value="34"  sub="↑ 12%"           subColor="success" accentColor="#22c55e" />
+</div>
+
+<!-- Recent assessments -->
+<div class="bg-white border border-gray-200 rounded-card p-3.5 mb-3">
+  <h2 class="text-sm font-medium text-gray-800 mb-3">Recent assessments</h2>
+  <table class="w-full text-caption">
+    <thead>
+      <tr class="border-b border-gray-100">
+        <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Candidate</th>
+        <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Role</th>
+        <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Bank</th>
+        <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Status</th>
+        <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2">Assigned</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (a of assessments; track a.id) {
+        <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
+          <td class="py-2.5 pr-4">
+            <div class="flex items-center gap-2">
+              <dap-avatar [name]="a.candidateName" size="sm" />
+              <span class="text-gray-800">{{ a.candidateName }}</span>
+            </div>
+          </td>
+          <td class="py-2.5 pr-4 text-gray-500">{{ a.role }}</td>
+          <td class="py-2.5 pr-4 text-gray-500">{{ a.bankName }}</td>
+          <td class="py-2.5 pr-4"><dap-badge [status]="a.status" /></td>
+          <td class="py-2.5 text-gray-400">{{ a.assignedDate }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<!-- Bottom row -->
+<div class="grid grid-cols-2 gap-3">
+  <!-- Recent activity -->
+  <div class="bg-white border border-gray-200 rounded-card p-3.5">
+    <h2 class="text-sm font-medium text-gray-800 mb-3">Recent activity</h2>
+    <div class="space-y-3">
+      @for (item of activity; track item.text) {
+        <div class="flex items-start gap-3">
+          <div [class]="'w-[0.4375rem] h-[0.4375rem] rounded-full mt-[0.3125rem] flex-shrink-0 ' + item.dot"></div>
+          <div>
+            <p class="text-caption text-gray-700">{{ item.text }}</p>
+            <p class="text-[0.6875rem] text-gray-400 mt-0.5">{{ item.time }}</p>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Status breakdown -->
+  <div class="bg-white border border-gray-200 rounded-card p-3.5">
+    <h2 class="text-sm font-medium text-gray-800 mb-3">Status breakdown</h2>
+    <div class="space-y-3">
+      <div>
+        <div class="flex justify-between text-xs text-gray-500 mb-1">
+          <span>Pending</span><span>34%</span>
+        </div>
+        <dap-progress-bar [value]="34" color="bg-primary" height="sm" />
+      </div>
+      <div>
+        <div class="flex justify-between text-xs text-gray-500 mb-1">
+          <span>In progress</span><span>18%</span>
+        </div>
+        <dap-progress-bar [value]="18" color="bg-amber-400" height="sm" />
+      </div>
+      <div>
+        <div class="flex justify-between text-xs text-gray-500 mb-1">
+          <span>Submitted</span><span>21%</span>
+        </div>
+        <dap-progress-bar [value]="21" color="bg-blue-400" height="sm" />
+      </div>
+      <div>
+        <div class="flex justify-between text-xs text-gray-500 mb-1">
+          <span>Marked</span><span>27%</span>
+        </div>
+        <dap-progress-bar [value]="27" color="bg-green-400" height="sm" />
+      </div>
+    </div>
+  </div>
+</div>
