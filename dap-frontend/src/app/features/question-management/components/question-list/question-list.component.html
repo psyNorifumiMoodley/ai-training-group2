@@ -12,17 +12,16 @@
       }
     </select>
 
-    <!-- Type filter pills -->
-    @for (type of filterTypes; track type) {
-      <button
-        (click)="typeFilter.set(type)"
-        [class]="'px-3 py-[0.3125rem] text-xs font-medium rounded-badge border transition-colors ' +
-          (typeFilter() === type
-            ? 'border-primary bg-primary-light text-primary-text'
-            : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50')">
-        {{ type === 'ALL' ? 'All types' : type }}
-      </button>
-    }
+    <!-- Type filter -->
+    <select
+      [value]="typeFilter()"
+      (change)="typeFilter.set($any($event.target).value)"
+      class="border border-gray-200 rounded-input px-3 py-[0.4375rem] text-caption text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 min-w-[140px]">
+      <option value="ALL">All types</option>
+      @for (type of filterTypes.slice(1); track type) {
+        <option [value]="type">{{ type }}</option>
+      }
+    </select>
   </div>
   <dap-button iconLeft="pi-plus" (clicked)="showForm.set(true)">Add question</dap-button>
 </div>
