@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -39,7 +38,7 @@ public class AssessmentController {
 
     @GetMapping("/access/{token}")
     public ResponseEntity<AssessmentAccessResponse> accessAssessment(@PathVariable String token) {
-        return ResponseEntity.ok(new AssessmentAccessResponse(UUID.randomUUID(), List.of(), 3600));
+        return ResponseEntity.ok(assessmentService.access(token));
     }
 
     @PutMapping("/{id}/responses/{questionId}")
