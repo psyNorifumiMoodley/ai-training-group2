@@ -1,6 +1,7 @@
 package com.psybergate.dap.config;
 
 import com.psybergate.dap.domain.ConflictException;
+import com.psybergate.dap.domain.UnprocessableException;
 import com.psybergate.dap.domain.ValidationException;
 import com.psybergate.dap.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleValidation(ValidationException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(400, "Bad Request", ex.getMessage(), Instant.now()));
+    }
+
+    @ExceptionHandler(UnprocessableException.class)
+    public ResponseEntity<ErrorResponse> handleUnprocessable(UnprocessableException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(new ErrorResponse(422, "Unprocessable Entity", ex.getMessage(), Instant.now()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

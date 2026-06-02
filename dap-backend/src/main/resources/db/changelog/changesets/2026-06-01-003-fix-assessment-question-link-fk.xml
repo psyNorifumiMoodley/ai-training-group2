@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        The baseline added a FK from assessment_question_link.question_id to assessment_question(id).
+        With TABLE_PER_CLASS inheritance, question IDs live only in the concrete tables
+        (mcq_question, text_question, doc_question, group_question) — the abstract
+        assessment_question table holds no rows. This FK must be dropped so Hibernate
+        can insert link rows referencing concrete-table IDs.
+    -->
+    <changeSet id="2026-06-01-003-fix-assessment-question-link-fk" author="norifumi.moodley">
+
+        <dropForeignKeyConstraint baseTableName="assessment_question_link"
+                                  constraintName="fk_aql_question"/>
+
+        <rollback>
+            <addForeignKeyConstraint baseTableName="assessment_question_link"
+                                     baseColumnNames="question_id"
+                                     constraintName="fk_aql_question"
+                                     referencedTableName="assessment_question"
+                                     referencedColumnNames="id"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

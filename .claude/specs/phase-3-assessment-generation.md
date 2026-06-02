@@ -99,7 +99,19 @@ None.
 ## Slice: Assessment Generation Logic
 
 ### Agent Brief
-Implement `Assessment` entity and the core generation logic in `AssessmentService`. Two business rules are enforced here: (1) no-repeat questions scoped to the current calendar year, (2) configurable doc question limit read from `assessment.doc-question-limit`. The endpoint wires to this service and returns the saved assessment.
+Implement `Assessment` entity and the core generation logic in `AssessmentService`. Three business rules are enforced: (1) no-repeat questions scoped to the current calendar year, (2) configurable doc question limit read from `assessment.doc-question-limit`, (3) a fixed question composition that every assessment must satisfy. The endpoint wires to this service and returns the saved assessment.
+
+**Question Composition** — every assessment, whether marker-picked or randomly generated, must contain exactly:
+- 5 MCQ questions
+- 3 Text questions (pure `TextQuestion`, not `GroupQuestion`)
+- 1 Document question
+- 1 Group question
+
+These counts are controlled by four `application.properties` keys (`assessment.required-mcq`, `assessment.required-text`, `assessment.required-doc`, `assessment.required-group`) so they are easily changed without touching service code.
+
+**Random vs. Marker-Picked** — `AssessmentRequest.questionIds` drives the mode:
+- Empty list → system randomly selects questions from all available questions satisfying the composition rules, excluding any seen by the candidate this calendar year.
+- Non-empty list → marker has hand-picked the questions; the system validates the provided list satisfies the composition rules, then filters out any the candidate has already seen this year.
 
 ### Package Tree Additions
 
@@ -109,6 +121,7 @@ src/main/java/com/psybergate/dap/
   domain/
     Assessment.java
     AssessmentStatus.java         ← enum: PENDING, IN_PROGRESS, SUBMITTED, MARKED
+    UnprocessableException.java   ← maps to HTTP 422
   repository/
     AssessmentRepository.java
   service/
@@ -128,25 +141,40 @@ src/main/java/com/psybergate/dap/
   - `@Column(nullable = false) int timeLimitMinutes`
   - `Instant startTime`
   - `boolean autoSubmitted`
-  - `@ManyToMany(fetch = FetchType.LAZY) @JoinTable(name = "assessment_question_link", ...) List<AssessmentQuestion> questions`
+  - `@ManyToMany(fetch = FetchType.LAZY) @JoinTable(name = "assessment_question_link", joinColumns = @JoinColumn(name = "assessment_id"), inverseJoinColumns = @JoinColumn(name = "question_id")) List<AssessmentQuestion> questions`
   - `@ToString.Exclude` on `questions`
 
 ### Liquibase Changesets
-None.
+
+**`2026-06-01-003-fix-assessment-question-link-fk`**
+The baseline schema added a FK from `assessment_question_link.question_id` to `assessment_question(id)`. Because the question hierarchy uses `TABLE_PER_CLASS` inheritance, question IDs live only in the concrete tables (`mcq_question`, `text_question`, `doc_question`, `group_question`) — not in the abstract `assessment_question` table. This FK must be dropped so Hibernate can insert link rows that reference concrete-table IDs.
+
+```xml
+<dropForeignKeyConstraint baseTableName="assessment_question_link"
+                          constraintName="fk_aql_question"/>
+```
+
+Include a rollback that restores the FK.
 
 ### Repositories
 
 **`AssessmentRepository extends JpaRepository<Assessment, UUID>`**
 ```java
-// For no-repeat rule: find all question IDs seen by candidate in submitted assessments this year
+// For no-repeat rule: find question IDs seen by candidate in submitted assessments within a date range
 @Query("""
   SELECT DISTINCT aq.id FROM Assessment a
   JOIN a.questions aq
   WHERE a.candidate.id = :candidateId
-    AND a.status = 'SUBMITTED'
-    AND YEAR(a.createdAt) = :year
+    AND a.status = :status
+    AND a.createdAt >= :yearStart
+    AND a.createdAt < :yearEnd
 """)
-List<UUID> findSeenQuestionIdsByCandidateAndYear(UUID candidateId, int year);
+List<UUID> findSeenQuestionIdsByCandidateAndYear(
+    @Param("candidateId") UUID candidateId,
+    @Param("status") AssessmentStatus status,
+    @Param("yearStart") Instant yearStart,
+    @Param("yearEnd") Instant yearEnd
+);
 
 List<Assessment> findByCandidateId(UUID candidateId);
 Page<Assessment> findByStatus(AssessmentStatus status, Pageable pageable);
@@ -156,18 +184,32 @@ Page<Assessment> findByStatus(AssessmentStatus status, Pageable pageable);
 
 **`AssessmentService`**
 ```java
-@Value("${assessment.doc-question-limit}")
-private int docQuestionLimit;
+// Configurable composition — change values in application.properties
+@Value("${assessment.required-mcq}") int requiredMcq;
+@Value("${assessment.required-text}") int requiredText;
+@Value("${assessment.required-doc}") int requiredDoc;
+@Value("${assessment.required-group}") int requiredGroup;
+@Value("${assessment.doc-question-limit}") int docQuestionLimit;
 
 AssessmentResponse generate(AssessmentRequest request);
-// 1. Resolve candidate (throws NotFoundException if not found)
-// 2. Resolve question entities from questionIds (throws NotFoundException for any missing)
-// 3. Filter out questions seen by candidate this calendar year (no-repeat rule)
-// 4. If all requested questions filtered → throw UnprocessableException (422)
-// 5. Count DOC-type questions; if > docQuestionLimit → throw ValidationException (400)
-// 6. Persist Assessment(status=PENDING, questions=filtered, timeLimitMinutes)
-// 7. Trigger invitation token generation (async, handled in token slice)
-// 8. Return AssessmentResponse
+// Random mode (empty questionIds):
+//   1. Resolve candidate (throws NotFoundException if not found)
+//   2. Get seen question IDs for current calendar year
+//   3. Randomly pick required counts of each type from available (not seen) questions
+//   4. If any type has insufficient available questions → throw UnprocessableException (422)
+//   5. Count DOC questions; if > docQuestionLimit → throw ValidationException (400)
+//   6. Persist Assessment(status=PENDING, questions=selected, timeLimitMinutes)
+//   7. Return AssessmentResponse
+//
+// Marker-picked mode (non-empty questionIds):
+//   1. Resolve candidate (throws NotFoundException if not found)
+//   2. Resolve question entities (throws NotFoundException for any missing ID)
+//   3. Validate composition exactly matches required counts → throw ValidationException (400) if not
+//   4. Filter out questions seen this calendar year (no-repeat rule)
+//   5. If all questions filtered → throw UnprocessableException (422)
+//   6. Count DOC questions; if > docQuestionLimit → throw ValidationException (400)
+//   7. Persist Assessment(status=PENDING, questions=filtered, timeLimitMinutes)
+//   8. Return AssessmentResponse
 
 Assessment getOrThrow(UUID id);
 ```
@@ -189,19 +231,25 @@ None.
 
 ### Testing
 - `AssessmentServiceTest` (unit, mock repositories):
-  - Candidate seen question X this year → X excluded from generated assessment
-  - Candidate seen question X last year → X included
-  - All questions excluded → throws `UnprocessableException`
+  - Random mode: seen question X this year → X not included in selection
+  - Random mode: seen question X last year → X available for selection
+  - Random mode: all questions of a type seen → throws `UnprocessableException`
+  - Marker-picked mode: provided list matches composition → success
+  - Marker-picked mode: wrong composition (e.g., 6 MCQ) → throws `ValidationException`
+  - Marker-picked mode: all provided questions seen this year → throws `UnprocessableException`
   - DOC questions > `docQuestionLimit` → throws `ValidationException`
-  - `docQuestionLimit` read from `@Value` not hardcoded (test with limit=2 to confirm configurable)
-- `AssessmentRepositoryTest` (`@DataJpaTest`): `findSeenQuestionIdsByCandidateAndYear` returns correct question IDs
+  - `docQuestionLimit` read from `@Value` not hardcoded (test with limit=0 to confirm configurable)
+  - Composition counts read from `@Value` not hardcoded (verify with alternate values)
+- `AssessmentRepositoryTest` (`@DataJpaTest`): `findSeenQuestionIdsByCandidateAndYear` returns correct question IDs; excludes PENDING assessments; excludes prior-year assessments; excludes other candidates
 
 ### Done When
 - `POST /api/assessments` with valid body creates `assessment` row with status `PENDING`
-- Previously seen question (same year) excluded silently
+- Empty `questionIds` → questions randomly selected following composition rules
+- Non-empty `questionIds` → questions validated against composition rules, then filtered for seen
+- Previously seen question (same year) excluded silently (random) or filtered (marker-picked)
+- Wrong composition returns 400; all questions excluded returns 422
 - Too many DOC questions returns 400
-- All questions excluded returns 422
-- `assessment.doc-question-limit=1` in `application.properties` controls the limit
+- `assessment.doc-question-limit=1` and composition properties in `application.properties` control the limits
 
 ---
 
