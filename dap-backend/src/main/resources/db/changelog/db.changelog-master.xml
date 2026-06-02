@@ -13,5 +13,6 @@
     <include file="db/changelog/changesets/2026-05-29-005-group-question-follow-up-join-table.xml"/>
     <include file="db/changelog/changesets/2026-06-01-001-mcq-question-columns.xml"/>
     <include file="db/changelog/changesets/2026-06-01-002-doc-question-columns.xml"/>
+    <include file="db/changelog/changesets/2026-06-01-003-fix-assessment-question-link-fk.xml"/>
 
 </databaseChangeLog>
