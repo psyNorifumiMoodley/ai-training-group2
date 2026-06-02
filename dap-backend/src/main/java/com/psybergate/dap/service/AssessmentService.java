@@ -2,8 +2,7 @@ package com.psybergate.dap.service;
 
 import com.psybergate.dap.config.InvitationTokenUtil;
 import com.psybergate.dap.domain.*;
-import com.psybergate.dap.dto.AssessmentRequest;
-import com.psybergate.dap.dto.AssessmentResponse;
+import com.psybergate.dap.dto.*;
 import com.psybergate.dap.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -119,6 +119,63 @@ public class AssessmentService {
     public Assessment getOrThrow(UUID id) {
         return assessmentRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Assessment not found: " + id));
+    }
+
+    @Transactional
+    public AssessmentAccessResponse access(String token) {
+        if (!invitationTokenUtil.isSignatureValid(token)) {
+            throw new UnauthorizedException("Invalid invitation token");
+        }
+
+        Assessment assessment = assessmentRepository.findByInvitationToken(token)
+                .orElseThrow(() -> new UnauthorizedException("Assessment not found for the provided token"));
+
+        AssessmentStatus status = assessment.getStatus();
+        if (status == AssessmentStatus.SUBMITTED || status == AssessmentStatus.MARKED) {
+            throw new ConflictException("Assessment has already been submitted");
+        }
+
+        if (assessment.getStartTime() != null) {
+            Instant deadline = assessment.getStartTime().plus(assessment.getTimeLimitMinutes(), ChronoUnit.MINUTES);
+            if (Instant.now().isAfter(deadline)) {
+                throw new UnauthorizedException("Assessment session has expired");
+            }
+        }
+
+        if (status == AssessmentStatus.PENDING) {
+            assessment.setStatus(AssessmentStatus.IN_PROGRESS);
+            assessment.setStartTime(Instant.now());
+            assessment = assessmentRepository.save(assessment);
+        }
+
+        Instant deadline = assessment.getStartTime().plus(assessment.getTimeLimitMinutes(), ChronoUnit.MINUTES);
+        long remainingSeconds = ChronoUnit.SECONDS.between(Instant.now(), deadline);
+
+        List<QuestionResponse> questionResponses = assessment.getQuestions().stream()
+                .map(this::toQuestionResponse)
+                .collect(Collectors.toList());
+
+        return new AssessmentAccessResponse(assessment.getId(), questionResponses, (int) remainingSeconds);
+    }
+
+    private QuestionResponse toQuestionResponse(AssessmentQuestion q) {
+        if (q instanceof McqQuestion mq) {
+            return new McqQuestionResponse(mq.getId(), mq.getCategory(), mq.getQuestion(),
+                    mq.getOptions(), mq.getCorrectAnswers());
+        }
+        if (q instanceof DocQuestion dq) {
+            return new DocQuestionResponse(dq.getId(), dq.getCategory(), dq.getQuestion());
+        }
+        if (q instanceof GroupQuestion gq) {
+            List<TextQuestionResponse> followUps = gq.getFollowUpQuestions().stream()
+                    .map(fq -> new TextQuestionResponse(fq.getId(), fq.getCategory(), fq.getQuestion(), fq.getKeywords()))
+                    .collect(Collectors.toList());
+            return new GroupQuestionResponse(gq.getId(), gq.getCategory(), gq.getQuestion(), gq.isOrdered(), followUps);
+        }
+        if (q instanceof TextQuestion tq) {
+            return new TextQuestionResponse(tq.getId(), tq.getCategory(), tq.getQuestion(), tq.getKeywords());
+        }
+        throw new UnsupportedOperationException("Unmapped question type: " + q.getClass());
     }
 
     private List<UUID> fetchSeenQuestionIds(UUID candidateId) {

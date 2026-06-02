@@ -1,6 +1,7 @@
 package com.psybergate.dap.config;
 
 import com.psybergate.dap.domain.ConflictException;
+import com.psybergate.dap.domain.UnauthorizedException;
 import com.psybergate.dap.domain.UnprocessableException;
 import com.psybergate.dap.domain.ValidationException;
 import com.psybergate.dap.dto.ErrorResponse;
@@ -16,6 +17,12 @@ import java.util.NoSuchElementException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse(401, "Unauthorized", ex.getMessage(), Instant.now()));
+    }
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex) {
