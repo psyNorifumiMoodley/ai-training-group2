@@ -10,5 +10,10 @@
       <dap-avatar [name]="displayName()" size="md" />
       <span class="text-caption text-[#e6edf3]">{{ displayName() }}</span>
     </div>
+    <button
+      (click)="logout()"
+      class="px-3 py-1 rounded-input bg-white text-black text-caption font-medium hover:bg-gray-100 transition-colors">
+      Logout
+    </button>
   </div>
 </header>

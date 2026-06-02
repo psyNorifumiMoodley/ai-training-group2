@@ -12,11 +12,12 @@ import { QuestionResponse, QuestionType } from '../../../../core/models/question
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { TagComponent } from '../../../../shared/components/tag/tag.component';
 import { QuestionFormComponent } from '../question-form/question-form.component';
+import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'dap-question-list',
   standalone: true,
-  imports: [ButtonComponent, TagComponent, QuestionFormComponent],
+  imports: [ButtonComponent, TagComponent, QuestionFormComponent, ConfirmModalComponent],
   templateUrl: './question-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -33,6 +34,9 @@ export class QuestionListComponent {
   readonly totalElements = signal(0);
   readonly loading = signal(false);
   readonly showForm = signal(false);
+  readonly editingQuestion = signal<QuestionResponse | null>(null);
+  readonly deletingQuestion = signal<QuestionResponse | null>(null);
+  readonly deleting = signal(false);
 
   readonly PAGE_SIZE = 20;
   readonly filterTypes: Array<QuestionType | 'ALL'> = ['ALL', 'MCQ', 'TEXT', 'DOC', 'GROUP'];
@@ -43,18 +47,48 @@ export class QuestionListComponent {
     return this.questions().filter(q => this.resolveType(q) === type);
   });
 
-  // Resolves the question type from the `type` discriminator field when present,
-  // falling back to structural detection in case the field is absent from the
-  // JSON response (e.g. when Jackson type-info is not serialised for generic PageResponse).
-  private resolveType(q: QuestionResponse): QuestionType {
-    if (q.type) return q.type;
-    if ('correctAnswers' in q) return 'MCQ';
-    if ('followUpQuestions' in q) return 'GROUP';
-    if ('keywords' in q) return 'TEXT';
-    return 'DOC';
+  constructor() {
+    this.loadQuestions();
   }
 
-  constructor() {
+  openAdd(): void {
+    this.editingQuestion.set(null);
+    this.showForm.set(true);
+  }
+
+  openEdit(q: QuestionResponse): void {
+    this.showForm.set(false);
+    this.editingQuestion.set(q);
+  }
+
+  requestDelete(q: QuestionResponse): void {
+    this.deletingQuestion.set(q);
+  }
+
+  confirmDelete(): void {
+    const q = this.deletingQuestion();
+    if (!q) return;
+    this.deleting.set(true);
+    this.questionService.deleteQuestion(q.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.deleting.set(false);
+          this.deletingQuestion.set(null);
+          this.page.set(0);
+          this.loadQuestions();
+        },
+        error: () => {
+          this.deleting.set(false);
+          this.deletingQuestion.set(null);
+        },
+      });
+  }
+
+  onQuestionSaved(): void {
+    this.showForm.set(false);
+    this.editingQuestion.set(null);
+    this.page.set(0);
     this.loadQuestions();
   }
 
@@ -65,33 +99,26 @@ export class QuestionListComponent {
   }
 
   prevPage(): void {
-    if (this.page() > 0) {
-      this.page.update(p => p - 1);
-      this.loadQuestions();
-    }
+    if (this.page() > 0) { this.page.update(p => p - 1); this.loadQuestions(); }
   }
 
   nextPage(): void {
-    if (this.page() < this.totalPages() - 1) {
-      this.page.update(p => p + 1);
-      this.loadQuestions();
-    }
-  }
-
-  onQuestionAdded(): void {
-    this.showForm.set(false);
-    this.page.set(0);
-    this.loadQuestions();
+    if (this.page() < this.totalPages() - 1) { this.page.update(p => p + 1); this.loadQuestions(); }
   }
 
   typeTagVariant(type: QuestionType): 'mcq' | 'text' | 'doc' | 'info' {
     const map: Record<QuestionType, 'mcq' | 'text' | 'doc' | 'info'> = {
-      MCQ: 'mcq',
-      TEXT: 'text',
-      DOC: 'doc',
-      GROUP: 'info',
+      MCQ: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info',
     };
     return map[type];
+  }
+
+  resolveType(q: QuestionResponse): QuestionType {
+    if (q.type) return q.type;
+    if ('correctAnswers' in q) return 'MCQ';
+    if ('followUpQuestions' in q) return 'GROUP';
+    if ('keywords' in q) return 'TEXT';
+    return 'DOC';
   }
 
   private loadQuestions(): void {
@@ -109,5 +136,4 @@ export class QuestionListComponent {
         error: () => this.loading.set(false),
       });
   }
-
 }

@@ -12,6 +12,7 @@ import { QuestionResponse, QuestionType } from '../../../core/models/question.mo
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { TagComponent } from '../../../shared/components/tag/tag.component';
 import { QuestionFormComponent } from '../../question-management/components/question-form/question-form.component';
+import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
 
 interface Bank {
   name: string;
@@ -21,7 +22,7 @@ interface Bank {
 @Component({
   selector: 'dap-bank-list',
   standalone: true,
-  imports: [ButtonComponent, TagComponent, QuestionFormComponent],
+  imports: [ButtonComponent, TagComponent, QuestionFormComponent, ConfirmModalComponent],
   templateUrl: './bank-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -33,6 +34,9 @@ export class BankListComponent {
   readonly selectedCategory = signal<string>('');
   readonly loading = signal(false);
   readonly showForm = signal(false);
+  readonly editingQuestion = signal<QuestionResponse | null>(null);
+  readonly deletingQuestion = signal<QuestionResponse | null>(null);
+  readonly deleting = signal(false);
 
   readonly banks = computed<Bank[]>(() => {
     const counts = new Map<string, number>();
@@ -59,8 +63,42 @@ export class BankListComponent {
     this.selectedCategory.set(name);
   }
 
-  onQuestionAdded(): void {
+  openAdd(): void {
+    this.editingQuestion.set(null);
+    this.showForm.set(true);
+  }
+
+  openEdit(q: QuestionResponse): void {
     this.showForm.set(false);
+    this.editingQuestion.set(q);
+  }
+
+  requestDelete(q: QuestionResponse): void {
+    this.deletingQuestion.set(q);
+  }
+
+  confirmDelete(): void {
+    const q = this.deletingQuestion();
+    if (!q) return;
+    this.deleting.set(true);
+    this.questionService.deleteQuestion(q.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.deleting.set(false);
+          this.deletingQuestion.set(null);
+          this.loadQuestions();
+        },
+        error: () => {
+          this.deleting.set(false);
+          this.deletingQuestion.set(null);
+        },
+      });
+  }
+
+  onQuestionSaved(): void {
+    this.showForm.set(false);
+    this.editingQuestion.set(null);
     this.loadQuestions();
   }
 
