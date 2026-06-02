@@ -2,7 +2,7 @@ param()
 
 # Resolve the repo root from this script's location (.claude/hooks/ → .claude/ → repo root)
 $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-$logDir   = Join-Path $repoRoot '.claude' 'logs'
+$logDir   = Join-Path (Join-Path $repoRoot '.claude') 'logs'
 
 $data = $input | Out-String | ConvertFrom-Json
 
