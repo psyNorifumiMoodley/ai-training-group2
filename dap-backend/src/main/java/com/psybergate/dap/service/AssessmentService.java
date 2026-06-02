@@ -7,6 +7,7 @@ import com.psybergate.dap.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +50,7 @@ public class AssessmentService {
     private final GroupQuestionRepository groupQuestionRepository;
     private final InvitationTokenUtil invitationTokenUtil;
     private final EmailService emailService;
+    private final ResponseService responseService;
 
     public AssessmentService(CandidateRepository candidateRepository,
                              AssessmentRepository assessmentRepository,
@@ -58,7 +60,8 @@ public class AssessmentService {
                              DocQuestionRepository docQuestionRepository,
                              GroupQuestionRepository groupQuestionRepository,
                              InvitationTokenUtil invitationTokenUtil,
-                             EmailService emailService) {
+                             EmailService emailService,
+                             ResponseService responseService) {
         this.candidateRepository = candidateRepository;
         this.assessmentRepository = assessmentRepository;
         this.assessmentQuestionRepository = assessmentQuestionRepository;
@@ -68,6 +71,7 @@ public class AssessmentService {
         this.groupQuestionRepository = groupQuestionRepository;
         this.invitationTokenUtil = invitationTokenUtil;
         this.emailService = emailService;
+        this.responseService = responseService;
     }
 
     @Transactional
@@ -267,6 +271,37 @@ public class AssessmentService {
     @Transactional(readOnly = true)
     public List<UUID> getSeenQuestionIds(UUID candidateId) {
         return fetchSeenQuestionIds(candidateId);
+    }
+
+    @Transactional
+    public AssessmentResponse submit(UUID assessmentId, UUID requestingUserId) {
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new NoSuchElementException("Assessment not found: " + assessmentId));
+
+        if (!assessment.getCandidate().getId().equals(requestingUserId)) {
+            throw new AccessDeniedException("Forbidden: you are not the assigned candidate");
+        }
+        if (assessment.getStatus() == AssessmentStatus.SUBMITTED) {
+            throw new ConflictException("Assessment has already been submitted");
+        }
+        if (assessment.getStatus() != AssessmentStatus.IN_PROGRESS) {
+            throw new ConflictException("Assessment is not in progress");
+        }
+
+        boolean autoSubmit = false;
+        if (assessment.getStartTime() != null) {
+            Instant deadline = assessment.getStartTime()
+                    .plusSeconds((long) assessment.getTimeLimitMinutes() * 60);
+            autoSubmit = Instant.now().isAfter(deadline);
+        }
+
+        assessment.setAutoSubmitted(autoSubmit);
+        assessment.setStatus(AssessmentStatus.SUBMITTED);
+        Assessment saved = assessmentRepository.save(assessment);
+
+        responseService.autoMarkMcqResponses(assessmentId);
+
+        return toResponse(saved);
     }
 
     private AssessmentResponse toResponse(Assessment assessment) {

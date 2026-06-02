@@ -1,5 +1,6 @@
 package com.psybergate.dap.controller;
 
+import com.psybergate.dap.domain.AppUser;
 import com.psybergate.dap.dto.AssessmentAccessResponse;
 import com.psybergate.dap.dto.AssessmentRequest;
 import com.psybergate.dap.dto.AssessmentResponse;
@@ -10,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -50,9 +52,11 @@ public class AssessmentController {
     }
 
     @PostMapping("/{id}/submit")
-    public ResponseEntity<Void> submitAssessment(
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ResponseEntity<AssessmentResponse> submitAssessment(
             @PathVariable UUID id,
-            @RequestBody(required = false) SubmitRequest request) {
-        return ResponseEntity.ok().build();
+            @RequestBody(required = false) SubmitRequest request,
+            @AuthenticationPrincipal AppUser currentUser) {
+        return ResponseEntity.ok(assessmentService.submit(id, currentUser.getId()));
     }
 }
