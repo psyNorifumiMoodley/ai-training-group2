@@ -30,6 +30,10 @@ public class EmailServiceImpl implements EmailService {
     @Async
     @Override
     public void sendInvitation(String toEmail, String candidateName, String invitationLink) {
+        if (fromAddress == null || fromAddress.isBlank()) {
+            log.warn("Mail not configured (spring.mail.username is empty) — skipping invitation email to {}", toEmail);
+            return;
+        }
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromAddress);
@@ -48,6 +52,10 @@ public class EmailServiceImpl implements EmailService {
     @Async
     @Override
     public void sendFeedback(String toEmail, String candidateName, Map<UUID, String> feedbackByQuestion) {
+        if (fromAddress == null || fromAddress.isBlank()) {
+            log.warn("Mail not configured (spring.mail.username is empty) — skipping feedback email to {}", toEmail);
+            return;
+        }
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromAddress);

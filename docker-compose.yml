@@ -25,6 +25,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/dap
       SPRING_DATASOURCE_USERNAME: dap
       SPRING_DATASOURCE_PASSWORD: dap
+      MAIL_USERNAME: your-gmail@gmail.com
+      MAIL_PASSWORD: your-app-password
     depends_on:
       postgres:
         condition: service_healthy

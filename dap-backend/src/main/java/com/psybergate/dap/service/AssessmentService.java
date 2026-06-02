@@ -207,12 +207,18 @@ public class AssessmentService {
         return new ArrayList<>(available.subList(0, count));
     }
 
+    @Transactional(readOnly = true)
+    public List<UUID> getSeenQuestionIds(UUID candidateId) {
+        return fetchSeenQuestionIds(candidateId);
+    }
+
     private AssessmentResponse toResponse(Assessment assessment) {
+        String invitationLink = frontendBaseUrl + "/assessment/" + assessment.getInvitationToken();
         return new AssessmentResponse(
                 assessment.getId(),
                 assessment.getCandidate().getId(),
                 assessment.getStatus().name(),
-                assessment.getInvitationToken(),
+                invitationLink,
                 assessment.getTimeLimitMinutes(),
                 assessment.getCreatedAt() != null ? assessment.getCreatedAt().toString() : null
         );
