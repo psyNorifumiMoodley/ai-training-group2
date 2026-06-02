@@ -1,0 +1,107 @@
+<!-- Confirmation (shown after submit) -->
+@if (done() && result()) {
+  <dap-assessment-confirmation
+    [assessment]="result()!"
+    [candidateName]="candidateName()"
+    [questionCount]="checkedCount()" />
+}
+
+@if (!done()) {
+  <!-- Page header -->
+  <div class="flex items-center justify-between mb-5">
+    <div>
+      <h1 class="text-h2 text-gray-900">Select Questions</h1>
+      <p class="text-caption text-gray-400 mt-0.5">
+        For {{ candidateName() }} · {{ timeLimitMinutes() }} min
+      </p>
+    </div>
+    <dap-button
+      [loading]="submitting()"
+      [disabled]="checkedCount() === 0"
+      (clicked)="submit()">
+      Generate assessment ({{ checkedCount() }} selected)
+    </dap-button>
+  </div>
+
+  @if (submitError()) {
+    <p class="text-caption text-red-500 bg-red-50 rounded-input px-3 py-2 mb-4">
+      {{ submitError() }}
+    </p>
+  }
+
+  <!-- Filter bar -->
+  <div class="bg-white border border-gray-200 rounded-card p-3.5 mb-4 space-y-3">
+    <!-- Type filter -->
+    <div>
+      <p class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em] mb-2">Type</p>
+      <div class="flex items-center gap-2 flex-wrap">
+        @for (t of typeFilters; track t) {
+          <button
+            (click)="selectedType.set(t)"
+            [class]="'px-3 py-[0.3125rem] text-xs font-medium rounded-badge border transition-colors ' +
+              (selectedType() === t
+                ? 'border-primary bg-primary-light text-primary-text'
+                : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50')">
+            {{ t === 'ALL' ? 'All types' : t }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Subject filter -->
+    <div>
+      <p class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em] mb-2">Subject</p>
+      <div class="flex items-center gap-2 flex-wrap">
+        @for (s of subjects(); track s) {
+          <button
+            (click)="selectedSubject.set(s)"
+            [class]="'px-3 py-[0.3125rem] text-xs font-medium rounded-badge border transition-colors ' +
+              (selectedSubject() === s
+                ? 'border-primary bg-primary-light text-primary-text'
+                : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50')">
+            {{ s === 'ALL' ? 'All subjects' : s }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Question list -->
+  @if (loading()) {
+    <p class="text-caption text-gray-400 text-center py-8">Loading questions...</p>
+  } @else if (filteredQuestions().length === 0) {
+    <p class="text-caption text-gray-400 text-center py-8">No questions match the selected filters.</p>
+  } @else {
+    <div class="space-y-2">
+      @for (q of filteredQuestions(); track q.id) {
+        <div
+          (click)="toggle(q.id)"
+          [class]="'bg-white border rounded-card py-[0.8125rem] px-3.5 cursor-pointer transition-colors ' +
+            (isChecked(q.id) ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300')">
+          <div class="flex items-start gap-3">
+            <!-- Custom checkbox -->
+            <div [class]="'w-4 h-4 rounded border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ' +
+              (isChecked(q.id) ? 'border-primary bg-primary' : 'border-gray-300')">
+              @if (isChecked(q.id)) {
+                <i class="pi pi-check text-white text-[0.5625rem]"></i>
+              }
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-caption text-gray-800 line-clamp-2">{{ q.question }}</p>
+              <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                <dap-tag [label]="q.type" [variant]="typeVariant(q.type)" />
+                <span class="text-[0.6875rem] text-gray-400">{{ q.category }}</span>
+                @if (isSeen(q.id)) {
+                  <span class="inline-flex items-center gap-1 text-[0.6875rem] font-medium text-amber-600 bg-amber-50 rounded-badge px-[0.4375rem] py-0.5">
+                    <i class="pi pi-eye text-[0.625rem]"></i>
+                    Already seen
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+}

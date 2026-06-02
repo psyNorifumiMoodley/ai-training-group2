@@ -1,8 +1,10 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { Assessment } from '../../../core/models/assessment.model';
+import { AssessmentGenerateComponent, NavigateToQuestionsPayload } from '../../assessment-generation/components/assessment-generate/assessment-generate.component';
 
 // TODO: replace with API call
 const STUB_ASSESSMENTS: Assessment[] = [
@@ -17,10 +19,23 @@ const STUB_ASSESSMENTS: Assessment[] = [
 @Component({
   selector: 'dap-assessment-list',
   standalone: true,
-  imports: [BadgeComponent, AvatarComponent, ButtonComponent],
+  imports: [BadgeComponent, AvatarComponent, ButtonComponent, AssessmentGenerateComponent],
   templateUrl: './assessment-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AssessmentListComponent {
+  private readonly router = inject(Router);
   readonly assessments = STUB_ASSESSMENTS;
+  readonly showModal   = signal(false);
+
+  onNavigateToQuestions(payload: NavigateToQuestionsPayload): void {
+    this.showModal.set(false);
+    this.router.navigate(['/assessments/generate'], {
+      queryParams: {
+        candidateId:   payload.candidateId,
+        candidateName: payload.candidateName,
+        timeLimit:     payload.timeLimit,
+      },
+    });
+  }
 }

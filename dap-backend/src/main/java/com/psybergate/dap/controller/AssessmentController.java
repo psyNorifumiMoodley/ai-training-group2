@@ -23,7 +23,7 @@ public class AssessmentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('MARKER')")
+    @PreAuthorize("hasRole('MARKER') or hasRole('ADMIN')")
     public ResponseEntity<AssessmentResponse> generateAssessment(@Valid @RequestBody AssessmentRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(assessmentService.generate(request));
     }
