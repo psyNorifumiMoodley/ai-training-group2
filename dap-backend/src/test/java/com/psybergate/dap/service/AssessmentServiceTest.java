@@ -388,6 +388,64 @@ class AssessmentServiceTest {
     }
 
     @Test
+    void generate_nullQuestionIds_treatedAsRandomMode() {
+        UUID candidateId = UUID.randomUUID();
+        Candidate candidate = candidateWithId(candidateId);
+        when(candidateRepository.findById(candidateId)).thenReturn(Optional.of(candidate));
+        when(assessmentRepository.findSeenQuestionIdsByCandidateAndYear(eq(candidateId), any(), any(), any()))
+                .thenReturn(List.of());
+        when(mcqQuestionRepository.findAll()).thenReturn(fiveMcq());
+        when(textQuestionRepository.findAll()).thenReturn(threeText());
+        when(docQuestionRepository.findAll()).thenReturn(List.of(docWithId(UUID.randomUUID())));
+        when(groupQuestionRepository.findAll()).thenReturn(List.of(groupWithId(UUID.randomUUID())));
+
+        Assessment saved = savedAssessmentFor(candidate);
+        when(assessmentRepository.save(any())).thenReturn(saved);
+
+        AssessmentResponse response = assessmentService.generate(new AssessmentRequest(candidateId, null, 60));
+
+        assertThat(response).isNotNull();
+        verify(mcqQuestionRepository).findAll();
+    }
+
+    @Test
+    void generate_markerPicked_compositionBrokenAfterSeenFilter_throwsValidationException() {
+        UUID candidateId = UUID.randomUUID();
+        Candidate candidate = candidateWithId(candidateId);
+
+        // Valid initial composition: 5 MCQ, 3 text, 1 doc, 1 group
+        List<UUID> ids = new ArrayList<>();
+        List<UUID> seenIds = new ArrayList<>();
+
+        // 4 of 5 MCQ are already seen — post-filter composition will be 1 MCQ (invalid)
+        for (int i = 0; i < 5; i++) {
+            McqQuestion q = mcqWithId(UUID.randomUUID());
+            ids.add(q.getId());
+            if (i < 4) seenIds.add(q.getId());
+            when(assessmentQuestionRepository.findById(q.getId())).thenReturn(Optional.of(q));
+        }
+        for (int i = 0; i < 3; i++) {
+            TextQuestion q = textWithId(UUID.randomUUID());
+            ids.add(q.getId());
+            when(assessmentQuestionRepository.findById(q.getId())).thenReturn(Optional.of(q));
+        }
+        DocQuestion doc = docWithId(UUID.randomUUID());
+        ids.add(doc.getId());
+        when(assessmentQuestionRepository.findById(doc.getId())).thenReturn(Optional.of(doc));
+        GroupQuestion group = groupWithId(UUID.randomUUID());
+        ids.add(group.getId());
+        when(assessmentQuestionRepository.findById(group.getId())).thenReturn(Optional.of(group));
+
+        when(candidateRepository.findById(candidateId)).thenReturn(Optional.of(candidate));
+        when(assessmentRepository.findSeenQuestionIdsByCandidateAndYear(eq(candidateId), any(), any(), any()))
+                .thenReturn(seenIds);
+
+        assertThatThrownBy(() -> assessmentService.generate(new AssessmentRequest(candidateId, ids, 60)))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("MCQ");
+    }
+
+    @Test
     void generate_candidateNotFound_throwsNoSuchElementException() {
         UUID candidateId = UUID.randomUUID();
         when(candidateRepository.findById(candidateId)).thenReturn(Optional.empty());

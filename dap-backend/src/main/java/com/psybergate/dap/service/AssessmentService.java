@@ -64,7 +64,7 @@ public class AssessmentService {
         Set<UUID> seenIds = new HashSet<>(fetchSeenQuestionIds(request.candidateId()));
 
         List<AssessmentQuestion> questions;
-        if (request.questionIds().isEmpty()) {
+        if (request.questionIds() == null || request.questionIds().isEmpty()) {
             questions = selectRandomQuestions(seenIds);
         } else {
             questions = selectMarkerPickedQuestions(request.questionIds(), seenIds);
@@ -118,8 +118,6 @@ public class AssessmentService {
             resolved.add(q);
         }
 
-        validateComposition(resolved);
-
         List<AssessmentQuestion> filtered = resolved.stream()
                 .filter(q -> !seenIds.contains(q.getId()))
                 .collect(Collectors.toList());
@@ -127,6 +125,8 @@ public class AssessmentService {
         if (filtered.isEmpty()) {
             throw new UnprocessableException("All provided questions have been seen by this candidate this year");
         }
+
+        validateComposition(filtered);
 
         return filtered;
     }
@@ -184,7 +184,7 @@ public class AssessmentService {
                 assessment.getId(),
                 assessment.getCandidate().getId(),
                 assessment.getStatus().name(),
-                null,
+                assessment.getInvitationToken(),
                 assessment.getTimeLimitMinutes(),
                 assessment.getCreatedAt() != null ? assessment.getCreatedAt().toString() : null
         );
