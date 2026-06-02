@@ -1,5 +1,6 @@
 package com.psybergate.dap.service;
 
+import com.psybergate.dap.config.InvitationTokenUtil;
 import com.psybergate.dap.domain.*;
 import com.psybergate.dap.dto.AssessmentRequest;
 import com.psybergate.dap.dto.AssessmentResponse;
@@ -40,6 +41,10 @@ class AssessmentServiceTest {
     private DocQuestionRepository docQuestionRepository;
     @Mock
     private GroupQuestionRepository groupQuestionRepository;
+    @Mock
+    private InvitationTokenUtil invitationTokenUtil;
+    @Mock
+    private EmailService emailService;
 
     private AssessmentService assessmentService;
 
@@ -47,8 +52,12 @@ class AssessmentServiceTest {
     void setUp() {
         assessmentService = new AssessmentService(
                 candidateRepository, assessmentRepository, assessmentQuestionRepository,
-                mcqQuestionRepository, textQuestionRepository, docQuestionRepository, groupQuestionRepository);
+                mcqQuestionRepository, textQuestionRepository, docQuestionRepository,
+                groupQuestionRepository, invitationTokenUtil, emailService);
         setCompositionDefaults();
+        ReflectionTestUtils.setField(assessmentService, "frontendBaseUrl", "http://localhost:4200");
+        // Default stub so token generation does not return null in existing tests
+        lenient().when(invitationTokenUtil.generateToken(any())).thenReturn("stub-invitation-token");
     }
 
     private void setCompositionDefaults() {
@@ -143,8 +152,8 @@ class AssessmentServiceTest {
         assertThat(response.status()).isEqualTo("PENDING");
 
         ArgumentCaptor<Assessment> captor = ArgumentCaptor.forClass(Assessment.class);
-        verify(assessmentRepository).save(captor.capture());
-        List<AssessmentQuestion> questions = captor.getValue().getQuestions();
+        verify(assessmentRepository, times(2)).save(captor.capture());
+        List<AssessmentQuestion> questions = captor.getAllValues().get(0).getQuestions();
         assertThat(questions).hasSize(10);
         assertThat(questions.stream().filter(q -> q instanceof McqQuestion).count()).isEqualTo(5);
         assertThat(questions.stream().filter(q -> q instanceof TextQuestion && !(q instanceof GroupQuestion)).count()).isEqualTo(3);
@@ -179,8 +188,8 @@ class AssessmentServiceTest {
         assessmentService.generate(new AssessmentRequest(candidateId, List.of(), 60));
 
         ArgumentCaptor<Assessment> captor = ArgumentCaptor.forClass(Assessment.class);
-        verify(assessmentRepository).save(captor.capture());
-        List<AssessmentQuestion> questions = captor.getValue().getQuestions();
+        verify(assessmentRepository, times(2)).save(captor.capture());
+        List<AssessmentQuestion> questions = captor.getAllValues().get(0).getQuestions();
         assertThat(questions).doesNotContain(seenMcq);
     }
 
@@ -209,9 +218,9 @@ class AssessmentServiceTest {
         assessmentService.generate(new AssessmentRequest(candidateId, List.of(), 60));
 
         ArgumentCaptor<Assessment> captor = ArgumentCaptor.forClass(Assessment.class);
-        verify(assessmentRepository).save(captor.capture());
+        verify(assessmentRepository, times(2)).save(captor.capture());
         // lastYearMcq was available (not excluded) — it may or may not be chosen but 5 MCQ were picked
-        assertThat(captor.getValue().getQuestions().stream().filter(q -> q instanceof McqQuestion).count()).isEqualTo(5);
+        assertThat(captor.getAllValues().get(0).getQuestions().stream().filter(q -> q instanceof McqQuestion).count()).isEqualTo(5);
     }
 
     @Test
@@ -270,7 +279,7 @@ class AssessmentServiceTest {
         AssessmentResponse response = assessmentService.generate(new AssessmentRequest(candidateId, ids, 60));
 
         assertThat(response.status()).isEqualTo("PENDING");
-        verify(assessmentRepository).save(any(Assessment.class));
+        verify(assessmentRepository, times(2)).save(any(Assessment.class));
     }
 
     @Test
@@ -383,8 +392,8 @@ class AssessmentServiceTest {
         assessmentService.generate(new AssessmentRequest(candidateId, List.of(), 60));
 
         ArgumentCaptor<Assessment> captor = ArgumentCaptor.forClass(Assessment.class);
-        verify(assessmentRepository).save(captor.capture());
-        assertThat(captor.getValue().getQuestions()).hasSize(4);
+        verify(assessmentRepository, times(2)).save(captor.capture());
+        assertThat(captor.getAllValues().get(0).getQuestions()).hasSize(4);
     }
 
     @Test
@@ -466,5 +475,102 @@ class AssessmentServiceTest {
 
         assertThatThrownBy(() -> assessmentService.generate(new AssessmentRequest(candidateId, List.of(missingId), 60)))
                 .isInstanceOf(NoSuchElementException.class);
+    }
+
+    // --- Invitation token & email integration ---
+
+    @Test
+    void generate_emailServiceThrows_assessmentStillPersistedWithNonNullToken() {
+        UUID candidateId = UUID.randomUUID();
+        Candidate candidate = candidateWithId(candidateId);
+        when(candidateRepository.findById(candidateId)).thenReturn(Optional.of(candidate));
+        when(assessmentRepository.findSeenQuestionIdsByCandidateAndYear(eq(candidateId), any(), any(), any()))
+                .thenReturn(List.of());
+        when(mcqQuestionRepository.findAll()).thenReturn(fiveMcq());
+        when(textQuestionRepository.findAll()).thenReturn(threeText());
+        when(docQuestionRepository.findAll()).thenReturn(List.of(docWithId(UUID.randomUUID())));
+        when(groupQuestionRepository.findAll()).thenReturn(List.of(groupWithId(UUID.randomUUID())));
+
+        Assessment firstSave = savedAssessmentFor(candidate);
+        String generatedToken = "generated-test-token";
+        Assessment secondSave = savedAssessmentFor(candidate);
+        secondSave.setInvitationToken(generatedToken);
+
+        when(assessmentRepository.save(any()))
+                .thenReturn(firstSave)
+                .thenReturn(secondSave);
+        when(invitationTokenUtil.generateToken(any())).thenReturn(generatedToken);
+        // emailService.sendInvitation is @Async and swallows exceptions —
+        // we simulate a failure to verify the assessment is still returned correctly.
+        doThrow(new RuntimeException("SMTP connection failed"))
+                .when(emailService).sendInvitation(any(), any(), any());
+
+        AssessmentResponse response = assessmentService.generate(
+                new AssessmentRequest(candidateId, List.of(), 60));
+
+        assertThat(response).isNotNull();
+        assertThat(response.invitationLink()).isNotNull();
+        // Assessment was saved twice (once initially, once with the token)
+        verify(assessmentRepository, times(2)).save(any(Assessment.class));
+    }
+
+    @Test
+    void generate_invitationTokenSetOnAssessment() {
+        UUID candidateId = UUID.randomUUID();
+        Candidate candidate = candidateWithId(candidateId);
+        when(candidateRepository.findById(candidateId)).thenReturn(Optional.of(candidate));
+        when(assessmentRepository.findSeenQuestionIdsByCandidateAndYear(eq(candidateId), any(), any(), any()))
+                .thenReturn(List.of());
+        when(mcqQuestionRepository.findAll()).thenReturn(fiveMcq());
+        when(textQuestionRepository.findAll()).thenReturn(threeText());
+        when(docQuestionRepository.findAll()).thenReturn(List.of(docWithId(UUID.randomUUID())));
+        when(groupQuestionRepository.findAll()).thenReturn(List.of(groupWithId(UUID.randomUUID())));
+
+        String expectedToken = "test-invitation-token";
+        when(invitationTokenUtil.generateToken(any())).thenReturn(expectedToken);
+
+        Assessment firstSave = savedAssessmentFor(candidate);
+        Assessment secondSave = savedAssessmentFor(candidate);
+        secondSave.setInvitationToken(expectedToken);
+        when(assessmentRepository.save(any()))
+                .thenReturn(firstSave)
+                .thenReturn(secondSave);
+
+        AssessmentResponse response = assessmentService.generate(
+                new AssessmentRequest(candidateId, List.of(), 60));
+
+        assertThat(response.invitationLink()).isEqualTo(expectedToken);
+
+        // Verify the second save captured an assessment with the token set
+        ArgumentCaptor<Assessment> captor = ArgumentCaptor.forClass(Assessment.class);
+        verify(assessmentRepository, times(2)).save(captor.capture());
+        Assessment savedWithToken = captor.getAllValues().get(1);
+        assertThat(savedWithToken.getInvitationToken()).isEqualTo(expectedToken);
+    }
+
+    @Test
+    void generate_sendInvitationCalledWithCandidateEmailAndLink() {
+        UUID candidateId = UUID.randomUUID();
+        Candidate candidate = candidateWithId(candidateId);
+        when(candidateRepository.findById(candidateId)).thenReturn(Optional.of(candidate));
+        when(assessmentRepository.findSeenQuestionIdsByCandidateAndYear(eq(candidateId), any(), any(), any()))
+                .thenReturn(List.of());
+        when(mcqQuestionRepository.findAll()).thenReturn(fiveMcq());
+        when(textQuestionRepository.findAll()).thenReturn(threeText());
+        when(docQuestionRepository.findAll()).thenReturn(List.of(docWithId(UUID.randomUUID())));
+        when(groupQuestionRepository.findAll()).thenReturn(List.of(groupWithId(UUID.randomUUID())));
+
+        String generatedToken = "my-unique-token";
+        when(invitationTokenUtil.generateToken(any())).thenReturn(generatedToken);
+
+        Assessment saved = savedAssessmentFor(candidate);
+        when(assessmentRepository.save(any())).thenReturn(saved);
+
+        assessmentService.generate(new AssessmentRequest(candidateId, List.of(), 60));
+
+        verify(emailService).sendInvitation(
+                eq("c@test.com"),
+                eq("Candidate"),
+                eq("http://localhost:4200/assessment/" + generatedToken));
     }
 }

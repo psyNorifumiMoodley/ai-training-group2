@@ -1,9 +1,12 @@
 package com.psybergate.dap.service;
 
+import com.psybergate.dap.config.InvitationTokenUtil;
 import com.psybergate.dap.domain.*;
 import com.psybergate.dap.dto.AssessmentRequest;
 import com.psybergate.dap.dto.AssessmentResponse;
 import com.psybergate.dap.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +19,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class AssessmentService {
+
+    private static final Logger log = LoggerFactory.getLogger(AssessmentService.class);
 
     @Value("${assessment.required-mcq}")
     private int requiredMcq;
@@ -32,6 +37,9 @@ public class AssessmentService {
     @Value("${assessment.doc-question-limit}")
     private int docQuestionLimit;
 
+    @Value("${app.frontend-base-url:http://localhost:4200}")
+    private String frontendBaseUrl;
+
     private final CandidateRepository candidateRepository;
     private final AssessmentRepository assessmentRepository;
     private final AssessmentQuestionRepository assessmentQuestionRepository;
@@ -39,6 +47,8 @@ public class AssessmentService {
     private final TextQuestionRepository textQuestionRepository;
     private final DocQuestionRepository docQuestionRepository;
     private final GroupQuestionRepository groupQuestionRepository;
+    private final InvitationTokenUtil invitationTokenUtil;
+    private final EmailService emailService;
 
     public AssessmentService(CandidateRepository candidateRepository,
                              AssessmentRepository assessmentRepository,
@@ -46,7 +56,9 @@ public class AssessmentService {
                              McqQuestionRepository mcqQuestionRepository,
                              TextQuestionRepository textQuestionRepository,
                              DocQuestionRepository docQuestionRepository,
-                             GroupQuestionRepository groupQuestionRepository) {
+                             GroupQuestionRepository groupQuestionRepository,
+                             InvitationTokenUtil invitationTokenUtil,
+                             EmailService emailService) {
         this.candidateRepository = candidateRepository;
         this.assessmentRepository = assessmentRepository;
         this.assessmentQuestionRepository = assessmentQuestionRepository;
@@ -54,6 +66,8 @@ public class AssessmentService {
         this.textQuestionRepository = textQuestionRepository;
         this.docQuestionRepository = docQuestionRepository;
         this.groupQuestionRepository = groupQuestionRepository;
+        this.invitationTokenUtil = invitationTokenUtil;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -84,6 +98,20 @@ public class AssessmentService {
                 .build();
 
         Assessment saved = assessmentRepository.save(assessment);
+
+        String token = invitationTokenUtil.generateToken(saved.getId());
+        saved.setInvitationToken(token);
+        saved = assessmentRepository.save(saved);
+
+        String candidateEmail = candidate.getUser().getEmail();
+        String candidateName = candidate.getUser().getName();
+        String invitationLink = frontendBaseUrl + "/assessment/" + token;
+        try {
+            emailService.sendInvitation(candidateEmail, candidateName, invitationLink);
+        } catch (Exception ex) {
+            log.error("Failed to send invitation email for assessment {}: {}", saved.getId(), ex.getMessage(), ex);
+        }
+
         return toResponse(saved);
     }
 
