@@ -68,7 +68,9 @@ public class QuestionService {
         return new PageResponse<>(
                 questions.getContent().stream().map(this::toResponse).toList(),
                 questions.getTotalElements(),
-                questions.getTotalPages()
+                questions.getTotalPages(),
+                questions.getSize(),
+                questions.getNumber()
         );
     }
 

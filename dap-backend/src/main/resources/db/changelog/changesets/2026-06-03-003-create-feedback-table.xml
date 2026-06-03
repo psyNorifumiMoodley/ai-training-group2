@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        The feedback table was provisioned in the baseline schema (2026-01-01-001).
+        This changeset:
+          1. Drops the FK from feedback.question_id → assessment_question(id).
+             AssessmentQuestion uses TABLE_PER_CLASS inheritance so rows live only in
+             the concrete tables (mcq_question, text_question, etc.); inserts would
+             otherwise always fail the FK check (same fix applied to response in
+             changeset 2026-06-03-002).
+          2. Adds NOT NULL constraints omitted from the baseline.
+          3. Adds a unique constraint on (assessment_id, question_id) so the service
+             can safely upsert draft feedback without duplicates.
+    -->
+    <changeSet id="2026-06-03-003-create-feedback-table" author="kwabena.awuah">
+
+        <dropForeignKeyConstraint baseTableName="feedback"
+                                  constraintName="fk_feedback_question"/>
+
+        <addNotNullConstraint tableName="feedback"
+                              columnName="assessment_id"
+                              columnDataType="UUID"/>
+
+        <addNotNullConstraint tableName="feedback"
+                              columnName="question_id"
+                              columnDataType="UUID"/>
+
+        <addNotNullConstraint tableName="feedback"
+                              columnName="finalised"
+                              columnDataType="BOOLEAN"
+                              defaultNullValue="false"/>
+
+        <addUniqueConstraint tableName="feedback"
+                             columnNames="assessment_id, question_id"
+                             constraintName="uq_feedback_assessment_question"/>
+
+        <rollback>
+            <dropUniqueConstraint tableName="feedback"
+                                  constraintName="uq_feedback_assessment_question"/>
+            <dropNotNullConstraint tableName="feedback"
+                                   columnName="finalised"
+                                   columnDataType="BOOLEAN"/>
+            <dropNotNullConstraint tableName="feedback"
+                                   columnName="question_id"
+                                   columnDataType="UUID"/>
+            <dropNotNullConstraint tableName="feedback"
+                                   columnName="assessment_id"
+                                   columnDataType="UUID"/>
+            <addForeignKeyConstraint baseTableName="feedback"
+                                     baseColumnNames="question_id"
+                                     constraintName="fk_feedback_question"
+                                     referencedTableName="assessment_question"
+                                     referencedColumnNames="id"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>
