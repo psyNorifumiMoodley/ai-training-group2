@@ -2,11 +2,12 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AssessmentAccessResponse, ResponseRequest } from '../models/assessment-session.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class CandidateAssessmentService {
   private readonly http = inject(HttpClient);
-  private readonly base = '/api';
+  private readonly base = environment.apiBaseUrl;
 
   accessAssessment(token: string): Observable<AssessmentAccessResponse> {
     return this.http.get<AssessmentAccessResponse>(`${this.base}/assessments/access/${token}`);

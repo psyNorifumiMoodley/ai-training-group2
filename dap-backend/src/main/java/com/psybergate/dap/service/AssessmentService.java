@@ -109,7 +109,7 @@ public class AssessmentService {
 
         String candidateEmail = candidate.getUser().getEmail();
         String candidateName = candidate.getUser().getName();
-        String invitationLink = frontendBaseUrl + "/assessment/" + token;
+        String invitationLink = frontendBaseUrl + "/assessment/access/" + token;
         try {
             emailService.sendInvitation(candidateEmail, candidateName, invitationLink);
         } catch (Exception ex) {
@@ -207,31 +207,48 @@ public class AssessmentService {
             resolved.add(q);
         }
 
-        List<AssessmentQuestion> filtered = resolved.stream()
+        List<AssessmentQuestion> picked = resolved.stream()
                 .filter(q -> !seenIds.contains(q.getId()))
                 .collect(Collectors.toList());
 
-        if (filtered.isEmpty()) {
-            throw new UnprocessableException("All provided questions have been seen by this candidate this year");
+        List<McqQuestion>   pickedMcq   = picked.stream().filter(McqQuestion.class::isInstance).map(McqQuestion.class::cast).collect(Collectors.toList());
+        List<TextQuestion>  pickedText  = picked.stream().filter(q -> q.getClass() == TextQuestion.class).map(TextQuestion.class::cast).collect(Collectors.toList());
+        List<DocQuestion>   pickedDoc   = picked.stream().filter(DocQuestion.class::isInstance).map(DocQuestion.class::cast).collect(Collectors.toList());
+        List<GroupQuestion> pickedGroup = picked.stream().filter(GroupQuestion.class::isInstance).map(GroupQuestion.class::cast).collect(Collectors.toList());
+
+        validateNoTypeExceedsLimit(pickedMcq.size(), pickedText.size(), pickedDoc.size(), pickedGroup.size());
+
+        Set<UUID> pickedIds = picked.stream().map(AssessmentQuestion::getId).collect(Collectors.toSet());
+        List<AssessmentQuestion> result = new ArrayList<>(picked);
+
+        if (pickedMcq.size() < requiredMcq) {
+            List<McqQuestion> available = availableMcq(seenIds).stream().filter(q -> !pickedIds.contains(q.getId())).collect(Collectors.toList());
+            result.addAll(pickRandom(available, requiredMcq - pickedMcq.size(), "MCQ"));
+        }
+        if (pickedText.size() < requiredText) {
+            List<TextQuestion> available = availablePureText(seenIds).stream().filter(q -> !pickedIds.contains(q.getId())).collect(Collectors.toList());
+            result.addAll(pickRandom(available, requiredText - pickedText.size(), "Text"));
+        }
+        if (pickedDoc.size() < requiredDoc) {
+            List<DocQuestion> available = availableDoc(seenIds).stream().filter(q -> !pickedIds.contains(q.getId())).collect(Collectors.toList());
+            result.addAll(pickRandom(available, requiredDoc - pickedDoc.size(), "Document"));
+        }
+        if (pickedGroup.size() < requiredGroup) {
+            List<GroupQuestion> available = availableGroup(seenIds).stream().filter(q -> !pickedIds.contains(q.getId())).collect(Collectors.toList());
+            result.addAll(pickRandom(available, requiredGroup - pickedGroup.size(), "Group"));
         }
 
-        validateComposition(filtered);
-
-        return filtered;
+        return result;
     }
 
-    private void validateComposition(List<AssessmentQuestion> questions) {
-        long mcqCount = questions.stream().filter(q -> q instanceof McqQuestion).count();
-        long groupCount = questions.stream().filter(q -> q instanceof GroupQuestion).count();
-        long docCount = questions.stream().filter(q -> q instanceof DocQuestion).count();
-        long textCount = questions.stream().filter(q -> q instanceof TextQuestion && !(q instanceof GroupQuestion)).count();
-
-        if (mcqCount != requiredMcq || textCount != requiredText || docCount != requiredDoc || groupCount != requiredGroup) {
-            throw new ValidationException(String.format(
-                    "Assessment must contain exactly %d MCQ, %d Text, %d Document, and %d Group questions " +
-                    "(got %d MCQ, %d Text, %d Document, %d Group)",
-                    requiredMcq, requiredText, requiredDoc, requiredGroup,
-                    mcqCount, textCount, docCount, groupCount));
+    private void validateNoTypeExceedsLimit(int mcq, int text, int doc, int group) {
+        List<String> violations = new ArrayList<>();
+        if (mcq   > requiredMcq)   violations.add(String.format("MCQ: max %d, selected %d",      requiredMcq,   mcq));
+        if (text  > requiredText)  violations.add(String.format("Text: max %d, selected %d",     requiredText,  text));
+        if (doc   > requiredDoc)   violations.add(String.format("Document: max %d, selected %d", requiredDoc,   doc));
+        if (group > requiredGroup) violations.add(String.format("Group: max %d, selected %d",    requiredGroup, group));
+        if (!violations.isEmpty()) {
+            throw new ValidationException("Too many questions selected — " + String.join(", ", violations));
         }
     }
 
@@ -305,7 +322,7 @@ public class AssessmentService {
     }
 
     private AssessmentResponse toResponse(Assessment assessment) {
-        String invitationLink = frontendBaseUrl + "/assessment/" + assessment.getInvitationToken();
+        String invitationLink = frontendBaseUrl + "/assessment/access/" + assessment.getInvitationToken();
         return new AssessmentResponse(
                 assessment.getId(),
                 assessment.getCandidate().getId(),

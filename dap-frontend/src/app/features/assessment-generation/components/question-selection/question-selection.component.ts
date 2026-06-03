@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
 import { QuestionService } from '../../../../core/services/question.service';
 import { AssessmentService } from '../../../../core/services/assessment.service';
 import { QuestionResponse, QuestionType } from '../../../../core/models/question.model';
@@ -131,8 +132,9 @@ export class QuestionSelectionComponent {
           this.done.set(true);
           this.submitting.set(false);
         },
-        error: () => {
-          this.submitError.set('Failed to generate assessment. Please try again.');
+        error: (err: HttpErrorResponse) => {
+          const message = err.error?.message ?? 'Failed to generate assessment. Please try again.';
+          this.submitError.set(message);
           this.submitting.set(false);
         },
       });

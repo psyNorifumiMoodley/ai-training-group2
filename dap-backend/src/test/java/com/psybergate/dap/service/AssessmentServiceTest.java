@@ -541,7 +541,7 @@ class AssessmentServiceTest {
         AssessmentResponse response = assessmentService.generate(
                 new AssessmentRequest(candidateId, List.of(), 60));
 
-        assertThat(response.invitationLink()).isEqualTo(expectedToken);
+        assertThat(response.invitationLink()).isEqualTo("http://localhost:4200/assessment/access/" + expectedToken);
 
         // Verify the second save captured an assessment with the token set
         ArgumentCaptor<Assessment> captor = ArgumentCaptor.forClass(Assessment.class);
@@ -573,6 +573,6 @@ class AssessmentServiceTest {
         verify(emailService).sendInvitation(
                 eq("c@test.com"),
                 eq("Candidate"),
-                eq("http://localhost:4200/assessment/" + generatedToken));
+                eq("http://localhost:4200/assessment/access/" + generatedToken));
     }
 }
