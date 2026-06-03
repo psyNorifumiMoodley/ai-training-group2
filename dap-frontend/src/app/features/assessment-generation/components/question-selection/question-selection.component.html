@@ -92,7 +92,7 @@
             <div class="flex-1 min-w-0">
               <p class="text-caption text-gray-800 line-clamp-2">{{ q.question }}</p>
               <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                <dap-tag [label]="q.type" [variant]="typeVariant(q.type)" />
+                <dap-tag [label]="resolveType(q)" [variant]="typeVariant(resolveType(q))" />
                 <span class="text-[0.6875rem] text-gray-400">{{ q.category }}</span>
                 @if (isSeen(q.id)) {
                   <span class="inline-flex items-center gap-1 text-[0.6875rem] font-medium text-amber-600 bg-amber-50 rounded-badge px-[0.4375rem] py-0.5">
