@@ -64,6 +64,7 @@ export interface AssessmentAccessResponse {
   assessmentId: string;
   questions: QuestionResponse[];
   remainingSeconds: number;
+  candidateToken: string;  // short-lived candidate JWT; stored via AuthService for subsequent save/submit calls
 }
 export interface McqResponseRequest  { selectedAnswers: string[]; }
 export interface TextResponseRequest { answer: string; }
@@ -71,6 +72,8 @@ export interface DocResponseRequest  { filePath: string; }
 export interface GroupResponseRequest { childResponses: Record<string, ResponseRequest>; }
 export type ResponseRequest = McqResponseRequest | TextResponseRequest | DocResponseRequest | GroupResponseRequest;
 ```
+
+> **Note:** `McqQuestionResponse` must also include `multiCorrect: boolean` (see Phase 2 / `question.model.ts`). The renderer uses this flag — not `correctAnswers.length` — to decide radio vs checkbox.
 
 ### Frontend Services
 
@@ -80,6 +83,8 @@ accessAssessment(token: string): Observable<AssessmentAccessResponse>
 saveResponse(assessmentId: string, questionId: string, request: ResponseRequest): Observable<void>
 submitAssessment(assessmentId: string): Observable<void>
 ```
+
+> **Auth note:** `saveResponse` and `submitAssessment` require a valid JWT. Candidates do not log in via the normal login flow — instead the `candidateToken` returned by `accessAssessment` is stored in `AuthService` and attached to subsequent calls by the JWT interceptor.
 
 ### Frontend Components
 None.
@@ -132,8 +137,12 @@ AssessmentAccessResponse access(String token);
 // 4. startTime != null && Instant.now() > startTime + timeLimitMinutes → 401 (session expired)
 // 5. If status == PENDING: set status=IN_PROGRESS, startTime=now(), save
 // 6. Compute remainingSeconds = (startTime + timeLimitMinutes) - now()
-// 7. Return AssessmentAccessResponse with questions and remainingSeconds
+// 7. Generate a short-lived candidate JWT via JwtUtil (sub = candidate userId, role = CANDIDATE)
+// 8. Blank out correctAnswers on all McqQuestionResponse objects before returning (prevent answer leakage)
+// 9. Return AssessmentAccessResponse with questions, remainingSeconds, and candidateToken
 ```
+
+> **Invitation link format:** The email sent in the assessment generation phase must use the path `{frontendBaseUrl}/assessment/access/{token}` — matching the `access/:token` route.
 
 ### Controllers
 `AssessmentController` `GET /api/assessments/access/{token}` wired to `AssessmentService.access()`.
@@ -157,6 +166,8 @@ None.
   - Valid token + SUBMITTED → 409
   - Tampered token → 401
   - Expired session (startTime set, time elapsed) → 401
+  - Response includes a non-null `candidateToken` (valid JWT)
+  - MCQ questions in response have empty `correctAnswers` (answer leakage prevention)
 
 ### Done When
 - Valid token + PENDING assessment → 200, status = IN_PROGRESS, remainingSeconds > 0
@@ -421,20 +432,24 @@ submitAssessment(assessmentId: string): Observable<void>
 **`AssessmentTakingComponent`**
 - `changeDetection: OnPush`
 - Receives `AssessmentAccessResponse` via navigation state or resolved signal
+- Stores `candidateToken` from the response via `AuthService` so the JWT interceptor authenticates save/submit calls
 - Renders `CountdownTimerComponent` initialised from `remainingSeconds`
-- Renders `QuestionRendererComponent` for each question
+- Maintains `savedAnswers: signal<Record<string, ResponseRequest>>` — updated on every `answerChanged` event; passed as `savedAnswer` input to `QuestionRendererComponent`
+- Renders `QuestionRendererComponent` for the current question, passing the saved answer for that question
+- Navigation panel: `QuestionNavDotComponent` per question — `clicked` output wired to `goTo(index)`
 - Auto-save: `answerChanged$` subject → `debounceTime(1500)` → `saveResponse()` — uses `takeUntilDestroyed()`
 - Submit button → confirmation dialog → `submitAssessment()` → navigate to confirmation screen
 - On timer reaching zero: triggers submit automatically
 
 **`QuestionRendererComponent`**
-- `input()`: `question: QuestionResponse`, `assessmentId: string`
+- `input()`: `question: QuestionResponse`
+- `input()`: `savedAnswer: ResponseRequest | undefined` — restores local UI state when question changes (via `effect()`)
 - `output()`: `answerChanged` emits `{ questionId, request: ResponseRequest }`
 - Conditionally renders:
-  - MCQ: radio group (single correct) or checkbox group (multi-correct)
+  - MCQ: radio group (single correct) or checkbox group (multi-correct) — determined by `question.multiCorrect`, **not** `correctAnswers.length`
   - TEXT: textarea
   - DOC: file upload input
-  - GROUP: recursively renders child questions
+  - GROUP: renders each child `TextQuestion` as a labelled textarea
 
 **`CountdownTimerComponent`**
 - `input()`: `initialSeconds: number` (Signal)
@@ -458,8 +473,8 @@ export const assessmentRoutes: Routes = [
 ### Testing
 - `CandidateAssessmentService` unit test: each method calls the correct endpoint
 - `CountdownTimerComponent` unit test: initialises from input; emits `expired` at zero; displays correct MM:SS
-- `QuestionRendererComponent` unit test: MCQ renders radio/checkbox based on `correctAnswers.length`; answer change emits correct payload
-- `AssessmentTakingComponent` unit test: auto-save debounces; submit calls service; expired timer triggers submit
+- `QuestionRendererComponent` unit test: MCQ renders radio based on `multiCorrect = false`, checkbox based on `multiCorrect = true`; `savedAnswer` input restores selection state; answer change emits correct payload
+- `AssessmentTakingComponent` unit test: auto-save debounces; submit calls service; expired timer triggers submit; navigating between questions preserves and restores answer state via `savedAnswers`
 
 ### Done When
 - Candidate opens invitation link → assessment loads with questions and countdown
