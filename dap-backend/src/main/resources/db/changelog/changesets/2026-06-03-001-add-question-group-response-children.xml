@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        QuestionGroupResponse owns a @OneToMany collection of child Response entities.
+        With JOINED inheritance the child rows live in response + their subtype table.
+        A dedicated join table keeps the response base table free of a nullable FK.
+    -->
+    <changeSet id="2026-06-03-001-add-question-group-response-children" author="kwabena.awuah">
+
+        <createTable tableName="question_group_response_children">
+            <column name="group_response_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_qgrc_group_response"
+                             references="question_group_response(id)"/>
+            </column>
+            <column name="child_response_id" type="UUID">
+                <constraints nullable="false" unique="true"
+                             uniqueConstraintName="uq_qgrc_child_response"
+                             foreignKeyName="fk_qgrc_child_response"
+                             references="response(id)"/>
+            </column>
+        </createTable>
+
+        <addPrimaryKey tableName="question_group_response_children"
+                       columnNames="group_response_id,child_response_id"
+                       constraintName="pk_question_group_response_children"/>
+
+        <rollback>
+            <dropTable tableName="question_group_response_children"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

@@ -7,6 +7,7 @@ import com.psybergate.dap.dto.AssessmentResponse;
 import com.psybergate.dap.dto.ResponseRequest;
 import com.psybergate.dap.dto.SubmitRequest;
 import com.psybergate.dap.service.AssessmentService;
+import com.psybergate.dap.service.ResponseService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,9 +28,11 @@ import java.util.UUID;
 public class AssessmentController {
 
     private final AssessmentService assessmentService;
+    private final ResponseService responseService;
 
-    public AssessmentController(AssessmentService assessmentService) {
+    public AssessmentController(AssessmentService assessmentService, ResponseService responseService) {
         this.assessmentService = assessmentService;
+        this.responseService = responseService;
     }
 
     @PostMapping
@@ -48,7 +51,8 @@ public class AssessmentController {
             @PathVariable UUID id,
             @PathVariable UUID questionId,
             @Valid @RequestBody ResponseRequest request) {
-        return ResponseEntity.ok().build();
+        responseService.saveResponse(id, questionId, request);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/submit")
