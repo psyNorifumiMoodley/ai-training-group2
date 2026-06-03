@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 const STATE_CLASSES: Record<string, string> = {
   done:   'bg-primary/20 text-[#93c5fd]',
@@ -11,7 +11,9 @@ const STATE_CLASSES: Record<string, string> = {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div [class]="'w-7 h-7 rounded-md flex items-center justify-center text-xs font-medium cursor-pointer select-none ' + stateClass()">
+    <div
+      [class]="'w-7 h-7 rounded-md flex items-center justify-center text-xs font-medium cursor-pointer select-none ' + stateClass()"
+      (click)="clicked.emit()">
       {{ number() }}
     </div>
   `,
@@ -19,6 +21,7 @@ const STATE_CLASSES: Record<string, string> = {
 export class QuestionNavDotComponent {
   readonly number = input.required<number>();
   readonly state  = input<'done' | 'active' | 'todo'>('todo');
+  readonly clicked = output<void>();
 
   stateClass(): string { return STATE_CLASSES[this.state()]; }
 }

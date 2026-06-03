@@ -85,6 +85,10 @@ export class AssessmentTakingComponent implements OnInit {
     this.autoSave$.next(event);
   }
 
+  goTo(index: number): void {
+    this.currentIndex.set(index);
+  }
+
   prev(): void {
     if (this.currentIndex() > 0) this.currentIndex.update((i) => i - 1);
   }
