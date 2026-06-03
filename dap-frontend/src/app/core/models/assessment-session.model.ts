@@ -4,6 +4,7 @@ export interface AssessmentAccessResponse {
   assessmentId: string;
   questions: QuestionResponse[];
   remainingSeconds: number;
+  candidateToken: string;
 }
 
 export interface McqResponseRequest  { selectedAnswers: string[]; }

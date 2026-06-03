@@ -1,0 +1,32 @@
+<div class="min-h-screen bg-gray-50 flex items-center justify-center">
+  <div class="bg-white border border-gray-200 rounded-card p-8 w-full max-w-sm text-center">
+
+    @if (loading()) {
+      <div class="flex flex-col items-center gap-4">
+        <i class="pi pi-spin pi-spinner text-primary text-3xl"></i>
+        <p class="text-caption text-gray-500">Loading your assessment…</p>
+      </div>
+    }
+
+    @if (errorType() === 'submitted') {
+      <div class="flex flex-col items-center gap-4">
+        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+          <i class="pi pi-check text-green-600 text-xl"></i>
+        </div>
+        <h2 class="text-sm font-medium text-gray-900">Assessment already submitted</h2>
+        <p class="text-caption text-gray-500">You have already completed this assessment. Results will be sent to you once marking is complete.</p>
+      </div>
+    }
+
+    @if (errorType() === 'expired') {
+      <div class="flex flex-col items-center gap-4">
+        <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+          <i class="pi pi-times text-red-600 text-xl"></i>
+        </div>
+        <h2 class="text-sm font-medium text-gray-900">Link expired or invalid</h2>
+        <p class="text-caption text-gray-500">This invitation link is no longer valid. Please contact the assessment organiser for a new link.</p>
+      </div>
+    }
+
+  </div>
+</div>

@@ -10,10 +10,10 @@ export const routes: Routes = [
         .then(m => m.LoginComponent),
   },
   {
-    path: 'assessment/:token',
-    loadComponent: () =>
-      import('./features/assessments/candidate/candidate-assessment.component')
-        .then(m => m.CandidateAssessmentComponent),
+    path: 'assessment',
+    loadChildren: () =>
+      import('./features/assessment/assessment.routes')
+        .then(m => m.assessmentRoutes),
   },
   {
     path: '',

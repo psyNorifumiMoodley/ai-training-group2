@@ -1,0 +1,79 @@
+<!-- MCQ -->
+@if (isMcq()) {
+  @if (isMultiCorrect()) {
+    <div class="space-y-[0.4375rem]">
+      @for (opt of asMcq().options; track opt) {
+        <div
+          (click)="onCheckboxToggle(opt)"
+          [class]="'flex items-center gap-2.5 py-[0.5625rem] px-3 border rounded-input cursor-pointer transition-colors ' +
+            (isChecked(opt) ? 'border-primary bg-primary-light' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50')">
+          <div [class]="'w-[1.0625rem] h-[1.0625rem] rounded border-2 flex items-center justify-center flex-shrink-0 ' +
+            (isChecked(opt) ? 'border-primary bg-primary' : 'border-gray-300')">
+            @if (isChecked(opt)) {
+              <i class="pi pi-check text-white text-[0.5rem]"></i>
+            }
+          </div>
+          <span class="text-caption text-gray-700">{{ opt }}</span>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="space-y-[0.4375rem]">
+      @for (opt of asMcq().options; track opt) {
+        <div
+          (click)="onRadioSelect(opt)"
+          [class]="'flex items-center gap-2.5 py-[0.5625rem] px-3 border rounded-input cursor-pointer transition-colors ' +
+            (selectedOption() === opt ? 'border-primary bg-primary-light' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50')">
+          <div [class]="'w-[1.0625rem] h-[1.0625rem] rounded-full border-2 flex items-center justify-center flex-shrink-0 ' +
+            (selectedOption() === opt ? 'border-primary' : 'border-gray-300')">
+            @if (selectedOption() === opt) {
+              <div class="w-[0.4375rem] h-[0.4375rem] rounded-full bg-primary"></div>
+            }
+          </div>
+          <span class="text-caption text-gray-700">{{ opt }}</span>
+        </div>
+      }
+    </div>
+  }
+}
+
+<!-- Text -->
+@if (isText()) {
+  <textarea
+    rows="6"
+    placeholder="Type your answer here..."
+    [value]="textAnswer()"
+    (input)="onTextChange($any($event.target).value)"
+    class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-gray-400">
+  </textarea>
+}
+
+<!-- Doc -->
+@if (isDoc()) {
+  <div class="border-2 border-dashed border-gray-200 rounded-card p-8 flex flex-col items-center justify-center gap-3 hover:border-primary/50 transition-colors cursor-pointer">
+    <i class="pi pi-upload text-gray-300 text-[2rem]"></i>
+    <p class="text-caption text-gray-400">Drop your file here, or</p>
+    <label class="text-caption text-primary font-medium cursor-pointer hover:text-primary-hover">
+      Choose file
+      <input type="file" class="hidden" (change)="onFileChange($event)">
+    </label>
+  </div>
+}
+
+<!-- Group -->
+@if (isGroup()) {
+  <div class="space-y-4">
+    @for (child of asGroup().followUpQuestions; track child.id) {
+      <div class="border border-gray-100 rounded-input p-3">
+        <p class="text-caption text-gray-600 mb-2">{{ child.question }}</p>
+        <textarea
+          rows="4"
+          placeholder="Type your answer here..."
+          [value]="childAnswers()[child.id] ?? ''"
+          (input)="onChildTextChange(child.id, $any($event.target).value)"
+          class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-gray-400">
+        </textarea>
+      </div>
+    }
+  </div>
+}

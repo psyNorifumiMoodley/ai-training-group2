@@ -1,0 +1,9 @@
+<div class="bg-primary/15 border border-primary/50 rounded-full px-3 py-1"
+     [class.bg-red-500/15]="isWarning()"
+     [class.border-red-500/50]="isWarning()">
+  <span class="text-caption font-medium"
+        [class.text-[#93c5fd]]="!isWarning()"
+        [class.text-red-400]="isWarning()">
+    {{ display() }}
+  </span>
+</div>

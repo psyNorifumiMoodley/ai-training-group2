@@ -6,6 +6,7 @@ import java.util.UUID;
 public record AssessmentAccessResponse(
         UUID assessmentId,
         List<QuestionResponse> questions,
-        int remainingSeconds
+        int remainingSeconds,
+        String candidateToken
 ) {
 }

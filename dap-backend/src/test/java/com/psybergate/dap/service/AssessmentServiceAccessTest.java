@@ -1,6 +1,7 @@
 package com.psybergate.dap.service;
 
 import com.psybergate.dap.config.InvitationTokenUtil;
+import com.psybergate.dap.config.JwtUtil;
 import com.psybergate.dap.domain.*;
 import com.psybergate.dap.dto.AssessmentAccessResponse;
 import com.psybergate.dap.repository.*;
@@ -43,6 +44,8 @@ class AssessmentServiceAccessTest {
     @Mock
     private InvitationTokenUtil invitationTokenUtil;
     @Mock
+    private JwtUtil jwtUtil;
+    @Mock
     private EmailService emailService;
     @Mock
     private ResponseService responseService;
@@ -56,7 +59,8 @@ class AssessmentServiceAccessTest {
         assessmentService = new AssessmentService(
                 candidateRepository, assessmentRepository, assessmentQuestionRepository,
                 mcqQuestionRepository, textQuestionRepository, docQuestionRepository,
-                groupQuestionRepository, invitationTokenUtil, emailService, responseService);
+                groupQuestionRepository, invitationTokenUtil, jwtUtil, emailService, responseService);
+        when(jwtUtil.generateToken(any())).thenReturn("candidate.jwt.token");
         ReflectionTestUtils.setField(assessmentService, "requiredMcq", 5);
         ReflectionTestUtils.setField(assessmentService, "requiredText", 3);
         ReflectionTestUtils.setField(assessmentService, "requiredDoc", 1);
