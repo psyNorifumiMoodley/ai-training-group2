@@ -1,6 +1,7 @@
 package com.psybergate.dap.service;
 
 import com.psybergate.dap.config.InvitationTokenUtil;
+import com.psybergate.dap.config.JwtUtil;
 import com.psybergate.dap.domain.*;
 import com.psybergate.dap.dto.AssessmentRequest;
 import com.psybergate.dap.dto.AssessmentResponse;
@@ -44,6 +45,8 @@ class AssessmentServiceTest {
     @Mock
     private InvitationTokenUtil invitationTokenUtil;
     @Mock
+    private JwtUtil jwtUtil;
+    @Mock
     private EmailService emailService;
     @Mock
     private ResponseService responseService;
@@ -55,7 +58,7 @@ class AssessmentServiceTest {
         assessmentService = new AssessmentService(
                 candidateRepository, assessmentRepository, assessmentQuestionRepository,
                 mcqQuestionRepository, textQuestionRepository, docQuestionRepository,
-                groupQuestionRepository, invitationTokenUtil, emailService, responseService);
+                groupQuestionRepository, invitationTokenUtil, jwtUtil, emailService, responseService);
         setCompositionDefaults();
         ReflectionTestUtils.setField(assessmentService, "frontendBaseUrl", "http://localhost:4200");
         // Default stub so token generation does not return null in existing tests

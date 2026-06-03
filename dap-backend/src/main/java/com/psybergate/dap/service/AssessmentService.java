@@ -1,6 +1,7 @@
 package com.psybergate.dap.service;
 
 import com.psybergate.dap.config.InvitationTokenUtil;
+import com.psybergate.dap.config.JwtUtil;
 import com.psybergate.dap.domain.*;
 import com.psybergate.dap.dto.*;
 import com.psybergate.dap.repository.*;
@@ -49,6 +50,7 @@ public class AssessmentService {
     private final DocQuestionRepository docQuestionRepository;
     private final GroupQuestionRepository groupQuestionRepository;
     private final InvitationTokenUtil invitationTokenUtil;
+    private final JwtUtil jwtUtil;
     private final EmailService emailService;
     private final ResponseService responseService;
 
@@ -60,6 +62,7 @@ public class AssessmentService {
                              DocQuestionRepository docQuestionRepository,
                              GroupQuestionRepository groupQuestionRepository,
                              InvitationTokenUtil invitationTokenUtil,
+                             JwtUtil jwtUtil,
                              EmailService emailService,
                              ResponseService responseService) {
         this.candidateRepository = candidateRepository;
@@ -70,6 +73,7 @@ public class AssessmentService {
         this.docQuestionRepository = docQuestionRepository;
         this.groupQuestionRepository = groupQuestionRepository;
         this.invitationTokenUtil = invitationTokenUtil;
+        this.jwtUtil = jwtUtil;
         this.emailService = emailService;
         this.responseService = responseService;
     }
@@ -159,13 +163,14 @@ public class AssessmentService {
                 .map(this::toQuestionResponse)
                 .collect(Collectors.toList());
 
-        return new AssessmentAccessResponse(assessment.getId(), questionResponses, (int) remainingSeconds);
+        String candidateToken = jwtUtil.generateToken(assessment.getCandidate().getUser());
+        return new AssessmentAccessResponse(assessment.getId(), questionResponses, (int) remainingSeconds, candidateToken);
     }
 
     private QuestionResponse toQuestionResponse(AssessmentQuestion q) {
         if (q instanceof McqQuestion mq) {
             return new McqQuestionResponse(mq.getId(), mq.getCategory(), mq.getQuestion(),
-                    mq.getOptions(), mq.getCorrectAnswers());
+                    mq.getOptions(), List.of(), mq.getCorrectAnswers().size() > 1);
         }
         if (q instanceof DocQuestion dq) {
             return new DocQuestionResponse(dq.getId(), dq.getCategory(), dq.getQuestion());

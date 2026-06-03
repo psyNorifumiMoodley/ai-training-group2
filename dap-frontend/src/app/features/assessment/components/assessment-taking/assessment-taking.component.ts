@@ -43,6 +43,7 @@ export class AssessmentTakingComponent implements OnInit {
 
   readonly currentIndex = signal(0);
   readonly answeredQuestions = signal<Set<string>>(new Set());
+  readonly savedAnswers = signal<Record<string, ResponseRequest>>({});
   readonly showConfirm = signal(false);
   readonly submitting = signal(false);
 
@@ -82,6 +83,7 @@ export class AssessmentTakingComponent implements OnInit {
 
   onAnswerChanged(event: AnswerChangedEvent): void {
     this.answeredQuestions.update((s) => new Set([...s, event.questionId]));
+    this.savedAnswers.update((m) => ({ ...m, [event.questionId]: event.request }));
     this.autoSave$.next(event);
   }
 

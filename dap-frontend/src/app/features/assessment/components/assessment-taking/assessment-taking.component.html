@@ -26,7 +26,7 @@
             <dap-question-nav-dot [number]="i + 1" [state]="navState(i)" (clicked)="goTo(i)" />
           }
         </div>
-<div class="mt-auto space-y-1.5 text-xs text-[#8b949e]">
+        <div class="mt-auto space-y-1.5 text-xs text-[#8b949e]">
           <p>Progress {{ answeredCount() }} / {{ questions().length }}</p>
         </div>
       </aside>
@@ -44,6 +44,7 @@
           <p class="text-sm text-gray-800 mb-4">{{ q.question }}</p>
           <dap-question-renderer
             [question]="q"
+            [savedAnswer]="savedAnswers()[q.id]"
             (answerChanged)="onAnswerChanged($event)" />
         </div>
 
