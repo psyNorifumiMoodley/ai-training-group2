@@ -58,7 +58,7 @@ export class QuestionSelectionComponent {
 
   readonly filteredQuestions = computed(() =>
     this.allQuestions().filter(q => {
-      const typeOk    = this.selectedType() === 'ALL' || q.type === this.selectedType();
+      const typeOk    = this.selectedType() === 'ALL' || this.resolveType(q) === this.selectedType();
       const subjectOk = this.selectedSubject() === 'ALL' || q.category === this.selectedSubject();
       return typeOk && subjectOk;
     })
@@ -107,6 +107,14 @@ export class QuestionSelectionComponent {
 
   isChecked(id: string): boolean { return this.checkedIds().has(id); }
   isSeen(id: string): boolean    { return this.seenSet().has(id); }
+
+  resolveType(q: QuestionResponse): QuestionType {
+    if (q.type) return q.type;
+    if ('correctAnswers' in q) return 'MCQ';
+    if ('followUpQuestions' in q) return 'GROUP';
+    if ('keywords' in q) return 'TEXT';
+    return 'DOC';
+  }
 
   typeVariant(type: QuestionType): 'mcq' | 'text' | 'doc' | 'info' {
     const map: Record<QuestionType, 'mcq' | 'text' | 'doc' | 'info'> = {
