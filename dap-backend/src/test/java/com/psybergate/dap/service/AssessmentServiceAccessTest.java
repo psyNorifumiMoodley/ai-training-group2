@@ -44,6 +44,8 @@ class AssessmentServiceAccessTest {
     private InvitationTokenUtil invitationTokenUtil;
     @Mock
     private EmailService emailService;
+    @Mock
+    private ResponseService responseService;
 
     private AssessmentService assessmentService;
 
@@ -54,7 +56,7 @@ class AssessmentServiceAccessTest {
         assessmentService = new AssessmentService(
                 candidateRepository, assessmentRepository, assessmentQuestionRepository,
                 mcqQuestionRepository, textQuestionRepository, docQuestionRepository,
-                groupQuestionRepository, invitationTokenUtil, emailService);
+                groupQuestionRepository, invitationTokenUtil, emailService, responseService);
         ReflectionTestUtils.setField(assessmentService, "requiredMcq", 5);
         ReflectionTestUtils.setField(assessmentService, "requiredText", 3);
         ReflectionTestUtils.setField(assessmentService, "requiredDoc", 1);
