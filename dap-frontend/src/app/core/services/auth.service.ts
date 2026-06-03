@@ -38,6 +38,10 @@ export class AuthService {
     return localStorage.getItem(TOKEN_KEY);
   }
 
+  storeToken(token: string): void {
+    localStorage.setItem(TOKEN_KEY, token);
+  }
+
   private decodeStoredToken(): CurrentUser | null {
     const token = localStorage.getItem(TOKEN_KEY);
     return token ? this.decodeToken(token) : null;

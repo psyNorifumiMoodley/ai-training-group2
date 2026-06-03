@@ -206,7 +206,8 @@ public class QuestionService {
     }
 
     private McqQuestionResponse toMcqResponse(McqQuestion q) {
-        return new McqQuestionResponse(q.getId(), q.getCategory(), q.getQuestion(), q.getOptions(), q.getCorrectAnswers());
+        return new McqQuestionResponse(q.getId(), q.getCategory(), q.getQuestion(), q.getOptions(),
+                q.getCorrectAnswers(), q.getCorrectAnswers().size() > 1);
     }
 
     private DocQuestionResponse toDocResponse(DocQuestion q) {

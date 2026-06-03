@@ -1,0 +1,76 @@
+@if (session()) {
+  <div class="flex flex-col h-screen bg-gray-50">
+    <!-- Topbar -->
+    <header class="h-[2.875rem] bg-shell border-b border-border-dark flex items-center justify-between px-4 flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-[1.375rem] h-[1.375rem] bg-primary rounded-[0.3125rem]"></div>
+        <span class="text-caption text-[#e6edf3] truncate max-w-80">Developer Assessment</span>
+      </div>
+      <dap-countdown-timer
+        [initialSeconds]="session()!.remainingSeconds"
+        (expired)="onTimerExpired()" />
+    </header>
+
+    <!-- Progress bar -->
+    <dap-progress-bar
+      [value]="(answeredCount() / questions().length) * 100"
+      color="bg-primary"
+      height="xs" />
+
+    <div class="flex flex-1 overflow-hidden">
+      <!-- Question nav sidebar -->
+      <aside class="w-48 flex-shrink-0 bg-sidebar border-r border-border-dark flex flex-col p-4">
+        <p class="text-[0.625rem] font-medium text-[#484f58] uppercase tracking-[0.07em] mb-3">Questions</p>
+        <div class="grid grid-cols-5 gap-1 mb-4">
+          @for (q of questions(); track q.id; let i = $index) {
+            <dap-question-nav-dot [number]="i + 1" [state]="navState(i)" (clicked)="goTo(i)" />
+          }
+        </div>
+        <div class="mt-auto space-y-1.5 text-xs text-[#8b949e]">
+          <p>Progress {{ answeredCount() }} / {{ questions().length }}</p>
+        </div>
+      </aside>
+
+      <!-- Question area -->
+      <main class="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
+        @let q = currentQuestion();
+
+        <div class="bg-white border border-gray-200 rounded-card p-[1.125rem]">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em]">
+              Question {{ currentIndex() + 1 }} of {{ questions().length }}
+            </span>
+          </div>
+          <p class="text-sm text-gray-800 mb-4">{{ q.question }}</p>
+          <dap-question-renderer
+            [question]="q"
+            [savedAnswer]="savedAnswers()[q.id]"
+            (answerChanged)="onAnswerChanged($event)" />
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex items-center justify-between">
+          <dap-button variant="ghost" iconLeft="pi-arrow-left" [disabled]="currentIndex() === 0" (clicked)="prev()">
+            Previous
+          </dap-button>
+          @if (isLast()) {
+            <dap-button variant="primary" [loading]="submitting()" (clicked)="requestSubmit()">
+              Submit assessment
+            </dap-button>
+          } @else {
+            <dap-button variant="primary" iconRight="pi-arrow-right" (clicked)="next()">Next</dap-button>
+          }
+        </div>
+      </main>
+    </div>
+  </div>
+
+  @if (showConfirm()) {
+    <dap-confirm-modal
+      title="Submit assessment?"
+      message="You won't be able to change your answers after submitting."
+      confirmLabel="Submit"
+      (confirmed)="confirmSubmit()"
+      (cancelled)="cancelSubmit()" />
+  }
+}

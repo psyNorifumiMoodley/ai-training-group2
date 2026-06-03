@@ -40,6 +40,7 @@ export interface McqQuestionResponse extends BaseQuestionResponse {
   type: 'MCQ';
   options: string[];
   correctAnswers: string[];
+  multiCorrect: boolean;
 }
 
 export interface TextQuestionResponse extends BaseQuestionResponse {

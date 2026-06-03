@@ -8,6 +8,7 @@ public record McqQuestionResponse(
         String category,
         String question,
         List<String> options,
-        List<String> correctAnswers
+        List<String> correctAnswers,
+        boolean multiCorrect
 ) implements QuestionResponse {
 }

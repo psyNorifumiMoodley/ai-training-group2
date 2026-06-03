@@ -1,6 +1,7 @@
 package com.psybergate.dap.service;
 
 import com.psybergate.dap.config.InvitationTokenUtil;
+import com.psybergate.dap.config.JwtUtil;
 import com.psybergate.dap.domain.*;
 import com.psybergate.dap.dto.AssessmentRequest;
 import com.psybergate.dap.dto.AssessmentResponse;
@@ -44,6 +45,8 @@ class AssessmentServiceTest {
     @Mock
     private InvitationTokenUtil invitationTokenUtil;
     @Mock
+    private JwtUtil jwtUtil;
+    @Mock
     private EmailService emailService;
     @Mock
     private ResponseService responseService;
@@ -55,7 +58,7 @@ class AssessmentServiceTest {
         assessmentService = new AssessmentService(
                 candidateRepository, assessmentRepository, assessmentQuestionRepository,
                 mcqQuestionRepository, textQuestionRepository, docQuestionRepository,
-                groupQuestionRepository, invitationTokenUtil, emailService, responseService);
+                groupQuestionRepository, invitationTokenUtil, jwtUtil, emailService, responseService);
         setCompositionDefaults();
         ReflectionTestUtils.setField(assessmentService, "frontendBaseUrl", "http://localhost:4200");
         // Default stub so token generation does not return null in existing tests
@@ -541,7 +544,7 @@ class AssessmentServiceTest {
         AssessmentResponse response = assessmentService.generate(
                 new AssessmentRequest(candidateId, List.of(), 60));
 
-        assertThat(response.invitationLink()).isEqualTo(expectedToken);
+        assertThat(response.invitationLink()).isEqualTo("http://localhost:4200/assessment/access/" + expectedToken);
 
         // Verify the second save captured an assessment with the token set
         ArgumentCaptor<Assessment> captor = ArgumentCaptor.forClass(Assessment.class);
@@ -573,6 +576,6 @@ class AssessmentServiceTest {
         verify(emailService).sendInvitation(
                 eq("c@test.com"),
                 eq("Candidate"),
-                eq("http://localhost:4200/assessment/" + generatedToken));
+                eq("http://localhost:4200/assessment/access/" + generatedToken));
     }
 }

@@ -82,7 +82,7 @@ class QuestionControllerTest {
     @Test
     void createMcqQuestion_asMarker_returns201() throws Exception {
         UUID id = UUID.randomUUID();
-        McqQuestionResponse response = new McqQuestionResponse(id, "Java", "Which is a keyword?", List.of("int", "for"), List.of("int"));
+        McqQuestionResponse response = new McqQuestionResponse(id, "Java", "Which is a keyword?", List.of("int", "for"), List.of("int"), false);
         when(questionService.create(any())).thenReturn(response);
 
         Map<String, Object> body = Map.of(
