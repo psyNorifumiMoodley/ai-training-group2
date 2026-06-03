@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        AssessmentQuestion uses TABLE_PER_CLASS inheritance, so question IDs live only
+        in the concrete tables (mcq_question, text_question, doc_question, group_question).
+        The abstract assessment_question table holds no rows.
+        The FK from response.question_id to assessment_question(id) therefore always
+        fails on insert. Drop it to allow response rows to reference concrete-table IDs.
+    -->
+    <changeSet id="2026-06-03-002-fix-response-question-fk" author="kwabena.awuah">
+
+        <dropForeignKeyConstraint baseTableName="response"
+                                  constraintName="fk_response_question"/>
+
+        <rollback>
+            <addForeignKeyConstraint baseTableName="response"
+                                     baseColumnNames="question_id"
+                                     constraintName="fk_response_question"
+                                     referencedTableName="assessment_question"
+                                     referencedColumnNames="id"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

@@ -11,6 +11,7 @@ import com.psybergate.dap.dto.AssessmentRequest;
 import com.psybergate.dap.dto.AssessmentResponse;
 import com.psybergate.dap.service.AssessmentService;
 import com.psybergate.dap.service.AuthService;
+import com.psybergate.dap.service.ResponseService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +55,9 @@ class AssessmentControllerTest {
 
     @MockBean
     private AssessmentService assessmentService;
+
+    @MockBean
+    private ResponseService responseService;
 
     @BeforeEach
     void stubUserDetailsService() {
