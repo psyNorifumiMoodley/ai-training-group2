@@ -11,6 +11,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { QuestionService } from '../../../../core/services/question.service';
 import { AssessmentService } from '../../../../core/services/assessment.service';
+import { ToastService } from '../../../../core/services/toast.service';
 import { QuestionResponse, QuestionType } from '../../../../core/models/question.model';
 import { AssessmentResponse } from '../../../../core/models/assessment.model';
 import { TagComponent } from '../../../../shared/components/tag/tag.component';
@@ -31,6 +32,7 @@ export class QuestionSelectionComponent {
   private readonly route             = inject(ActivatedRoute);
   private readonly questionService   = inject(QuestionService);
   private readonly assessmentService = inject(AssessmentService);
+  private readonly toastService      = inject(ToastService);
   private readonly destroyRef        = inject(DestroyRef);
 
   readonly typeFilters = TYPE_FILTERS;
@@ -139,11 +141,13 @@ export class QuestionSelectionComponent {
           this.result.set(res);
           this.done.set(true);
           this.submitting.set(false);
+          this.toastService.success('Assessment generated successfully.');
         },
         error: (err: HttpErrorResponse) => {
           const message = err.error?.message ?? 'Failed to generate assessment. Please try again.';
           this.submitError.set(message);
           this.submitting.set(false);
+          this.toastService.error(message);
         },
       });
   }
