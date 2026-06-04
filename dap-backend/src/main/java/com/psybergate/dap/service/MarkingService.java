@@ -9,8 +9,11 @@ import com.psybergate.dap.domain.Response;
 import com.psybergate.dap.domain.TextResponse;
 import com.psybergate.dap.domain.ValidationException;
 import com.psybergate.dap.dto.AssessmentSummaryResponse;
+import com.psybergate.dap.dto.DocAnswerPayload;
 import com.psybergate.dap.dto.FeedbackUpdateRequest;
+import com.psybergate.dap.dto.McqAnswerPayload;
 import com.psybergate.dap.dto.ResponseReviewItem;
+import com.psybergate.dap.dto.TextAnswerPayload;
 import com.psybergate.dap.repository.AssessmentRepository;
 import com.psybergate.dap.repository.ResponseRepository;
 import org.springframework.data.domain.Page;
@@ -67,7 +70,7 @@ public class MarkingService {
 
     @Transactional
     public List<ResponseReviewItem> getResponsesForReview(UUID assessmentId) {
-        List<Response> responses = responseRepository.findWithQuestionByAssessmentId(assessmentId);
+        List<Response> responses = responseRepository.findByAssessmentId(assessmentId);
         return responses.stream()
                 .map(response -> mapToReviewItem(assessmentId, response))
                 .toList();
@@ -80,15 +83,17 @@ public class MarkingService {
         String feedbackDraft = feedback.getDraft();
 
         if (response instanceof McqResponse mcqResponse) {
-            Object answer = mcqResponse.getSelectedAnswers();
+            boolean correct = Boolean.TRUE.equals(mcqResponse.getCorrect());
             return new ResponseReviewItem(
                     response.getId(),
                     questionId,
                     questionBody,
                     "MCQ",
-                    answer,
+                    new McqAnswerPayload(mcqResponse.getSelectedAnswers()),
                     mcqResponse.getCorrect(),
-                    feedbackDraft
+                    feedbackDraft,
+                    1,
+                    correct ? 1 : 0
             );
         } else if (response instanceof TextResponse textResponse) {
             return new ResponseReviewItem(
@@ -96,19 +101,27 @@ public class MarkingService {
                     questionId,
                     questionBody,
                     "TEXT",
-                    textResponse.getAnswer(),
+                    new TextAnswerPayload(textResponse.getAnswer()),
                     null,
-                    feedbackDraft
+                    feedbackDraft,
+                    1,
+                    null
             );
         } else if (response instanceof DocResponse docResponse) {
+            String rawPath = docResponse.getFilePath();
+            String fileName = rawPath != null
+                    ? rawPath.substring(Math.max(rawPath.lastIndexOf('/'), rawPath.lastIndexOf('\\')) + 1)
+                    : null;
             return new ResponseReviewItem(
                     response.getId(),
                     questionId,
                     questionBody,
                     "DOC",
-                    docResponse.getFilePath(),
+                    new DocAnswerPayload(fileName),
                     null,
-                    feedbackDraft
+                    feedbackDraft,
+                    1,
+                    null
             );
         } else {
             return new ResponseReviewItem(
@@ -118,7 +131,9 @@ public class MarkingService {
                     "GROUP",
                     null,
                     null,
-                    feedbackDraft
+                    feedbackDraft,
+                    1,
+                    null
             );
         }
     }

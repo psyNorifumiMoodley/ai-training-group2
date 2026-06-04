@@ -14,6 +14,7 @@ import com.psybergate.dap.domain.ValidationException;
 import com.psybergate.dap.dto.AssessmentSummaryResponse;
 import com.psybergate.dap.dto.FeedbackUpdateRequest;
 import com.psybergate.dap.dto.ResponseReviewItem;
+import com.psybergate.dap.dto.TextAnswerPayload;
 import com.psybergate.dap.repository.AssessmentRepository;
 import com.psybergate.dap.repository.ResponseRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -162,7 +163,7 @@ class MarkingServiceTest {
 
         Feedback feedback = feedbackWithDraft(assessment, "Correct");
 
-        when(responseRepository.findWithQuestionByAssessmentId(assessmentId))
+        when(responseRepository.findByAssessmentId(assessmentId))
                 .thenReturn(List.of(response));
         when(feedbackService.getOrCreateDraft(assessmentId, question.getId()))
                 .thenReturn(feedback);
@@ -196,7 +197,7 @@ class MarkingServiceTest {
 
         Feedback feedback = feedbackWithDraft(assessment, "Incorrect — please review this topic");
 
-        when(responseRepository.findWithQuestionByAssessmentId(assessmentId))
+        when(responseRepository.findByAssessmentId(assessmentId))
                 .thenReturn(List.of(response));
         when(feedbackService.getOrCreateDraft(assessmentId, question.getId()))
                 .thenReturn(feedback);
@@ -229,7 +230,7 @@ class MarkingServiceTest {
 
         Feedback feedback = feedbackWithDraft(assessment, "");
 
-        when(responseRepository.findWithQuestionByAssessmentId(assessmentId))
+        when(responseRepository.findByAssessmentId(assessmentId))
                 .thenReturn(List.of(response));
         when(feedbackService.getOrCreateDraft(assessmentId, question.getId()))
                 .thenReturn(feedback);
@@ -241,7 +242,9 @@ class MarkingServiceTest {
         assertThat(item.questionType()).isEqualTo("TEXT");
         assertThat(item.correct()).isNull();
         assertThat(item.feedbackDraft()).isEmpty();
-        assertThat(item.answer()).isEqualTo("OOP stands for...");
+        assertThat(item.answer()).isEqualTo(new TextAnswerPayload("OOP stands for..."));
+        assertThat(item.marks()).isEqualTo(1);
+        assertThat(item.score()).isNull();
     }
 
     // ---------- updateResponseFeedback — response not belonging to assessment ----------
