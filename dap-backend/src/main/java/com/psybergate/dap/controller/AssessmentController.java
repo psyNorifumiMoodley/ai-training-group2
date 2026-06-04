@@ -82,7 +82,7 @@ public class AssessmentController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('MARKER')")
+    @PreAuthorize("hasAnyRole('MARKER', 'ADMIN')")
     public ResponseEntity<Page<AssessmentSummaryResponse>> listAssessments(
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
@@ -91,13 +91,13 @@ public class AssessmentController {
     }
 
     @GetMapping("/{id}/responses")
-    @PreAuthorize("hasRole('MARKER')")
+    @PreAuthorize("hasAnyRole('MARKER', 'ADMIN')")
     public ResponseEntity<List<ResponseReviewItem>> getResponsesForReview(@PathVariable UUID id) {
         return ResponseEntity.ok(markingService.getResponsesForReview(id));
     }
 
     @PatchMapping("/{id}/responses/{responseId}")
-    @PreAuthorize("hasRole('MARKER')")
+    @PreAuthorize("hasAnyRole('MARKER', 'ADMIN')")
     public ResponseEntity<Void> updateResponseFeedback(
             @PathVariable UUID id,
             @PathVariable UUID responseId,
@@ -107,14 +107,14 @@ public class AssessmentController {
     }
 
     @PostMapping("/{id}/finalise")
-    @PreAuthorize("hasRole('MARKER')")
+    @PreAuthorize("hasAnyRole('MARKER', 'ADMIN')")
     public ResponseEntity<Void> finaliseMarking(@PathVariable UUID id) {
         assessmentService.finalise(id);
         return ResponseEntity.ok().build();
     }
 
     @PatchMapping("/{id}/feedback/{questionId}")
-    @PreAuthorize("hasRole('MARKER')")
+    @PreAuthorize("hasAnyRole('MARKER', 'ADMIN')")
     public ResponseEntity<Void> updateFeedback(
             @PathVariable UUID id,
             @PathVariable UUID questionId,
