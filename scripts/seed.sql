@@ -1,6 +1,14 @@
 -- ============================================================
 -- seed.sql  —  Wipe all application data and re-seed for dev
--- Run: docker exec -i ai-training-group2-postgres-1 psql -U dap -d dap < scripts/seed.sql
+--
+-- Re-seed (wipe + load data):
+--   PowerShell: Get-Content scripts\seed.sql | docker exec -i ai-training-group2-postgres-1 psql -U dap -d dap
+--   bash/cmd:   docker exec -i ai-training-group2-postgres-1 psql -U dap -d dap < scripts/seed.sql
+--
+-- Wipe only (no re-seed):
+--   PowerShell: "TRUNCATE question_group_response_children, question_group_response, mcq_response, text_response, doc_response, response, feedback, submission, assessment_question_link, assessment, group_question_follow_up, group_question, text_question, mcq_question, doc_question, question_group_member, question_group, assessment_question, question_bank, candidate, app_user CASCADE;" | docker exec -i ai-training-group2-postgres-1 psql -U dap -d dap
+--   bash/cmd:   docker exec -i ai-training-group2-postgres-1 psql -U dap -d dap -c "TRUNCATE question_group_response_children, question_group_response, mcq_response, text_response, doc_response, response, feedback, submission, assessment_question_link, assessment, group_question_follow_up, group_question, text_question, mcq_question, doc_question, question_group_member, question_group, assessment_question, question_bank, candidate, app_user CASCADE;"
+--
 -- Passwords: admin=admin123  marker=marker123  candidates=candidate123
 -- ============================================================
 
