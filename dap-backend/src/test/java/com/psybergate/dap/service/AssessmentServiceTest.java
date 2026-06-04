@@ -50,6 +50,8 @@ class AssessmentServiceTest {
     private EmailService emailService;
     @Mock
     private ResponseService responseService;
+    @Mock
+    private FeedbackRepository feedbackRepository;
 
     private AssessmentService assessmentService;
 
@@ -58,7 +60,8 @@ class AssessmentServiceTest {
         assessmentService = new AssessmentService(
                 candidateRepository, assessmentRepository, assessmentQuestionRepository,
                 mcqQuestionRepository, textQuestionRepository, docQuestionRepository,
-                groupQuestionRepository, invitationTokenUtil, jwtUtil, emailService, responseService);
+                groupQuestionRepository, invitationTokenUtil, jwtUtil, emailService, responseService,
+                feedbackRepository);
         setCompositionDefaults();
         ReflectionTestUtils.setField(assessmentService, "frontendBaseUrl", "http://localhost:4200");
         // Default stub so token generation does not return null in existing tests
