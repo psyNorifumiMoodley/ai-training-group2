@@ -77,9 +77,11 @@ export class QuestionListComponent {
         next: () => {
           this.deleting.set(false);
           this.deletingQuestion.set(null);
-          this.toastService.removed('Question deleted.');
           this.page.set(0);
           this.loadQuestions();
+          // Defer toast until after the modal-removal CD cycle has committed,
+          // otherwise markForCheck on ToastComponent is lost in the same batch.
+          setTimeout(() => this.toastService.removed('Question deleted.'));
         },
         error: () => {
           this.deleting.set(false);
