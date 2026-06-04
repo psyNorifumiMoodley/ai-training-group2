@@ -11,6 +11,7 @@ import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserService } from '../../../../core/services/user.service';
 import { AssessmentService } from '../../../../core/services/assessment.service';
+import { ToastService } from '../../../../core/services/toast.service';
 import { CandidateResponse } from '../../../../core/models/user.model';
 import { AssessmentResponse } from '../../../../core/models/assessment.model';
 import { AvatarComponent } from '../../../../shared/components/avatar/avatar.component';
@@ -32,6 +33,7 @@ export interface NavigateToQuestionsPayload {
 export class AssessmentGenerateComponent {
   private readonly userService       = inject(UserService);
   private readonly assessmentService = inject(AssessmentService);
+  private readonly toastService      = inject(ToastService);
   private readonly destroyRef        = inject(DestroyRef);
 
   readonly cancelled           = output<void>();
@@ -107,10 +109,12 @@ export class AssessmentGenerateComponent {
           this.result.set(res);
           this.done.set(true);
           this.submitting.set(false);
+          this.toastService.success('Assessment generated successfully.');
         },
         error: () => {
           this.submitError.set('Failed to generate assessment. Please try again.');
           this.submitting.set(false);
+          this.toastService.error('Failed to generate assessment. Please try again.');
         },
       });
   }

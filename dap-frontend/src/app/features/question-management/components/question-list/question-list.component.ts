@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuestionService } from '../../../../core/services/question.service';
+import { ToastService } from '../../../../core/services/toast.service';
 import { QuestionResponse, QuestionType } from '../../../../core/models/question.model';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { TagComponent } from '../../../../shared/components/tag/tag.component';
@@ -23,6 +24,7 @@ import { ConfirmModalComponent } from '../../../../shared/components/confirm-mod
 })
 export class QuestionListComponent {
   private readonly questionService = inject(QuestionService);
+  private readonly toastService = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly questions = signal<QuestionResponse[]>([]);
@@ -75,12 +77,14 @@ export class QuestionListComponent {
         next: () => {
           this.deleting.set(false);
           this.deletingQuestion.set(null);
+          this.toastService.success('Question deleted.');
           this.page.set(0);
           this.loadQuestions();
         },
         error: () => {
           this.deleting.set(false);
           this.deletingQuestion.set(null);
+          this.toastService.error('Failed to delete question. Please try again.');
         },
       });
   }

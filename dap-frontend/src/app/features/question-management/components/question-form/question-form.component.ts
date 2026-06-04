@@ -13,6 +13,7 @@ import {
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuestionService } from '../../../../core/services/question.service';
+import { ToastService } from '../../../../core/services/toast.service';
 import {
   GroupQuestionResponse,
   McqQuestionResponse,
@@ -34,6 +35,7 @@ import { KeywordListComponent } from '../keyword-list/keyword-list.component';
 export class QuestionFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly questionService = inject(QuestionService);
+  private readonly toastService = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly existingQuestion = input<QuestionResponse | undefined>(undefined);
@@ -153,8 +155,16 @@ export class QuestionFormComponent implements OnInit {
       : this.questionService.createQuestion(request);
 
     obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: res => { this.saving.set(false); this.questionAdded.emit(res); },
-      error: () => { this.saving.set(false); this.errorMsg.set('Failed to save question. Please try again.'); },
+      next: res => {
+        this.saving.set(false);
+        this.toastService.success(this.isEditMode() ? 'Question updated.' : 'Question created.');
+        this.questionAdded.emit(res);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.errorMsg.set('Failed to save question. Please try again.');
+        this.toastService.error('Failed to save question. Please try again.');
+      },
     });
   }
 
