@@ -157,7 +157,9 @@ export class QuestionFormComponent implements OnInit {
     obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: res => {
         this.saving.set(false);
-        this.toastService.success(this.isEditMode() ? 'Question updated.' : 'Question created.');
+        this.isEditMode()
+          ? this.toastService.update('Question updated.')
+          : this.toastService.success('Question created.');
         this.questionAdded.emit(res);
       },
       error: () => {

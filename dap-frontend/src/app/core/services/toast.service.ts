@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 
-export type ToastType = 'success' | 'error';
+export type ToastType = 'success' | 'update' | 'delete' | 'error';
 
 export interface Toast {
   id: string;
@@ -14,6 +14,8 @@ export class ToastService {
   readonly toasts = this._toasts.asReadonly();
 
   success(message: string): void { this.add('success', message); }
+  update(message: string): void  { this.add('update',  message); }
+  delete(message: string): void  { this.add('delete',  message); }
   error(message: string): void   { this.add('error',   message); }
 
   dismiss(id: string): void {
