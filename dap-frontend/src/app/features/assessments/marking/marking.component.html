@@ -1,124 +1,124 @@
-<!-- Sub-topbar -->
-<div class="flex items-center justify-between border-b border-gray-200 bg-white px-5 py-3.5 -mx-5 -mt-5 mb-5">
-  <div class="flex items-center gap-3">
-    <dap-avatar [name]="candidateName" size="lg" />
-    <div>
-      <p class="text-sm font-medium text-gray-900">{{ candidateName }}</p>
-      <p class="text-xs text-gray-400">{{ assessmentMeta }}</p>
+@if (loading()) {
+  <div class="flex items-center justify-center py-16">
+    <i class="pi pi-spin pi-spinner text-2xl text-primary"></i>
+  </div>
+} @else {
+  <!-- Sub-topbar -->
+  <div class="flex items-center justify-between border-b border-gray-200 bg-white px-5 py-3.5 -mx-5 -mt-5 mb-5">
+    <div class="flex items-center gap-3">
+      <dap-avatar [name]="candidateName() || 'Candidate'" size="lg" />
+      <div>
+        <p class="text-sm font-medium text-gray-900">{{ candidateName() || 'Candidate' }}</p>
+        <p class="text-xs text-gray-400">{{ assessmentMeta() || reviewItems().length + ' questions' }}</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="text-xs text-gray-400">{{ markedCount() }} of {{ reviewItems().length }} reviewed</span>
+      <dap-button variant="ghost" size="sm" (clicked)="backToAssessments()">Back</dap-button>
     </div>
   </div>
-  <div class="flex items-center gap-3">
-    <span class="text-xs text-gray-400">{{ markedCount() }} of {{ questions.length }} marked</span>
-    <dap-button variant="ghost" size="sm">Preview</dap-button>
-    <dap-button variant="primary" size="sm">Finalise &amp; send</dap-button>
-  </div>
-</div>
 
-<div class="flex gap-4">
-  <!-- Response area -->
-  <div class="flex-1 min-w-0 space-y-3">
-    @for (q of questions; track q.id; let i = $index) {
-      <div [class]="'bg-white border rounded-card p-4 ' + (i === activeIndex() ? 'border-primary' : 'border-gray-200')"
-           (click)="activeIndex.set(i)">
-        <!-- Header -->
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em]">Question {{ i + 1 }}</span>
-          <dap-tag [label]="q.type" [variant]="q.type === 'MCQ' ? 'mcq' : q.type === 'TEXT' ? 'text' : 'doc'" />
+  <div class="flex gap-4">
+    <!-- Response area -->
+    <div class="flex-1 min-w-0 space-y-3">
+      @for (item of reviewItems(); track item.responseId; let i = $index) {
+        <dap-feedback-item-editor
+          [item]="item"
+          [questionNumber]="i + 1"
+          [isActive]="i === activeIndex()"
+          (cardClicked)="activeIndex.set(i)"
+          (feedbackChanged)="onFeedbackChanged($event)" />
+      }
+
+      @if (!reviewItems().length) {
+        <div class="bg-white border border-gray-200 rounded-card p-8 text-center">
+          <p class="text-caption text-gray-400">No responses found for this assessment.</p>
         </div>
-        <!-- Stem -->
-        <p class="text-caption text-gray-500 mb-3">{{ q.questionText }}</p>
+      }
+    </div>
 
-        <!-- MCQ response -->
-        @if (q.type === 'MCQ') {
-          @let r = responseFor(q.id);
-          <div class="space-y-1.5">
-            @for (opt of q.options ?? []; track $index) {
-              @let isSelected = r?.selectedOptionIndexes?.includes($index) ?? false;
-              @let isCorrectOpt = q.correctOptionIndexes?.includes($index) ?? false;
-              <div [class]="'flex items-center gap-3 px-3 py-2 rounded-input text-caption ' +
-                (isSelected && isCorrectOpt ? 'bg-green-50 text-green-700' :
-                 isSelected && !isCorrectOpt ? 'bg-red-50 text-red-700' :
-                 'text-gray-400')">
-                @if (isSelected && isCorrectOpt) {
-                  <i class="pi pi-check-circle text-green-500 text-[0.9375rem]"></i>
-                } @else if (isSelected && !isCorrectOpt) {
-                  <i class="pi pi-times-circle text-red-400 text-[0.9375rem]"></i>
-                } @else {
-                  <i class="pi pi-circle text-[0.9375rem]"></i>
-                }
-                <span>{{ opt }}</span>
-              </div>
-            }
-          </div>
-          <div class="mt-3">
-            @if (r && isCorrect(q, r)) {
-              <span class="inline-block rounded-badge px-[0.4375rem] py-0.5 text-[0.6875rem] font-medium bg-green-100 text-green-700">
-                Correct · {{ q.marks }}/{{ q.marks }}
-              </span>
-            } @else {
-              <span class="inline-block rounded-badge px-[0.4375rem] py-0.5 text-[0.6875rem] font-medium bg-red-100 text-red-700">
-                Incorrect · 0/{{ q.marks }}
-              </span>
-            }
-          </div>
-        }
-
-        <!-- TEXT response -->
-        @if (q.type === 'TEXT') {
-          @let r = responseFor(q.id);
-          <div class="border-l-2 border-primary bg-gray-50 rounded-r-lg p-3 mb-3">
-            <p class="text-caption text-gray-700 whitespace-pre-wrap">{{ r?.textAnswer ?? 'No answer provided.' }}</p>
-          </div>
-          <div class="flex items-start gap-4">
-            <dap-score-input [max]="q.marks" [value]="r?.markerScore ?? 0" />
-            <textarea rows="2" placeholder="Add marker comment…"
-                      class="flex-1 border border-gray-200 rounded-input px-3 py-2 text-caption resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-gray-400"></textarea>
-          </div>
-        }
+    <!-- Right panel -->
+    <div class="w-[17.5rem] flex-shrink-0 space-y-3">
+      <!-- Progress -->
+      <div class="bg-white border border-gray-200 rounded-card p-3.5">
+        <p class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em] mb-2">Marking progress</p>
+        <dap-progress-bar [value]="reviewItems().length ? (markedCount() / reviewItems().length) * 100 : 0" [height]="'sm'" />
+        <p class="text-xs text-gray-400 mt-1">{{ markedCount() }} of {{ reviewItems().length }} reviewed</p>
       </div>
+
+      <!-- Score summary -->
+      <div class="bg-white border border-gray-200 rounded-card p-3.5">
+        <p class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em] mb-3">Score summary</p>
+        <div class="space-y-2 text-caption">
+          <div class="flex justify-between text-gray-500">
+            <span>MCQ (auto)</span>
+            <span>{{ mcqScore() }}/{{ mcqMaxScore() }} pts</span>
+          </div>
+          <div class="flex justify-between text-gray-500">
+            <span>Text (manual)</span>
+            <span>— pts</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Question nav -->
+      <div class="bg-white border border-gray-200 rounded-card p-3.5">
+        <p class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em] mb-2">Questions</p>
+        <div class="grid grid-cols-5 gap-1">
+          @for (item of reviewItems(); track item.responseId; let i = $index) {
+            <dap-question-nav-dot [number]="i + 1" [state]="navState(i)" (clicked)="activeIndex.set(i)" />
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback composition section -->
+  <div class="mt-4 bg-white border border-gray-200 rounded-card p-4">
+    <h2 class="text-sm font-semibold text-gray-900 mb-4">Candidate feedback</h2>
+
+    <!-- Score recap -->
+    <div class="grid grid-cols-2 gap-3 mb-5">
+      <div class="bg-gray-50 rounded-input p-3 text-center">
+        <p class="text-lg font-semibold text-primary">{{ mcqScore() }}/{{ mcqMaxScore() }}</p>
+        <p class="text-[0.6875rem] text-gray-400 mt-0.5">MCQ score</p>
+      </div>
+      <div class="bg-gray-50 rounded-input p-3 text-center">
+        <p class="text-lg font-semibold text-gray-400">—</p>
+        <p class="text-[0.6875rem] text-gray-400 mt-0.5">Text score (pending)</p>
+      </div>
+    </div>
+
+    <!-- Prepared templates -->
+    <p class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em] mb-2">Load template</p>
+    <div class="flex flex-wrap gap-2 mb-4">
+      <dap-button variant="ghost" size="sm" (clicked)="setFeedbackTemplate('strong')">Strong performance</dap-button>
+      <dap-button variant="ghost" size="sm" (clicked)="setFeedbackTemplate('good')">Good effort</dap-button>
+      <dap-button variant="ghost" size="sm" (clicked)="setFeedbackTemplate('needs')">Needs improvement</dap-button>
+    </div>
+
+    <!-- Overall feedback textarea -->
+    <p class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em] mb-1">Overall feedback</p>
+    <textarea
+      rows="5"
+      [value]="overallFeedback()"
+      (input)="overallFeedback.set($any($event.target).value)"
+      placeholder="Write overall feedback for the candidate email…"
+      class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-gray-400 mb-4">
+    </textarea>
+
+    @if (!canFinalise() && reviewItems().length) {
+      <p class="text-[0.6875rem] text-amber-600 mb-3">
+        <i class="pi pi-exclamation-triangle mr-1"></i>
+        All text and document questions must have feedback before finalising.
+      </p>
     }
-  </div>
 
-  <!-- Right panel -->
-  <div class="w-[17.5rem] flex-shrink-0 space-y-3">
-    <!-- Progress -->
-    <div class="bg-white border border-gray-200 rounded-card p-3.5">
-      <p class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em] mb-2">Marking progress</p>
-      <dap-progress-bar [value]="(markedCount() / questions.length) * 100" height="sm" />
-      <p class="text-xs text-gray-400 mt-1">{{ markedCount() }} of {{ questions.length }} questions marked</p>
-    </div>
-
-    <!-- Score summary -->
-    <div class="bg-white border border-gray-200 rounded-card p-3.5">
-      <p class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em] mb-3">Score summary</p>
-      <div class="space-y-2 text-caption">
-        <div class="flex justify-between text-gray-500">
-          <span>MCQ (auto)</span><span>{{ mcqTotal() }} pts</span>
-        </div>
-        <div class="flex justify-between text-gray-500">
-          <span>Text (manual)</span><span>— pts</span>
-        </div>
-        <div class="flex justify-between font-medium text-primary border-t border-gray-100 pt-2">
-          <span>Total</span><span>{{ mcqTotal() }} pts</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Question nav -->
-    <div class="bg-white border border-gray-200 rounded-card p-3.5">
-      <p class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em] mb-2">Questions</p>
-      <div class="grid grid-cols-5 gap-1">
-        @for (q of questions; track q.id; let i = $index) {
-          <dap-question-nav-dot [number]="i + 1" [state]="navState(i)" />
-        }
-      </div>
-    </div>
-
-    <!-- Overall feedback -->
-    <div class="bg-white border border-gray-200 rounded-card p-3.5">
-      <p class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em] mb-2">Overall feedback</p>
-      <textarea rows="4" placeholder="Overall comments for the candidate email…"
-                class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-gray-400"></textarea>
+    <div class="flex justify-end gap-3">
+      <dap-button variant="ghost" (clicked)="backToAssessments()">Cancel</dap-button>
+      <dap-button variant="primary" [disabled]="!canFinalise()" [loading]="finalising()" (clicked)="finalise()">
+        Finalise &amp; send
+      </dap-button>
     </div>
   </div>
-</div>
+}
