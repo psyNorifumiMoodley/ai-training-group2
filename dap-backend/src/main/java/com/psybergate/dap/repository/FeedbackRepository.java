@@ -15,6 +15,13 @@ public interface FeedbackRepository extends JpaRepository<Feedback, UUID> {
 
     List<Feedback> findByAssessmentId(UUID assessmentId);
 
+    @Query("""
+            SELECT f.question.id FROM Feedback f
+            WHERE f.assessment.id = :assessmentId
+              AND (f.draft IS NULL OR TRIM(f.draft) = '')
+            """)
+    List<UUID> findQuestionsWithEmptyFeedback(@Param("assessmentId") UUID assessmentId);
+
     @Query("SELECT COUNT(f) > 0 FROM Feedback f WHERE f.assessment.id = :assessmentId AND (f.draft IS NULL OR f.draft = '')")
     boolean existsByAssessmentIdAndDraftIsEmpty(@Param("assessmentId") UUID assessmentId);
 }

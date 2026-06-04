@@ -109,6 +109,7 @@ public class AssessmentController {
     @PostMapping("/{id}/finalise")
     @PreAuthorize("hasRole('MARKER')")
     public ResponseEntity<Void> finaliseMarking(@PathVariable UUID id) {
+        assessmentService.finalise(id);
         return ResponseEntity.ok().build();
     }
 

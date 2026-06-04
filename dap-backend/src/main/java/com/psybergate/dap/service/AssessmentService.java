@@ -53,6 +53,7 @@ public class AssessmentService {
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
     private final ResponseService responseService;
+    private final FeedbackRepository feedbackRepository;
 
     public AssessmentService(CandidateRepository candidateRepository,
                              AssessmentRepository assessmentRepository,
@@ -64,7 +65,8 @@ public class AssessmentService {
                              InvitationTokenUtil invitationTokenUtil,
                              JwtUtil jwtUtil,
                              EmailService emailService,
-                             ResponseService responseService) {
+                             ResponseService responseService,
+                             FeedbackRepository feedbackRepository) {
         this.candidateRepository = candidateRepository;
         this.assessmentRepository = assessmentRepository;
         this.assessmentQuestionRepository = assessmentQuestionRepository;
@@ -76,6 +78,7 @@ public class AssessmentService {
         this.jwtUtil = jwtUtil;
         this.emailService = emailService;
         this.responseService = responseService;
+        this.feedbackRepository = feedbackRepository;
     }
 
     @Transactional
@@ -324,6 +327,42 @@ public class AssessmentService {
         responseService.autoMarkMcqResponses(assessmentId);
 
         return toResponse(saved);
+    }
+
+    @Transactional
+    public void finalise(UUID assessmentId) {
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new NoSuchElementException("Assessment not found: " + assessmentId));
+
+        if (assessment.getStatus() == AssessmentStatus.MARKED) {
+            throw new ConflictException("Assessment has already been marked");
+        }
+        if (assessment.getStatus() != AssessmentStatus.SUBMITTED) {
+            throw new ConflictException("Assessment is not in SUBMITTED state");
+        }
+
+        List<UUID> emptyFeedbackQuestionIds = feedbackRepository.findQuestionsWithEmptyFeedback(assessmentId);
+        if (!emptyFeedbackQuestionIds.isEmpty()) {
+            throw new ValidationException("Feedback missing for questions: " + emptyFeedbackQuestionIds);
+        }
+
+        List<Feedback> allFeedback = feedbackRepository.findByAssessmentId(assessmentId);
+        allFeedback.forEach(f -> f.setFinalised(true));
+        feedbackRepository.saveAll(allFeedback);
+
+        assessment.setStatus(AssessmentStatus.MARKED);
+        assessmentRepository.save(assessment);
+
+        try {
+            Map<UUID, String> feedbackMap = allFeedback.stream()
+                    .collect(Collectors.toMap(f -> f.getQuestion().getId(), Feedback::getDraft));
+            emailService.sendFeedback(
+                    assessment.getCandidate().getUser().getEmail(),
+                    assessment.getCandidate().getUser().getName(),
+                    feedbackMap);
+        } catch (Exception ex) {
+            log.error("Failed to send feedback email for assessment {}: {}", assessmentId, ex.getMessage(), ex);
+        }
     }
 
     private AssessmentResponse toResponse(Assessment assessment) {
