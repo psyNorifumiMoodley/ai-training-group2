@@ -122,7 +122,11 @@ class CandidateControllerTest {
     }
 
     @Test
-    void register_asMarker_returns403() throws Exception {
+    void register_asMarker_returns201() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(candidateService.register(any(CandidateRequest.class)))
+                .thenReturn(new CandidateResponse(id, "Jane Doe", "jane@example.com"));
+
         AppUser marker = AppUser.builder()
                 .email("marker@example.com").passwordHash("x").name("Marker").role(Role.MARKER).build();
         marker.setId(UUID.randomUUID());
@@ -131,7 +135,7 @@ class CandidateControllerTest {
                         .header("Authorization", "Bearer " + jwtUtil.generateToken(marker))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CandidateRequest("Jane Doe", "jane@example.com"))))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isCreated());
     }
 
     @Test

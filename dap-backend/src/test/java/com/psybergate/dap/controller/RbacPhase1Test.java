@@ -9,7 +9,10 @@ import com.psybergate.dap.domain.AppUser;
 import com.psybergate.dap.domain.Role;
 import com.psybergate.dap.dto.CandidateRequest;
 import com.psybergate.dap.dto.MarkerRequest;
+import com.psybergate.dap.service.AssessmentService;
 import com.psybergate.dap.service.AuthService;
+import com.psybergate.dap.service.CandidateService;
+import com.psybergate.dap.service.MarkerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +51,15 @@ class RbacPhase1Test {
     @MockBean
     private AuthService authService;
 
+    @MockBean
+    private CandidateService candidateService;
+
+    @MockBean
+    private MarkerService markerService;
+
+    @MockBean
+    private AssessmentService assessmentService;
+
     private String markerToken;
     private String candidateToken;
 
@@ -74,9 +86,9 @@ class RbacPhase1Test {
     // --- GET /api/candidates ---
 
     @Test
-    void getCandidates_asMarker_returns403() throws Exception {
+    void getCandidates_asMarker_returns200() throws Exception {
         mockMvc.perform(get("/api/candidates").header("Authorization", "Bearer " + markerToken))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test

@@ -368,40 +368,6 @@ public class AssessmentService {
     }
 
     @Transactional
-    public AssessmentResponse finalise(UUID assessmentId) {
-        Assessment assessment = assessmentRepository.findById(assessmentId)
-                .orElseThrow(() -> new NoSuchElementException("Assessment not found: " + assessmentId));
-
-        if (assessment.getStatus() != AssessmentStatus.SUBMITTED) {
-            throw new ConflictException("Assessment must be SUBMITTED to finalise; current status: " + assessment.getStatus());
-        }
-
-        List<UUID> emptyFeedbackQuestions = feedbackRepository.findQuestionsWithEmptyFeedback(assessmentId);
-        if (!emptyFeedbackQuestions.isEmpty()) {
-            throw new ValidationException("Questions with empty feedback: " + emptyFeedbackQuestions);
-        }
-
-        List<Feedback> allFeedback = feedbackRepository.findByAssessmentId(assessmentId);
-        allFeedback.forEach(f -> f.setFinalised(true));
-        feedbackRepository.saveAll(allFeedback);
-
-        assessment.setStatus(AssessmentStatus.MARKED);
-        Assessment saved = assessmentRepository.save(assessment);
-
-        Map<UUID, String> feedbackMap = allFeedback.stream()
-                .collect(toMap(f -> f.getQuestion().getId(), Feedback::getDraft));
-        String email = saved.getCandidate().getUser().getEmail();
-        String name = saved.getCandidate().getUser().getName();
-        try {
-            emailService.sendFeedback(email, name, feedbackMap);
-        } catch (Exception ex) {
-            log.error("Failed to trigger feedback email for assessment {}: {}", assessmentId, ex.getMessage(), ex);
-        }
-
-        return toResponse(saved);
-    }
-
-    @Transactional
     public void finalise(UUID assessmentId) {
         Assessment assessment = assessmentRepository.findById(assessmentId)
                 .orElseThrow(() -> new NoSuchElementException("Assessment not found: " + assessmentId));

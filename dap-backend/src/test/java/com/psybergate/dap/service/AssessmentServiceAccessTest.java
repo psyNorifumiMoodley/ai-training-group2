@@ -63,7 +63,7 @@ class AssessmentServiceAccessTest {
                 mcqQuestionRepository, textQuestionRepository, docQuestionRepository,
                 groupQuestionRepository, invitationTokenUtil, jwtUtil, emailService, responseService,
                 feedbackRepository);
-        when(jwtUtil.generateToken(any())).thenReturn("candidate.jwt.token");
+        lenient().when(jwtUtil.generateToken(any())).thenReturn("candidate.jwt.token");
         ReflectionTestUtils.setField(assessmentService, "requiredMcq", 5);
         ReflectionTestUtils.setField(assessmentService, "requiredText", 3);
         ReflectionTestUtils.setField(assessmentService, "requiredDoc", 1);

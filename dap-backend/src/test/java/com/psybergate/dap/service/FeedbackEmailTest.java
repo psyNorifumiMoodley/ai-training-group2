@@ -64,8 +64,8 @@ class FeedbackEmailTest {
         assessmentService = new AssessmentService(
                 candidateRepository, assessmentRepository, assessmentQuestionRepository,
                 mcqQuestionRepository, textQuestionRepository, docQuestionRepository,
-                groupQuestionRepository, feedbackRepository, invitationTokenUtil,
-                jwtUtil, emailService, responseService);
+                groupQuestionRepository, invitationTokenUtil, jwtUtil, emailService,
+                responseService, feedbackRepository);
     }
 
     private Assessment submittedAssessmentFor(String email, String name) {
