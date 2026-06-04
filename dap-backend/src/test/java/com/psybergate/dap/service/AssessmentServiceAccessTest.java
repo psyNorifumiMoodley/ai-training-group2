@@ -42,6 +42,8 @@ class AssessmentServiceAccessTest {
     @Mock
     private GroupQuestionRepository groupQuestionRepository;
     @Mock
+    private FeedbackRepository feedbackRepository;
+    @Mock
     private InvitationTokenUtil invitationTokenUtil;
     @Mock
     private JwtUtil jwtUtil;
@@ -49,8 +51,6 @@ class AssessmentServiceAccessTest {
     private EmailService emailService;
     @Mock
     private ResponseService responseService;
-    @Mock
-    private FeedbackRepository feedbackRepository;
 
     private AssessmentService assessmentService;
 

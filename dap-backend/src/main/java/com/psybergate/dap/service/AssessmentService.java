@@ -19,6 +19,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toMap;
+
 @Service
 public class AssessmentService {
 
@@ -49,11 +51,12 @@ public class AssessmentService {
     private final TextQuestionRepository textQuestionRepository;
     private final DocQuestionRepository docQuestionRepository;
     private final GroupQuestionRepository groupQuestionRepository;
+    private final FeedbackRepository feedbackRepository;
     private final InvitationTokenUtil invitationTokenUtil;
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
     private final ResponseService responseService;
-    private final FeedbackRepository feedbackRepository;
+
 
     public AssessmentService(CandidateRepository candidateRepository,
                              AssessmentRepository assessmentRepository,
@@ -360,6 +363,40 @@ public class AssessmentService {
         Assessment saved = assessmentRepository.save(assessment);
 
         responseService.autoMarkMcqResponses(assessmentId);
+
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public AssessmentResponse finalise(UUID assessmentId) {
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new NoSuchElementException("Assessment not found: " + assessmentId));
+
+        if (assessment.getStatus() != AssessmentStatus.SUBMITTED) {
+            throw new ConflictException("Assessment must be SUBMITTED to finalise; current status: " + assessment.getStatus());
+        }
+
+        List<UUID> emptyFeedbackQuestions = feedbackRepository.findQuestionsWithEmptyFeedback(assessmentId);
+        if (!emptyFeedbackQuestions.isEmpty()) {
+            throw new ValidationException("Questions with empty feedback: " + emptyFeedbackQuestions);
+        }
+
+        List<Feedback> allFeedback = feedbackRepository.findByAssessmentId(assessmentId);
+        allFeedback.forEach(f -> f.setFinalised(true));
+        feedbackRepository.saveAll(allFeedback);
+
+        assessment.setStatus(AssessmentStatus.MARKED);
+        Assessment saved = assessmentRepository.save(assessment);
+
+        Map<UUID, String> feedbackMap = allFeedback.stream()
+                .collect(toMap(f -> f.getQuestion().getId(), Feedback::getDraft));
+        String email = saved.getCandidate().getUser().getEmail();
+        String name = saved.getCandidate().getUser().getName();
+        try {
+            emailService.sendFeedback(email, name, feedbackMap);
+        } catch (Exception ex) {
+            log.error("Failed to trigger feedback email for assessment {}: {}", assessmentId, ex.getMessage(), ex);
+        }
 
         return toResponse(saved);
     }
