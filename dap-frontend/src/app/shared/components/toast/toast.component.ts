@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, effect, inject } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { ToastService, ToastType } from '../../../core/services/toast.service';
 
 const BG_CLASS: Record<ToastType, string> = {
@@ -19,9 +20,10 @@ const ICON_CLASS: Record<ToastType, string> = {
   selector: 'dap-toast',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [AsyncPipe],
   template: `
     <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-3" aria-live="polite">
-      @for (toast of toastService.toasts(); track toast.id) {
+      @for (toast of toastService.toasts$ | async; track toast.id) {
         <div [class]="'flex items-center gap-4 px-5 py-4 rounded-card shadow-xl border text-body text-white min-w-80 max-w-md ' + bgClass(toast.type)">
           <i [class]="'pi text-lg flex-shrink-0 ' + iconClass(toast.type)"></i>
           <span class="flex-1 font-medium">{{ toast.message }}</span>
@@ -37,16 +39,6 @@ const ICON_CLASS: Record<ToastType, string> = {
 })
 export class ToastComponent {
   protected readonly toastService = inject(ToastService);
-  private readonly cdr = inject(ChangeDetectorRef);
-
-  constructor() {
-    // OnPush + cross-subtree signal updates require an explicit markForCheck
-    // to guarantee the view refreshes whenever the toast list changes.
-    effect(() => {
-      this.toastService.toasts();
-      this.cdr.markForCheck();
-    });
-  }
 
   bgClass(type: ToastType): string   { return BG_CLASS[type]; }
   iconClass(type: ToastType): string { return ICON_CLASS[type]; }
