@@ -1,11 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, effect, inject } from '@angular/core';
 import { ToastService, ToastType } from '../../../core/services/toast.service';
 
 const BG_CLASS: Record<ToastType, string> = {
   success: 'bg-green-600 border-green-700',
-  update:  'bg-blue-600  border-blue-700',
-  delete:  'bg-red-600   border-red-700',
-  error:   'bg-red-600   border-red-700',
+  update:  'bg-blue-600 border-blue-700',
+  delete:  'bg-red-600 border-red-700',
+  error:   'bg-red-600 border-red-700',
 };
 
 const ICON_CLASS: Record<ToastType, string> = {
@@ -37,6 +37,16 @@ const ICON_CLASS: Record<ToastType, string> = {
 })
 export class ToastComponent {
   protected readonly toastService = inject(ToastService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  constructor() {
+    // OnPush + cross-subtree signal updates require an explicit markForCheck
+    // to guarantee the view refreshes whenever the toast list changes.
+    effect(() => {
+      this.toastService.toasts();
+      this.cdr.markForCheck();
+    });
+  }
 
   bgClass(type: ToastType): string   { return BG_CLASS[type]; }
   iconClass(type: ToastType): string { return ICON_CLASS[type]; }
