@@ -81,7 +81,7 @@
             <td class="py-2.5 pr-4 text-gray-500">{{ candidate.email }}</td>
             <td class="py-2.5 pr-4 text-gray-400 text-[0.6875rem]">{{ formatDate(candidate.createdAt) }}</td>
             <td class="py-2.5 text-right">
-              <a [routerLink]="['/user-management', 'candidates', candidate.id]"
+              <a [routerLink]="['/candidates', candidate.id]"
                  class="inline-flex items-center gap-1 px-2.5 py-1 text-[0.6875rem] font-medium text-primary border border-primary/30 rounded-input hover:bg-primary/5 transition-colors">
                 <i class="pi pi-eye text-[0.6875rem]"></i> View
               </a>

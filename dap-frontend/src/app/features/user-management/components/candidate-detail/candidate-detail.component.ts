@@ -96,7 +96,7 @@ export class CandidateDetailComponent implements OnInit {
     this.userService.deleteCandidate(id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => this.router.navigate(['/user-management']),
+        next: () => this.router.navigate(['/candidates']),
         error: () => {
           this.deleting.set(false);
           this.confirmingDelete.set(false);
