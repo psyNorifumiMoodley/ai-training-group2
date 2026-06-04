@@ -60,7 +60,9 @@ public class CandidateService {
                         .map(c -> new CandidateResponse(c.getId(), c.getUser().getName(), c.getUser().getEmail()))
                         .toList(),
                 candidates.getTotalElements(),
-                candidates.getTotalPages()
+                candidates.getTotalPages(),
+                candidates.getSize(),
+                candidates.getNumber()
         );
     }
 }

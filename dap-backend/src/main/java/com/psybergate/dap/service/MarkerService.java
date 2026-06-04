@@ -47,6 +47,7 @@ public class MarkerService {
         List<MarkerResponse> content = markers.stream()
                 .map(u -> new MarkerResponse(u.getId(), u.getName(), u.getEmail()))
                 .toList();
-        return new PageResponse<>(content, markers.getTotalElements(), markers.getTotalPages());
+        return new PageResponse<>(content, markers.getTotalElements(), markers.getTotalPages(),
+                markers.getSize(), markers.getNumber());
     }
 }

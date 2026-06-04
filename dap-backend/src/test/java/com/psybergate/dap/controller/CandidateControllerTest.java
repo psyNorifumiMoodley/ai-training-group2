@@ -140,7 +140,7 @@ class CandidateControllerTest {
     @Test
     void list_asAdmin_returns200() throws Exception {
         when(candidateService.listCandidates(0, 20))
-                .thenReturn(new PageResponse<>(List.of(), 0, 0));
+                .thenReturn(new PageResponse<>(List.of(), 0, 0, 20, 0));
 
         mockMvc.perform(get("/api/candidates")
                         .header("Authorization", "Bearer " + adminToken))
