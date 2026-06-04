@@ -49,9 +49,25 @@ export class UserService {
     return this.http.get<AssessmentResponse[]>(`${environment.apiBaseUrl}/candidates/${id}/assessments`);
   }
 
-  getMarkers(page: number, size: number): Observable<PageResponse<MarkerResponse>> {
-    return this.http.get<PageResponse<MarkerResponse>>(`${environment.apiBaseUrl}/markers`, {
-      params: { page, size }
-    });
+  getMarkers(
+    page: number,
+    size: number,
+    search?: string,
+    sortBy?: string,
+    sortDir?: string
+  ): Observable<PageResponse<MarkerResponse>> {
+    const params: Record<string, string | number> = { page, size };
+    if (search) params['search'] = search;
+    if (sortBy) params['sortBy'] = sortBy;
+    if (sortDir) params['sortDir'] = sortDir;
+    return this.http.get<PageResponse<MarkerResponse>>(`${environment.apiBaseUrl}/markers`, { params });
+  }
+
+  updateMarker(id: string, request: MarkerRequest): Observable<MarkerResponse> {
+    return this.http.put<MarkerResponse>(`${environment.apiBaseUrl}/markers/${id}`, request);
+  }
+
+  deleteMarker(id: string): Observable<void> {
+    return this.http.delete<void>(`${environment.apiBaseUrl}/markers/${id}`);
   }
 }
