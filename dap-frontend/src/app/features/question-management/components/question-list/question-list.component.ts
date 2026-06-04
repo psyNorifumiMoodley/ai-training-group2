@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { tap } from 'rxjs';
 import { QuestionService } from '../../../../core/services/question.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { QuestionResponse, QuestionType } from '../../../../core/models/question.model';
@@ -72,16 +73,25 @@ export class QuestionListComponent {
     if (!q) return;
     this.deleting.set(true);
     this.questionService.deleteQuestion(q.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        tap({
+          next: () => console.log('[confirmDelete] HTTP response arrived (before takeUntilDestroyed)'),
+          error: e => console.log('[confirmDelete] HTTP error (before takeUntilDestroyed)', e),
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
         next: () => {
+          console.log('[confirmDelete] next() fired (after takeUntilDestroyed)');
           this.deleting.set(false);
           this.deletingQuestion.set(null);
           this.page.set(0);
           this.loadQuestions();
-          // Defer toast until after the modal-removal CD cycle has committed,
-          // otherwise markForCheck on ToastComponent is lost in the same batch.
-          setTimeout(() => this.toastService.removed('Question deleted.'));
+          // Use success() temporarily to rule out the removed/delete type
+          setTimeout(() => {
+            console.log('[confirmDelete] setTimeout fired');
+            this.toastService.success('Question deleted.');
+          });
         },
         error: () => {
           this.deleting.set(false);

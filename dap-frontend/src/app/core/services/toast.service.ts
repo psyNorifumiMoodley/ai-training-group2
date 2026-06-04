@@ -25,7 +25,10 @@ export class ToastService {
 
   private add(type: ToastType, message: string): void {
     const id = crypto.randomUUID();
-    this._toasts$.next([...this._toasts$.getValue(), { id, type, message }]);
+    const next = [...this._toasts$.getValue(), { id, type, message }];
+    console.log('[ToastService] add()', type, '→ toasts will be', next.length);
+    this._toasts$.next(next);
+    console.log('[ToastService] next() emitted');
     setTimeout(() => this.dismiss(id), 4000);
   }
 }
