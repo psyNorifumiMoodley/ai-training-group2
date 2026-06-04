@@ -81,7 +81,7 @@ class MarkingControllerTest {
 
     @Test
     void getSubmittedAssessments_asMarker_returns200() throws Exception {
-        when(markingService.listSubmitted(anyInt(), anyInt()))
+        when(markingService.listAssessments(any(), anyInt(), anyInt()))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
 
         mockMvc.perform(get("/api/assessments")

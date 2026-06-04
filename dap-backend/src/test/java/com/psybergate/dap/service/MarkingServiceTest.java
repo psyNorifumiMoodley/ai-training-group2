@@ -109,10 +109,10 @@ class MarkingServiceTest {
                 .build();
     }
 
-    // ---------- listSubmitted ----------
+    // ---------- listAssessments ----------
 
     @Test
-    void listSubmitted_mapsCandidateNameCorrectly() {
+    void listAssessments_withStatusFilter_mapsCandidateNameCorrectly() {
         AppUser user = userWithName("Alice Smith");
         Candidate candidate = candidateFor(user);
         Assessment assessment = assessmentWith(candidate, AssessmentStatus.SUBMITTED);
@@ -121,7 +121,7 @@ class MarkingServiceTest {
         when(assessmentRepository.findByStatus(eq(AssessmentStatus.SUBMITTED), any()))
                 .thenReturn(page);
 
-        Page<AssessmentSummaryResponse> result = markingService.listSubmitted(0, 20);
+        Page<AssessmentSummaryResponse> result = markingService.listAssessments("SUBMITTED", 0, 20);
 
         assertThat(result.getContent()).hasSize(1);
         AssessmentSummaryResponse summary = result.getContent().get(0);
@@ -131,12 +131,12 @@ class MarkingServiceTest {
     }
 
     @Test
-    void listSubmitted_returnsEmptyPageWhenNoSubmissions() {
+    void listAssessments_noStatusFilter_returnsAllAssessments() {
         Page<Assessment> empty = new PageImpl<>(List.of(), PageRequest.of(0, 20), 0);
-        when(assessmentRepository.findByStatus(eq(AssessmentStatus.SUBMITTED), any()))
+        when(assessmentRepository.findAll(any(PageRequest.class)))
                 .thenReturn(empty);
 
-        Page<AssessmentSummaryResponse> result = markingService.listSubmitted(0, 20);
+        Page<AssessmentSummaryResponse> result = markingService.listAssessments(null, 0, 20);
 
         assertThat(result.getContent()).isEmpty();
         assertThat(result.getTotalElements()).isZero();

@@ -87,7 +87,7 @@ public class AssessmentController {
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(markingService.listSubmitted(page, size));
+        return ResponseEntity.ok(markingService.listAssessments(status, page, size));
     }
 
     @GetMapping("/{id}/responses")
