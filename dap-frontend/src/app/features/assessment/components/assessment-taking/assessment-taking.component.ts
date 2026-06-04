@@ -12,6 +12,7 @@ import { Subject } from 'rxjs';
 import { debounceTime, switchMap } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CandidateAssessmentService } from '../../../../core/services/candidate-assessment.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { AssessmentAccessResponse, ResponseRequest } from '../../../../core/models/assessment-session.model';
 import { CountdownTimerComponent } from '../countdown-timer/countdown-timer.component';
 import { QuestionRendererComponent, AnswerChangedEvent } from '../question-renderer/question-renderer.component';
@@ -38,6 +39,7 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 export class AssessmentTakingComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly service = inject(CandidateAssessmentService);
+  private readonly auth = inject(AuthService);
 
   readonly session = signal<AssessmentAccessResponse | null>(
     history.state['session'] ?? null,
@@ -73,9 +75,12 @@ export class AssessmentTakingComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (!this.session()) {
+    const s = this.session();
+    if (!s) {
       this.router.navigate(['/login']);
+      return;
     }
+    this.auth.storeToken(s.candidateToken);
   }
 
   startAssessment(): void {
