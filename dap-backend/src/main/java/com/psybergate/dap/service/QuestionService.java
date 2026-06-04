@@ -222,6 +222,7 @@ public class QuestionService {
 
     private GroupQuestionResponse toGroupResponse(GroupQuestion q) {
         List<TextQuestionResponse> followUps = q.getFollowUpQuestions().stream()
+                .filter(java.util.Objects::nonNull)
                 .map(this::toTextResponse)
                 .toList();
         return new GroupQuestionResponse(q.getId(), q.getCategory(), q.getQuestion(), q.isOrdered(), followUps);

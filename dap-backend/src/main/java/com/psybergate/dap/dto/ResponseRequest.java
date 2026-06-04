@@ -3,12 +3,12 @@ package com.psybergate.dap.dto;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = McqResponseRequest.class, name = "MCQ"),
-        @JsonSubTypes.Type(value = TextResponseRequest.class, name = "TEXT"),
-        @JsonSubTypes.Type(value = DocResponseRequest.class, name = "DOC"),
-        @JsonSubTypes.Type(value = GroupResponseRequest.class, name = "GROUP")
+        @JsonSubTypes.Type(McqResponseRequest.class),
+        @JsonSubTypes.Type(TextResponseRequest.class),
+        @JsonSubTypes.Type(DocResponseRequest.class),
+        @JsonSubTypes.Type(GroupResponseRequest.class)
 })
 public sealed interface ResponseRequest
         permits McqResponseRequest, TextResponseRequest, DocResponseRequest, GroupResponseRequest {

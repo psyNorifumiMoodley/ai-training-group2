@@ -1,5 +1,7 @@
 package com.psybergate.dap.service;
 
+import com.psybergate.dap.domain.Assessment;
+import com.psybergate.dap.domain.AssessmentQuestion;
 import com.psybergate.dap.domain.AssessmentStatus;
 import com.psybergate.dap.domain.DocResponse;
 import com.psybergate.dap.domain.McqResponse;
@@ -7,8 +9,11 @@ import com.psybergate.dap.domain.Response;
 import com.psybergate.dap.domain.TextResponse;
 import com.psybergate.dap.domain.ValidationException;
 import com.psybergate.dap.dto.AssessmentSummaryResponse;
+import com.psybergate.dap.dto.DocAnswerPayload;
 import com.psybergate.dap.dto.FeedbackUpdateRequest;
+import com.psybergate.dap.dto.McqAnswerPayload;
 import com.psybergate.dap.dto.ResponseReviewItem;
+import com.psybergate.dap.dto.TextAnswerPayload;
 import com.psybergate.dap.repository.AssessmentRepository;
 import com.psybergate.dap.repository.ResponseRepository;
 import org.springframework.data.domain.Page;
@@ -36,20 +41,36 @@ public class MarkingService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AssessmentSummaryResponse> listSubmitted(int page, int size) {
-        return assessmentRepository
-                .findByStatus(AssessmentStatus.SUBMITTED, PageRequest.of(page, size))
-                .map(assessment -> new AssessmentSummaryResponse(
-                        assessment.getId(),
-                        assessment.getCandidate().getUser().getName(),
-                        assessment.getUpdatedAt() != null ? assessment.getUpdatedAt().toString() : null,
-                        assessment.getStatus().name()
-                ));
+    public Page<AssessmentSummaryResponse> listAssessments(String status, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size);
+        Page<Assessment> assessments = (status != null && !status.isBlank())
+                ? assessmentRepository.findByStatus(AssessmentStatus.valueOf(status.toUpperCase()), pageable)
+                : assessmentRepository.findAll(pageable);
+        return assessments.map(this::toSummaryResponse);
+    }
+
+    private AssessmentSummaryResponse toSummaryResponse(Assessment assessment) {
+        String bankName = assessment.getQuestions().stream()
+                .findFirst()
+                .map(AssessmentQuestion::getCategory)
+                .orElse(null);
+        String submittedAt = assessment.getUpdatedAt() != null ? assessment.getUpdatedAt().toString() : null;
+        String assignedDate = assessment.getCreatedAt() != null ? assessment.getCreatedAt().toString() : null;
+        return new AssessmentSummaryResponse(
+                assessment.getId(),
+                assessment.getCandidate().getUser().getName(),
+                null,
+                bankName,
+                assessment.getStatus().name(),
+                assignedDate,
+                submittedAt,
+                assessment.getTimeLimitMinutes()
+        );
     }
 
     @Transactional
     public List<ResponseReviewItem> getResponsesForReview(UUID assessmentId) {
-        List<Response> responses = responseRepository.findWithQuestionByAssessmentId(assessmentId);
+        List<Response> responses = responseRepository.findByAssessmentId(assessmentId);
         return responses.stream()
                 .map(response -> mapToReviewItem(assessmentId, response))
                 .toList();
@@ -62,15 +83,17 @@ public class MarkingService {
         String feedbackDraft = feedback.getDraft();
 
         if (response instanceof McqResponse mcqResponse) {
-            Object answer = mcqResponse.getSelectedAnswers();
+            boolean correct = Boolean.TRUE.equals(mcqResponse.getCorrect());
             return new ResponseReviewItem(
                     response.getId(),
                     questionId,
                     questionBody,
                     "MCQ",
-                    answer,
+                    new McqAnswerPayload(mcqResponse.getSelectedAnswers()),
                     mcqResponse.getCorrect(),
-                    feedbackDraft
+                    feedbackDraft,
+                    1,
+                    correct ? 1 : 0
             );
         } else if (response instanceof TextResponse textResponse) {
             return new ResponseReviewItem(
@@ -78,19 +101,27 @@ public class MarkingService {
                     questionId,
                     questionBody,
                     "TEXT",
-                    textResponse.getAnswer(),
+                    new TextAnswerPayload(textResponse.getAnswer()),
                     null,
-                    feedbackDraft
+                    feedbackDraft,
+                    1,
+                    null
             );
         } else if (response instanceof DocResponse docResponse) {
+            String rawPath = docResponse.getFilePath();
+            String fileName = rawPath != null
+                    ? rawPath.substring(Math.max(rawPath.lastIndexOf('/'), rawPath.lastIndexOf('\\')) + 1)
+                    : null;
             return new ResponseReviewItem(
                     response.getId(),
                     questionId,
                     questionBody,
                     "DOC",
-                    docResponse.getFilePath(),
+                    new DocAnswerPayload(fileName),
                     null,
-                    feedbackDraft
+                    feedbackDraft,
+                    1,
+                    null
             );
         } else {
             return new ResponseReviewItem(
@@ -100,7 +131,9 @@ public class MarkingService {
                     "GROUP",
                     null,
                     null,
-                    feedbackDraft
+                    feedbackDraft,
+                    1,
+                    null
             );
         }
     }

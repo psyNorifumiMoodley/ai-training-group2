@@ -1,20 +1,12 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { Assessment } from '../../../core/models/assessment.model';
+import { AssessmentService } from '../../../core/services/assessment.service';
 import { AssessmentGenerateComponent, NavigateToQuestionsPayload } from '../../assessment-generation/components/assessment-generate/assessment-generate.component';
-
-// TODO: replace with API call
-const STUB_ASSESSMENTS: Assessment[] = [
-  { id: 'a1', candidateName: 'Aisha Nkosi',   candidateInitials: 'AN', role: 'Backend Engineer',  bankName: 'Java Core',   status: 'IN_PROGRESS', assignedDate: '2026-05-28', timeLimitMinutes: 60  },
-  { id: 'a2', candidateName: 'Liam Okonkwo',  candidateInitials: 'LO', role: 'Frontend Engineer', bankName: 'Angular',     status: 'PENDING',     assignedDate: '2026-05-27', timeLimitMinutes: 90  },
-  { id: 'a3', candidateName: 'Sara Patel',     candidateInitials: 'SP', role: 'Full Stack',        bankName: 'Spring Boot', status: 'SUBMITTED',   assignedDate: '2026-05-26', timeLimitMinutes: 120 },
-  { id: 'a4', candidateName: 'David Chen',     candidateInitials: 'DC', role: 'DevOps',            bankName: 'Cloud',       status: 'MARKED',      assignedDate: '2026-05-24', timeLimitMinutes: 60  },
-  { id: 'a5', candidateName: 'Mia Fernandez',  candidateInitials: 'MF', role: 'Backend Engineer',  bankName: 'SQL Basics',  status: 'PENDING',     assignedDate: '2026-05-23', timeLimitMinutes: 45  },
-  { id: 'a6', candidateName: 'James Kimani',   candidateInitials: 'JK', role: 'Full Stack',        bankName: 'Java Core',   status: 'SUBMITTED',   assignedDate: '2026-05-21', timeLimitMinutes: 90  },
-];
 
 @Component({
   selector: 'dap-assessment-list',
@@ -23,10 +15,56 @@ const STUB_ASSESSMENTS: Assessment[] = [
   templateUrl: './assessment-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AssessmentListComponent {
-  private readonly router = inject(Router);
-  readonly assessments = STUB_ASSESSMENTS;
-  readonly showModal   = signal(false);
+export class AssessmentListComponent implements OnInit {
+  private readonly assessmentService = inject(AssessmentService);
+  private readonly router            = inject(Router);
+  private readonly destroyRef        = inject(DestroyRef);
+
+  readonly assessments    = signal<Assessment[]>([]);
+  readonly totalPages     = signal(0);
+  readonly totalElements  = signal(0);
+  readonly currentPage    = signal(0);
+  readonly pageSize       = 10;
+  readonly loading        = signal(false);
+  readonly showModal      = signal(false);
+
+  ngOnInit(): void {
+    this.loadPage(0);
+  }
+
+  private loadPage(page: number): void {
+    this.loading.set(true);
+    this.assessmentService
+      .getAssessments(page, this.pageSize)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: response => {
+          this.assessments.set(response.content);
+          this.totalPages.set(response.totalPages);
+          this.totalElements.set(response.totalElements);
+          this.currentPage.set(response.number);
+          this.loading.set(false);
+        },
+        error: () => this.loading.set(false),
+      });
+  }
+
+  prevPage(): void {
+    if (this.currentPage() > 0) this.loadPage(this.currentPage() - 1);
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages() - 1) this.loadPage(this.currentPage() + 1);
+  }
+
+  onMark(a: Assessment): void {
+    this.router.navigate(['/marking', a.id], {
+      state: {
+        candidateName: a.candidateName,
+        assessmentMeta: `${a.bankName} · ${a.timeLimitMinutes} min`,
+      },
+    });
+  }
 
   onNavigateToQuestions(payload: NavigateToQuestionsPayload): void {
     this.showModal.set(false);

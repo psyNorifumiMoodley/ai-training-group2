@@ -36,6 +36,9 @@ public interface AssessmentRepository extends JpaRepository<Assessment, UUID> {
 
     List<Assessment> findByCandidateId(UUID candidateId);
 
-    @EntityGraph(attributePaths = {"candidate", "candidate.user"})
+    @EntityGraph(attributePaths = {"candidate", "candidate.user", "questions"})
+    Page<Assessment> findAll(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"candidate", "candidate.user", "questions"})
     Page<Assessment> findByStatus(AssessmentStatus status, Pageable pageable);
 }

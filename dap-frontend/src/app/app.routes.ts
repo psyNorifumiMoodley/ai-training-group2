@@ -57,14 +57,6 @@ export const routes: Routes = [
               import('./features/assessment-generation/components/question-selection/question-selection.component')
                 .then(m => m.QuestionSelectionComponent),
           },
-          {
-            path: ':assessmentId/marking',
-            canActivate: [roleGuard],
-            data: { roles: ['MARKER'] },
-            loadComponent: () =>
-              import('./features/assessments/marking/marking.component')
-                .then(m => m.MarkingComponent),
-          },
         ],
       },
       {
@@ -82,6 +74,14 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/question-management/question-management.routes')
             .then(m => m.questionManagementRoutes),
+      },
+      {
+        path: 'marking/:assessmentId',
+        canActivate: [roleGuard],
+        data: { roles: ['MARKER'] },
+        loadComponent: () =>
+          import('./features/assessments/marking/marking.component')
+            .then(m => m.MarkingComponent),
       },
       {
         path: 'markers',

@@ -11,6 +11,8 @@ import com.psybergate.dap.dto.AssessmentRequest;
 import com.psybergate.dap.dto.AssessmentResponse;
 import com.psybergate.dap.service.AssessmentService;
 import com.psybergate.dap.service.AuthService;
+import com.psybergate.dap.service.FeedbackService;
+import com.psybergate.dap.service.MarkingService;
 import com.psybergate.dap.service.ResponseService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,6 +60,12 @@ class AssessmentControllerTest {
 
     @MockBean
     private ResponseService responseService;
+
+    @MockBean
+    private MarkingService markingService;
+
+    @MockBean
+    private FeedbackService feedbackService;
 
     @BeforeEach
     void stubUserDetailsService() {
@@ -116,14 +124,19 @@ class AssessmentControllerTest {
     }
 
     @Test
-    void generateAssessment_asAdmin_returns403() throws Exception {
+    void generateAssessment_asAdmin_returns201() throws Exception {
         String token = tokenFor("admin@example.com", Role.ADMIN);
+        UUID candidateId = UUID.randomUUID();
+        AssessmentResponse stubResponse = new AssessmentResponse(
+                UUID.randomUUID(), candidateId, "PENDING",
+                "http://localhost:4200/assessment/stub-token", 60, null);
+        when(assessmentService.generate(any(AssessmentRequest.class))).thenReturn(stubResponse);
 
         mockMvc.perform(post("/api/assessments")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest())))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isCreated());
     }
 
     @Test

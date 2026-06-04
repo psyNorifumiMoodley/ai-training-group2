@@ -49,6 +49,8 @@ class AssessmentServiceAccessTest {
     private EmailService emailService;
     @Mock
     private ResponseService responseService;
+    @Mock
+    private FeedbackRepository feedbackRepository;
 
     private AssessmentService assessmentService;
 
@@ -59,7 +61,8 @@ class AssessmentServiceAccessTest {
         assessmentService = new AssessmentService(
                 candidateRepository, assessmentRepository, assessmentQuestionRepository,
                 mcqQuestionRepository, textQuestionRepository, docQuestionRepository,
-                groupQuestionRepository, invitationTokenUtil, jwtUtil, emailService, responseService);
+                groupQuestionRepository, invitationTokenUtil, jwtUtil, emailService, responseService,
+                feedbackRepository);
         when(jwtUtil.generateToken(any())).thenReturn("candidate.jwt.token");
         ReflectionTestUtils.setField(assessmentService, "requiredMcq", 5);
         ReflectionTestUtils.setField(assessmentService, "requiredText", 3);
