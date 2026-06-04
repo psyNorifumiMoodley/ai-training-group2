@@ -9,5 +9,7 @@ public record ResponseReviewItem(
         String questionType,
         Object answer,
         Boolean correct,
-        String feedbackDraft) {
+        String feedbackDraft,
+        Integer marks,
+        Integer score) {
 }
