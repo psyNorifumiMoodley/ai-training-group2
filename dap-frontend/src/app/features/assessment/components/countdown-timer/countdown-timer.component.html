@@ -1,7 +1,12 @@
-<div class="bg-primary/15 border border-primary/50 rounded-full px-3 py-1"
-     [class.bg-red-500/15]="isWarning()"
-     [class.border-red-500/50]="isWarning()">
-  <span class="text-caption font-medium"
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors"
+     [class.bg-primary/10]="!isWarning()"
+     [class.border-primary/40]="!isWarning()"
+     [class.bg-red-500/10]="isWarning()"
+     [class.border-red-500/40]="isWarning()">
+  <i class="pi pi-clock text-xs"
+     [class.text-primary]="!isWarning()"
+     [class.text-red-400]="isWarning()"></i>
+  <span class="text-sm font-bold tabular-nums tracking-wide"
         [class.text-[#93c5fd]]="!isWarning()"
         [class.text-red-400]="isWarning()">
     {{ display() }}

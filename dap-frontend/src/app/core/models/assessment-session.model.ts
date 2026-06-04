@@ -5,6 +5,7 @@ export interface AssessmentAccessResponse {
   questions: QuestionResponse[];
   remainingSeconds: number;
   candidateToken: string;
+  alreadyStarted: boolean;
 }
 
 export interface McqResponseRequest  { selectedAnswers: string[]; }

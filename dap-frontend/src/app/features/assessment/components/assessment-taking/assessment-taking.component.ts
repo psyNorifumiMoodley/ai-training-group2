@@ -6,6 +6,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, switchMap } from 'rxjs/operators';
@@ -23,6 +24,7 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
   selector: 'dap-assessment-taking',
   standalone: true,
   imports: [
+    DecimalPipe,
     CountdownTimerComponent,
     QuestionRendererComponent,
     ConfirmModalComponent,
@@ -46,6 +48,8 @@ export class AssessmentTakingComponent implements OnInit {
   readonly savedAnswers = signal<Record<string, ResponseRequest>>({});
   readonly showConfirm = signal(false);
   readonly submitting = signal(false);
+  readonly started = signal(history.state['session']?.alreadyStarted === true);
+  readonly starting = signal(false);
 
   readonly questions = computed(() => this.session()?.questions ?? []);
   readonly currentQuestion = computed(() => this.questions()[this.currentIndex()]);
@@ -72,6 +76,19 @@ export class AssessmentTakingComponent implements OnInit {
     if (!this.session()) {
       this.router.navigate(['/login']);
     }
+  }
+
+  startAssessment(): void {
+    const id = this.session()?.assessmentId;
+    if (!id || this.starting()) return;
+    this.starting.set(true);
+    this.service.startAssessment(id).subscribe({
+      next: () => {
+        this.starting.set(false);
+        this.started.set(true);
+      },
+      error: () => this.starting.set(false),
+    });
   }
 
   navState(index: number): 'done' | 'active' | 'todo' {
