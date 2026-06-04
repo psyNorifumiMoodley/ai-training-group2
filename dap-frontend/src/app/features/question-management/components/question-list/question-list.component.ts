@@ -77,7 +77,7 @@ export class QuestionListComponent {
         next: () => {
           this.deleting.set(false);
           this.deletingQuestion.set(null);
-          this.toastService.delete('Question deleted.');
+          this.toastService.removed('Question deleted.');
           this.page.set(0);
           this.loadQuestions();
         },
