@@ -1,6 +1,5 @@
 package com.psybergate.dap.service;
 
-import com.psybergate.dap.domain.Feedback;
 import com.psybergate.dap.domain.Assessment;
 import com.psybergate.dap.domain.AssessmentQuestion;
 import com.psybergate.dap.domain.Feedback;
@@ -9,9 +8,8 @@ import com.psybergate.dap.domain.McqResponse;
 import com.psybergate.dap.domain.Response;
 import com.psybergate.dap.dto.FeedbackItem;
 import com.psybergate.dap.dto.FeedbackUpdateRequest;
-import com.psybergate.dap.repository.FeedbackRepository;
-import com.psybergate.dap.repository.AssessmentRepository;
 import com.psybergate.dap.repository.AssessmentQuestionRepository;
+import com.psybergate.dap.repository.AssessmentRepository;
 import com.psybergate.dap.repository.FeedbackRepository;
 import com.psybergate.dap.repository.ResponseRepository;
 import org.springframework.stereotype.Service;
@@ -19,18 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class FeedbackService {
-
-    private final FeedbackRepository feedbackRepository;
-
-    public FeedbackService(FeedbackRepository feedbackRepository) {
-        this.feedbackRepository = feedbackRepository;
-    }
 
     private final FeedbackRepository feedbackRepository;
     private final AssessmentRepository assessmentRepository;
@@ -93,9 +84,7 @@ public class FeedbackService {
 
     @Transactional
     public void updateFeedback(UUID assessmentId, UUID questionId, FeedbackUpdateRequest request) {
-        Feedback feedback = feedbackRepository.findByAssessmentIdAndQuestionId(assessmentId, questionId)
-                .orElseThrow(() -> new NoSuchElementException(
-                        "Feedback not found for assessment " + assessmentId + " and question " + questionId));
+        Feedback feedback = getOrCreateDraft(assessmentId, questionId);
         feedback.setDraft(request.feedbackText());
         feedbackRepository.save(feedback);
     }
