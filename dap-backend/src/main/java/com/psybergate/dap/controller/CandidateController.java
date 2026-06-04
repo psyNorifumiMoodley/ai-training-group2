@@ -1,5 +1,7 @@
 package com.psybergate.dap.controller;
 
+import com.psybergate.dap.domain.AssessmentStatus;
+import com.psybergate.dap.dto.AssessmentResponse;
 import com.psybergate.dap.dto.CandidateRequest;
 import com.psybergate.dap.dto.CandidateResponse;
 import com.psybergate.dap.dto.PageResponse;
@@ -35,8 +37,37 @@ public class CandidateController {
     @GetMapping
     public ResponseEntity<PageResponse<CandidateResponse>> list(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(candidateService.listCandidates(page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(required = false) AssessmentStatus status) {
+        return ResponseEntity.ok(candidateService.listCandidates(page, size, search, sortBy, sortDir, status));
+    }
+
+    @GetMapping("/{candidateId}")
+    public ResponseEntity<CandidateResponse> getById(@PathVariable UUID candidateId) {
+        return ResponseEntity.ok(candidateService.getCandidateById(candidateId));
+    }
+
+    @PutMapping("/{candidateId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<CandidateResponse> update(
+            @PathVariable UUID candidateId,
+            @Valid @RequestBody CandidateRequest request) {
+        return ResponseEntity.ok(candidateService.updateCandidate(candidateId, request));
+    }
+
+    @DeleteMapping("/{candidateId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> delete(@PathVariable UUID candidateId) {
+        candidateService.deleteCandidate(candidateId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{candidateId}/assessments")
+    public ResponseEntity<List<AssessmentResponse>> getAssessments(@PathVariable UUID candidateId) {
+        return ResponseEntity.ok(assessmentService.getCandidateAssessments(candidateId));
     }
 
     @GetMapping("/{candidateId}/seen-questions")

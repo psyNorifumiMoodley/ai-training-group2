@@ -1,9 +1,9 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, OnInit, output, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { UserService } from '../../../../core/services/user.service';
-import { CandidateRequest } from '../../../../core/models/user.model';
+import { CandidateRequest, CandidateResponse } from '../../../../core/models/user.model';
 
 @Component({
   selector: 'app-candidate-form',
@@ -12,10 +12,12 @@ import { CandidateRequest } from '../../../../core/models/user.model';
   templateUrl: './candidate-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CandidateFormComponent {
+export class CandidateFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly userService = inject(UserService);
   private readonly destroyRef = inject(DestroyRef);
+
+  readonly editCandidate = input<CandidateResponse | null>(null);
 
   readonly saved = output<void>();
   readonly cancelled = output<void>();
@@ -31,14 +33,25 @@ export class CandidateFormComponent {
   get nameControl() { return this.form.controls.name; }
   get emailControl() { return this.form.controls.email; }
 
+  ngOnInit(): void {
+    const existing = this.editCandidate();
+    if (existing) {
+      this.form.patchValue({ name: existing.name, email: existing.email });
+    }
+  }
+
   submit(): void {
     if (this.form.invalid || this.submitting()) return;
     this.conflictError.set(false);
     this.submitting.set(true);
 
     const request: CandidateRequest = this.form.getRawValue();
-    this.userService.registerCandidate(request)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+    const editId = this.editCandidate()?.id;
+    const obs = editId
+      ? this.userService.updateCandidate(editId, request)
+      : this.userService.registerCandidate(request);
+
+    obs.pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.submitting.set(false);
