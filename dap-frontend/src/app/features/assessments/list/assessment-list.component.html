@@ -4,39 +4,63 @@
 </div>
 
 <div class="bg-white border border-gray-200 rounded-card p-3.5">
-  <table class="w-full text-caption">
-    <thead>
-      <tr class="border-b border-gray-100">
-        <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Candidate</th>
-        <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Role</th>
-        <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Bank</th>
-        <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Status</th>
-        <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Assigned</th>
-        <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (a of assessments; track a.id) {
-        <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
-          <td class="py-2.5 pr-4">
-            <div class="flex items-center gap-2">
-              <dap-avatar [name]="a.candidateName" size="sm" />
-              <span class="text-gray-800">{{ a.candidateName }}</span>
-            </div>
-          </td>
-          <td class="py-2.5 pr-4 text-gray-500">{{ a.role }}</td>
-          <td class="py-2.5 pr-4 text-gray-500">{{ a.bankName }}</td>
-          <td class="py-2.5 pr-4"><dap-badge [status]="a.status" /></td>
-          <td class="py-2.5 pr-4 text-gray-400">{{ a.assignedDate }}</td>
-          <td class="py-2.5">
-            @if (a.status === 'SUBMITTED' || a.status === 'MARKED') {
-              <dap-button variant="ghost" size="sm">Mark</dap-button>
-            }
-          </td>
+  @if (loading()) {
+    <div class="flex items-center justify-center py-8">
+      <i class="pi pi-spin pi-spinner text-xl text-primary"></i>
+    </div>
+  } @else if (!assessments().length) {
+    <p class="text-center text-caption text-gray-400 py-8">No assessments found.</p>
+  } @else {
+    <table class="w-full text-caption">
+      <thead>
+        <tr class="border-b border-gray-100">
+          <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Candidate</th>
+          <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Role</th>
+          <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Bank</th>
+          <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Status</th>
+          <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Assigned</th>
+          <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2">Actions</th>
         </tr>
-      }
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        @for (a of assessments(); track a.id) {
+          <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
+            <td class="py-2.5 pr-4">
+              <div class="flex items-center gap-2">
+                <dap-avatar [name]="a.candidateName" size="sm" />
+                <span class="text-gray-800">{{ a.candidateName }}</span>
+              </div>
+            </td>
+            <td class="py-2.5 pr-4 text-gray-500">{{ a.role }}</td>
+            <td class="py-2.5 pr-4 text-gray-500">{{ a.bankName }}</td>
+            <td class="py-2.5 pr-4"><dap-badge [status]="a.status" /></td>
+            <td class="py-2.5 pr-4 text-gray-400">{{ a.assignedDate }}</td>
+            <td class="py-2.5">
+              @if (a.status === 'SUBMITTED' || a.status === 'MARKED') {
+                <dap-button variant="ghost" size="sm" (clicked)="onMark(a)">Mark</dap-button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    @if (totalPages() > 1) {
+      <div class="flex items-center justify-between pt-3 border-t border-gray-100 mt-2">
+        <span class="text-[0.6875rem] text-gray-400">
+          Page {{ currentPage() + 1 }} of {{ totalPages() }} &middot; {{ totalElements() }} total
+        </span>
+        <div class="flex gap-2">
+          <dap-button variant="ghost" size="sm" [disabled]="currentPage() === 0" (clicked)="prevPage()">
+            <i class="pi pi-chevron-left"></i>
+          </dap-button>
+          <dap-button variant="ghost" size="sm" [disabled]="currentPage() >= totalPages() - 1" (clicked)="nextPage()">
+            <i class="pi pi-chevron-right"></i>
+          </dap-button>
+        </div>
+      </div>
+    }
+  }
 </div>
 
 <!-- New assessment modal -->
