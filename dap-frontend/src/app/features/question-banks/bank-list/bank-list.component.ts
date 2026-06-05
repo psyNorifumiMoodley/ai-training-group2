@@ -32,11 +32,21 @@ export class BankListComponent {
 
   readonly allQuestions = signal<QuestionResponse[]>([]);
   readonly selectedCategory = signal<string>('');
+  readonly typeFilter = signal<QuestionType | 'ALL'>('ALL');
+  readonly openMenuId = signal<string | null>(null);
   readonly loading = signal(false);
   readonly showForm = signal(false);
   readonly editingQuestion = signal<QuestionResponse | null>(null);
   readonly deletingQuestion = signal<QuestionResponse | null>(null);
   readonly deleting = signal(false);
+
+  readonly filterTypes: Array<{ value: QuestionType | 'ALL'; label: string }> = [
+    { value: 'ALL',   label: 'All types' },
+    { value: 'MCQ',   label: 'MCQ' },
+    { value: 'TEXT',  label: 'Text' },
+    { value: 'DOC',   label: 'Doc' },
+    { value: 'GROUP', label: 'Group' },
+  ];
 
   readonly banks = computed<Bank[]>(() => {
     const counts = new Map<string, number>();
@@ -46,9 +56,16 @@ export class BankListComponent {
     return Array.from(counts.entries()).map(([name, questionCount]) => ({ name, questionCount }));
   });
 
-  readonly filteredQuestions = computed(() => {
+  readonly categoryQuestions = computed(() => {
     const cat = this.selectedCategory();
     return cat ? this.allQuestions().filter(q => q.category === cat) : this.allQuestions();
+  });
+
+  readonly filteredQuestions = computed(() => {
+    const type = this.typeFilter();
+    const questions = this.categoryQuestions();
+    if (type === 'ALL') return questions;
+    return questions.filter(q => this.resolveType(q) === type);
   });
 
   readonly activeBank = computed(() =>
@@ -61,19 +78,37 @@ export class BankListComponent {
 
   selectBank(name: string): void {
     this.selectedCategory.set(name);
+    this.typeFilter.set('ALL');
+    this.openMenuId.set(null);
+  }
+
+  setTypeFilter(type: QuestionType | 'ALL'): void {
+    this.typeFilter.set(type);
+    this.openMenuId.set(null);
+  }
+
+  toggleMenu(id: string): void {
+    this.openMenuId.update(current => (current === id ? null : id));
+  }
+
+  closeMenu(): void {
+    this.openMenuId.set(null);
   }
 
   openAdd(): void {
     this.editingQuestion.set(null);
+    this.openMenuId.set(null);
     this.showForm.set(true);
   }
 
   openEdit(q: QuestionResponse): void {
+    this.openMenuId.set(null);
     this.showForm.set(false);
     this.editingQuestion.set(q);
   }
 
   requestDelete(q: QuestionResponse): void {
+    this.openMenuId.set(null);
     this.deletingQuestion.set(q);
   }
 
