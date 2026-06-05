@@ -9,6 +9,9 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+import java.util.UUID;
+
 @Service
 public class EmailServiceImpl implements EmailService {
 
@@ -48,6 +51,28 @@ public class EmailServiceImpl implements EmailService {
 
     @Async
     @Override
+    public void sendReminder(String toEmail, String candidateName, String invitationLink) {
+        if (fromAddress == null || fromAddress.isBlank()) {
+            log.warn("Mail not configured (spring.mail.username is empty) — skipping reminder email to {}", toEmail);
+            return;
+        }
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromAddress);
+            message.setTo(toEmail);
+            message.setSubject("Reminder: You have a pending technical assessment");
+            message.setText(buildReminderBody(candidateName, invitationLink));
+            mailSender.send(message);
+            log.info("Reminder email sent to {}", toEmail);
+        } catch (MailException ex) {
+            log.error("Failed to send reminder email to {}: {}", toEmail, ex.getMessage(), ex);
+        } catch (Exception ex) {
+            log.error("Unexpected error sending reminder email to {}: {}", toEmail, ex.getMessage(), ex);
+        }
+    }
+
+    @Async
+    @Override
     public void sendFeedback(String toEmail, String candidateName, String overallFeedback) {
         if (fromAddress == null || fromAddress.isBlank()) {
             log.warn("Mail not configured (spring.mail.username is empty) — skipping feedback email to {}", toEmail);
@@ -76,6 +101,18 @@ public class EmailServiceImpl implements EmailService {
                 "%s%n%n" +
                 "This link is unique to you. Please do not share it.%n%n" +
                 "Good luck!%n%n" +
+                "The Developer Assessment Platform Team",
+                candidateName, invitationLink);
+    }
+
+    private String buildReminderBody(String candidateName, String invitationLink) {
+        return String.format(
+                "Dear %s,%n%n" +
+                "This is a friendly reminder that you have a technical assessment waiting for you.%n%n" +
+                "Please complete your assessment at your earliest convenience using the link below:%n%n" +
+                "%s%n%n" +
+                "This link is unique to you. Please do not share it.%n%n" +
+                "If you have already started your assessment, you can use the same link to continue.%n%n" +
                 "The Developer Assessment Platform Team",
                 candidateName, invitationLink);
     }

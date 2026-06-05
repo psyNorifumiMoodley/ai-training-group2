@@ -19,7 +19,7 @@ export class AssessmentService {
   }
 
   getAssessments(page: number, size: number): Observable<PageResponse<Assessment>> {
-    return this.http.get<PageResponse<Omit<Assessment, 'candidateInitials'> & { candidateName: string; status: AssessmentStatus }>>(
+    return this.http.get<PageResponse<Omit<Assessment, 'candidateInitials'> & { candidateName: string; status: AssessmentStatus; invitationLink: string | null }>>(
       `${environment.apiBaseUrl}/assessments`,
       { params: { page: String(page), size: String(size) } }
     ).pipe(
@@ -36,5 +36,9 @@ export class AssessmentService {
         })),
       }))
     );
+  }
+
+  remindCandidate(assessmentId: string): Observable<void> {
+    return this.http.post<void>(`${environment.apiBaseUrl}/assessments/${assessmentId}/remind`, null);
   }
 }

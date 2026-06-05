@@ -316,6 +316,29 @@ public class AssessmentService {
         return new ArrayList<>(available.subList(0, count));
     }
 
+    @Transactional
+    public void remind(UUID assessmentId) {
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new NoSuchElementException("Assessment not found: " + assessmentId));
+
+        if (assessment.getStatus() != AssessmentStatus.PENDING) {
+            throw new ConflictException("Reminders can only be sent for PENDING assessments");
+        }
+
+        if (assessment.getInvitationToken() == null) {
+            throw new IllegalStateException("Assessment " + assessmentId + " has no invitation token");
+        }
+
+        String candidateEmail = assessment.getCandidate().getUser().getEmail();
+        String candidateName = assessment.getCandidate().getUser().getName();
+        String invitationLink = frontendBaseUrl + "/assessment/access/" + assessment.getInvitationToken();
+        try {
+            emailService.sendReminder(candidateEmail, candidateName, invitationLink);
+        } catch (Exception ex) {
+            log.error("Failed to send reminder email for assessment {}: {}", assessmentId, ex.getMessage(), ex);
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<UUID> getSeenQuestionIds(UUID candidateId) {
         return fetchSeenQuestionIds(candidateId);

@@ -16,6 +16,7 @@ import com.psybergate.dap.dto.ResponseReviewItem;
 import com.psybergate.dap.dto.TextAnswerPayload;
 import com.psybergate.dap.repository.AssessmentRepository;
 import com.psybergate.dap.repository.ResponseRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,9 @@ import java.util.UUID;
 
 @Service
 public class MarkingService {
+
+    @Value("${app.frontend-base-url:http://localhost:4200}")
+    private String frontendBaseUrl;
 
     private final AssessmentRepository assessmentRepository;
     private final ResponseRepository responseRepository;
@@ -56,6 +60,9 @@ public class MarkingService {
                 .orElse(null);
         String submittedAt = assessment.getUpdatedAt() != null ? assessment.getUpdatedAt().toString() : null;
         String assignedDate = assessment.getCreatedAt() != null ? assessment.getCreatedAt().toString() : null;
+        String invitationLink = assessment.getInvitationToken() != null
+                ? frontendBaseUrl + "/assessment/access/" + assessment.getInvitationToken()
+                : null;
         return new AssessmentSummaryResponse(
                 assessment.getId(),
                 assessment.getCandidate().getUser().getName(),
@@ -64,7 +71,8 @@ public class MarkingService {
                 assessment.getStatus().name(),
                 assignedDate,
                 submittedAt,
-                assessment.getTimeLimitMinutes()
+                assessment.getTimeLimitMinutes(),
+                invitationLink
         );
     }
 

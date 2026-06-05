@@ -1,9 +1,16 @@
-<!-- Confirmation (shown after submit) -->
+<!-- Confirmation modal overlay (shown after successful submit) -->
 @if (done() && result()) {
-  <dap-assessment-confirmation
-    [assessment]="result()!"
-    [candidateName]="candidateName()"
-    [questionCount]="checkedCount()" />
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div class="w-full max-w-xl mx-4">
+      <dap-assessment-confirmation
+        [assessment]="result()!"
+        [candidateName]="candidateName()"
+        [questionCount]="10" />
+      <div class="flex justify-end mt-4">
+        <dap-button (clicked)="onDone()">Done</dap-button>
+      </div>
+    </div>
+  </div>
 }
 
 @if (!done()) {

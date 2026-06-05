@@ -1,22 +1,25 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { SlicePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { BadgeComponent } from '../../../shared/components/badge/badge.component';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
-import { Assessment } from '../../../core/models/assessment.model';
+import { Assessment, AssessmentStatus } from '../../../core/models/assessment.model';
 import { AssessmentService } from '../../../core/services/assessment.service';
+import { ToastService } from '../../../core/services/toast.service';
 import { AssessmentGenerateComponent, NavigateToQuestionsPayload } from '../../assessment-generation/components/assessment-generate/assessment-generate.component';
 
 @Component({
   selector: 'dap-assessment-list',
   standalone: true,
-  imports: [BadgeComponent, AvatarComponent, ButtonComponent, AssessmentGenerateComponent],
+  imports: [BadgeComponent, AvatarComponent, ButtonComponent, AssessmentGenerateComponent, SlicePipe],
   templateUrl: './assessment-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AssessmentListComponent implements OnInit {
   private readonly assessmentService = inject(AssessmentService);
+  private readonly toastService      = inject(ToastService);
   private readonly router            = inject(Router);
   private readonly destroyRef        = inject(DestroyRef);
 
@@ -28,11 +31,34 @@ export class AssessmentListComponent implements OnInit {
   readonly loading        = signal(false);
   readonly showModal      = signal(false);
 
+  readonly searchText   = signal('');
+  readonly statusFilter = signal<AssessmentStatus | 'ALL'>('ALL');
+
+  readonly copiedId = signal<string | null>(null);
+
+  readonly filteredAssessments = computed(() => {
+    const q      = this.searchText().toLowerCase();
+    const status = this.statusFilter();
+    return this.assessments().filter(a => {
+      const nameMatch   = !q || a.candidateName.toLowerCase().includes(q);
+      const statusMatch = status === 'ALL' || a.status === status;
+      return nameMatch && statusMatch;
+    });
+  });
+
+  readonly statusOptions: Array<{ label: string; value: AssessmentStatus | 'ALL' }> = [
+    { label: 'All',         value: 'ALL' },
+    { label: 'Pending',     value: 'PENDING' },
+    { label: 'In Progress', value: 'IN_PROGRESS' },
+    { label: 'Submitted',   value: 'SUBMITTED' },
+    { label: 'Marked',      value: 'MARKED' },
+  ];
+
   ngOnInit(): void {
     this.loadPage(0);
   }
 
-  private loadPage(page: number): void {
+  loadPage(page: number): void {
     this.loading.set(true);
     this.assessmentService
       .getAssessments(page, this.pageSize)
@@ -61,9 +87,26 @@ export class AssessmentListComponent implements OnInit {
     this.router.navigate(['/marking', a.id], {
       state: {
         candidateName: a.candidateName,
-        assessmentMeta: `${a.bankName} · ${a.timeLimitMinutes} min`,
+        assessmentMeta: `${a.timeLimitMinutes} min`,
       },
     });
+  }
+
+  onCopyLink(a: Assessment): void {
+    if (!a.invitationLink) return;
+    navigator.clipboard.writeText(a.invitationLink).then(() => {
+      this.copiedId.set(a.id);
+      setTimeout(() => this.copiedId.set(null), 2000);
+    });
+  }
+
+  onRemind(a: Assessment): void {
+    this.assessmentService.remindCandidate(a.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.toastService.success(`Reminder sent to ${a.candidateName}.`),
+        error: () => this.toastService.error('Failed to send reminder. Please try again.'),
+      });
   }
 
   onNavigateToQuestions(payload: NavigateToQuestionsPayload): void {

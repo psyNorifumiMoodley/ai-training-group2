@@ -3,27 +3,48 @@
   <dap-button iconLeft="pi-plus" (clicked)="showModal.set(true)">New assessment</dap-button>
 </div>
 
+<!-- Filter bar -->
+<div class="flex items-center gap-3 mb-4">
+  <div class="relative flex-1 max-w-xs">
+    <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+    <input
+      type="text"
+      placeholder="Search by candidate name..."
+      [value]="searchText()"
+      (input)="searchText.set($any($event.target).value)"
+      class="w-full pl-8 pr-3 py-2 text-caption border border-gray-200 rounded-input focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors">
+  </div>
+  <select
+    [value]="statusFilter()"
+    (change)="statusFilter.set($any($event.target).value)"
+    class="text-caption border border-gray-200 rounded-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors bg-white">
+    @for (opt of statusOptions; track opt.value) {
+      <option [value]="opt.value">{{ opt.label }}</option>
+    }
+  </select>
+</div>
+
 <div class="bg-white border border-gray-200 rounded-card p-3.5">
   @if (loading()) {
     <div class="flex items-center justify-center py-8">
       <i class="pi pi-spin pi-spinner text-xl text-primary"></i>
     </div>
-  } @else if (!assessments().length) {
-    <p class="text-center text-caption text-gray-400 py-8">No assessments found.</p>
+  } @else if (!filteredAssessments().length) {
+    <p class="text-center text-caption text-gray-400 py-8">
+      {{ assessments().length ? 'No assessments match your filters.' : 'No assessments found.' }}
+    </p>
   } @else {
     <table class="w-full text-caption">
       <thead>
         <tr class="border-b border-gray-100">
           <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Candidate</th>
-          <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Role</th>
-          <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Bank</th>
           <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Status</th>
           <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Assigned</th>
           <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2">Actions</th>
         </tr>
       </thead>
       <tbody>
-        @for (a of assessments(); track a.id) {
+        @for (a of filteredAssessments(); track a.id) {
           <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
             <td class="py-2.5 pr-4">
               <div class="flex items-center gap-2">
@@ -31,14 +52,31 @@
                 <span class="text-gray-800">{{ a.candidateName }}</span>
               </div>
             </td>
-            <td class="py-2.5 pr-4 text-gray-500">{{ a.role }}</td>
-            <td class="py-2.5 pr-4 text-gray-500">{{ a.bankName }}</td>
             <td class="py-2.5 pr-4"><dap-badge [status]="a.status" /></td>
-            <td class="py-2.5 pr-4 text-gray-400">{{ a.assignedDate }}</td>
+            <td class="py-2.5 pr-4 text-gray-400">{{ a.assignedDate | slice:0:10 }}</td>
             <td class="py-2.5">
-              @if (a.status === 'SUBMITTED' || a.status === 'MARKED') {
-                <dap-button variant="ghost" size="sm" (clicked)="onMark(a)">Mark</dap-button>
-              }
+              <div class="flex items-center gap-1">
+                @if (a.status === 'SUBMITTED' || a.status === 'MARKED') {
+                  <dap-button variant="ghost" size="sm" (clicked)="onMark(a)">Mark</dap-button>
+                }
+                @if (a.status === 'PENDING' || a.status === 'IN_PROGRESS') {
+                  <button
+                    type="button"
+                    (click)="onCopyLink(a)"
+                    [class]="'flex items-center gap-1 px-2.5 py-1 text-[0.6875rem] font-medium rounded-input border transition-colors ' +
+                      (copiedId() === a.id
+                        ? 'border-green-300 bg-green-50 text-green-600'
+                        : 'border-gray-200 text-gray-500 hover:bg-gray-50')">
+                    <i [class]="'pi text-xs ' + (copiedId() === a.id ? 'pi-check' : 'pi-copy')"></i>
+                    {{ copiedId() === a.id ? 'Copied!' : 'Copy link' }}
+                  </button>
+                }
+                @if (a.status === 'PENDING') {
+                  <dap-button variant="ghost" size="sm" (clicked)="onRemind(a)">
+                    <i class="pi pi-bell text-xs"></i> Remind
+                  </dap-button>
+                }
+              </div>
             </td>
           </tr>
         }
@@ -68,6 +106,7 @@
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
     <dap-assessment-generate
       (cancelled)="showModal.set(false)"
+      (assessmentCreated)="showModal.set(false); loadPage(0)"
       (navigateToQuestions)="onNavigateToQuestions($event)" />
   </div>
 }
