@@ -135,7 +135,7 @@ export class MarkingComponent implements OnInit {
   finalise(): void {
     this.finalising.set(true);
     this.markingService
-      .finaliseMarking(this.assessmentId())
+      .finaliseMarking(this.assessmentId(), this.overallFeedback())
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.router.navigate(['/assessments']),

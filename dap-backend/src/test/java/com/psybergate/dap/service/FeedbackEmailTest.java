@@ -10,7 +10,6 @@ import com.psybergate.dap.domain.ConflictException;
 import com.psybergate.dap.domain.Feedback;
 import com.psybergate.dap.domain.Role;
 import com.psybergate.dap.domain.TextQuestion;
-import com.psybergate.dap.dto.AssessmentResponse;
 import com.psybergate.dap.repository.AssessmentQuestionRepository;
 import com.psybergate.dap.repository.AssessmentRepository;
 import com.psybergate.dap.repository.CandidateRepository;
@@ -27,7 +26,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -111,61 +109,52 @@ class FeedbackEmailTest {
         when(feedbackRepository.findByAssessmentId(assessmentId)).thenReturn(List.of(feedback));
         when(assessmentRepository.save(any())).thenReturn(assessment);
 
-        assessmentService.finalise(assessmentId);
+        assessmentService.finalise(assessmentId, "Strong overall performance.");
 
         ArgumentCaptor<String> emailCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> nameCaptor = ArgumentCaptor.forClass(String.class);
-        verify(emailService).sendFeedback(emailCaptor.capture(), nameCaptor.capture(), any());
+        verify(emailService).sendFeedback(emailCaptor.capture(), nameCaptor.capture(), any(String.class));
 
         assertThat(emailCaptor.getValue()).isEqualTo(CANDIDATE_EMAIL);
         assertThat(nameCaptor.getValue()).isEqualTo(CANDIDATE_NAME);
     }
 
     @Test
-    void finalise_emailContainsFeedbackTextPerQuestion() {
+    void finalise_passesOverallFeedbackToEmail() {
         Assessment assessment = submittedAssessmentFor(CANDIDATE_EMAIL, CANDIDATE_NAME);
         UUID assessmentId = assessment.getId();
         Feedback feedback = feedbackFor(assessment, "Explain polymorphism", "Good explanation.");
-        UUID questionId = feedback.getQuestion().getId();
 
         when(assessmentRepository.findById(assessmentId)).thenReturn(Optional.of(assessment));
         when(feedbackRepository.findQuestionsWithEmptyFeedback(assessmentId)).thenReturn(List.of());
         when(feedbackRepository.findByAssessmentId(assessmentId)).thenReturn(List.of(feedback));
         when(assessmentRepository.save(any())).thenReturn(assessment);
 
-        assessmentService.finalise(assessmentId);
+        assessmentService.finalise(assessmentId, "Strong overall performance.");
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<UUID, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
-        verify(emailService).sendFeedback(any(), any(), mapCaptor.capture());
+        ArgumentCaptor<String> feedbackCaptor = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendFeedback(any(), any(), feedbackCaptor.capture());
 
-        Map<UUID, String> capturedMap = mapCaptor.getValue();
-        assertThat(capturedMap).containsEntry(questionId, "Good explanation.");
+        assertThat(feedbackCaptor.getValue()).isEqualTo("Strong overall performance.");
     }
 
     @Test
-    void finalise_emailMapContainsOnlyTextFeedback_noCorrectOrScoreData() {
+    void finalise_nullOverallFeedback_sendsEmptyString() {
         Assessment assessment = submittedAssessmentFor(CANDIDATE_EMAIL, CANDIDATE_NAME);
         UUID assessmentId = assessment.getId();
-        Feedback f1 = feedbackFor(assessment, "Q1", "Well done.");
-        Feedback f2 = feedbackFor(assessment, "Q2", "Needs improvement.");
+        Feedback feedback = feedbackFor(assessment, "Explain polymorphism", "Good explanation.");
 
         when(assessmentRepository.findById(assessmentId)).thenReturn(Optional.of(assessment));
         when(feedbackRepository.findQuestionsWithEmptyFeedback(assessmentId)).thenReturn(List.of());
-        when(feedbackRepository.findByAssessmentId(assessmentId)).thenReturn(List.of(f1, f2));
+        when(feedbackRepository.findByAssessmentId(assessmentId)).thenReturn(List.of(feedback));
         when(assessmentRepository.save(any())).thenReturn(assessment);
 
-        assessmentService.finalise(assessmentId);
+        assessmentService.finalise(assessmentId, null);
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<UUID, String>> mapCaptor = ArgumentCaptor.forClass(Map.class);
-        verify(emailService).sendFeedback(any(), any(), mapCaptor.capture());
+        ArgumentCaptor<String> feedbackCaptor = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendFeedback(any(), any(), feedbackCaptor.capture());
 
-        Map<UUID, String> capturedMap = mapCaptor.getValue();
-        // Map is typed Map<UUID, String> — values are purely text, no correct/score/selectedAnswers
-        assertThat(capturedMap).hasSize(2);
-        capturedMap.values().forEach(text ->
-                assertThat(text).doesNotContain("true", "false", "correct", "selectedAnswers", "score"));
+        assertThat(feedbackCaptor.getValue()).isEqualTo("");
     }
 
     @Test
@@ -176,9 +165,9 @@ class FeedbackEmailTest {
 
         when(assessmentRepository.findById(assessmentId)).thenReturn(Optional.of(assessment));
 
-        assertThatThrownBy(() -> assessmentService.finalise(assessmentId))
+        assertThatThrownBy(() -> assessmentService.finalise(assessmentId, ""))
                 .isInstanceOf(ConflictException.class);
 
-        verify(emailService, never()).sendFeedback(any(), any(), any());
+        verify(emailService, never()).sendFeedback(any(), any(), any(String.class));
     }
 }

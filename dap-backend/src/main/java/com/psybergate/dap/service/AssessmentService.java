@@ -19,7 +19,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static java.util.stream.Collectors.toMap;
 
 @Service
 public class AssessmentService {
@@ -368,7 +367,7 @@ public class AssessmentService {
     }
 
     @Transactional
-    public void finalise(UUID assessmentId) {
+    public void finalise(UUID assessmentId, String overallFeedback) {
         Assessment assessment = assessmentRepository.findById(assessmentId)
                 .orElseThrow(() -> new NoSuchElementException("Assessment not found: " + assessmentId));
 
@@ -392,12 +391,10 @@ public class AssessmentService {
         assessmentRepository.save(assessment);
 
         try {
-            Map<UUID, String> feedbackMap = allFeedback.stream()
-                    .collect(Collectors.toMap(f -> f.getQuestion().getId(), Feedback::getDraft));
             emailService.sendFeedback(
                     assessment.getCandidate().getUser().getEmail(),
                     assessment.getCandidate().getUser().getName(),
-                    feedbackMap);
+                    overallFeedback != null ? overallFeedback : "");
         } catch (Exception ex) {
             log.error("Failed to send feedback email for assessment {}: {}", assessmentId, ex.getMessage(), ex);
         }

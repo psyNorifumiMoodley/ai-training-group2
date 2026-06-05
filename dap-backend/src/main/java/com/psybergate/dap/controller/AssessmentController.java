@@ -7,6 +7,7 @@ import com.psybergate.dap.dto.AssessmentResponse;
 import com.psybergate.dap.dto.AssessmentSummaryResponse;
 import com.psybergate.dap.dto.FeedbackItem;
 import com.psybergate.dap.dto.FeedbackUpdateRequest;
+import com.psybergate.dap.dto.FinaliseRequest;
 import com.psybergate.dap.dto.ResponseRequest;
 import com.psybergate.dap.dto.ResponseReviewItem;
 import com.psybergate.dap.dto.SubmitRequest;
@@ -117,8 +118,12 @@ public class AssessmentController {
 
     @PostMapping("/{id}/finalise")
     @PreAuthorize("hasAnyRole('MARKER', 'ADMIN')")
-    public ResponseEntity<Void> finaliseMarking(@PathVariable UUID id) {
-        assessmentService.finalise(id);
+    public ResponseEntity<Void> finaliseMarking(
+            @PathVariable UUID id,
+            @RequestBody(required = false) FinaliseRequest request) {
+        String overallFeedback = (request != null && request.overallFeedback() != null)
+                ? request.overallFeedback() : "";
+        assessmentService.finalise(id, overallFeedback);
         return ResponseEntity.ok().build();
     }
 
