@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/markers")
 @PreAuthorize("hasRole('ADMIN')")
@@ -26,10 +28,26 @@ public class MarkerController {
         return ResponseEntity.status(HttpStatus.CREATED).body(markerService.register(request));
     }
 
+    @PutMapping("/{markerId}")
+    public ResponseEntity<MarkerResponse> update(
+            @PathVariable UUID markerId,
+            @Valid @RequestBody MarkerRequest request) {
+        return ResponseEntity.ok(markerService.updateMarker(markerId, request));
+    }
+
+    @DeleteMapping("/{markerId}")
+    public ResponseEntity<Void> delete(@PathVariable UUID markerId) {
+        markerService.deleteMarker(markerId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping
     public ResponseEntity<PageResponse<MarkerResponse>> list(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(markerService.listMarkers(page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+        return ResponseEntity.ok(markerService.listMarkers(page, size, search, sortBy, sortDir));
     }
 }

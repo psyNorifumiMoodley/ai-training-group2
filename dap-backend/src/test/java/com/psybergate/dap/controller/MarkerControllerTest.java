@@ -74,7 +74,7 @@ class MarkerControllerTest {
         String token = jwtUtil.generateToken(admin);
 
         MarkerRequest request = new MarkerRequest("John Marker", "john@example.com", "password123");
-        MarkerResponse response = new MarkerResponse(UUID.randomUUID(), "John Marker", "john@example.com");
+        MarkerResponse response = new MarkerResponse(UUID.randomUUID(), "John Marker", "john@example.com", null);
         when(markerService.register(any(MarkerRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/markers")

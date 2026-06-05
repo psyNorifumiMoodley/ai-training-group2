@@ -1,19 +1,46 @@
 <header class="h-[2.875rem] bg-shell border-b border-border-dark flex items-center justify-between px-4 flex-shrink-0">
-  <div class="flex items-center gap-2">
-    <div class="w-[1.375rem] h-[1.375rem] bg-primary rounded-[0.3125rem]"></div>
-    <span class="text-sm font-medium text-[#e6edf3]">DAP</span>
+
+  <div class="flex items-center gap-3">
+    <button
+      (click)="shellState.toggleSidebar()"
+      class="w-7 h-7 flex items-center justify-center rounded bg-white/5 text-[#c9d1d9] hover:text-[#e6edf3] hover:bg-white/10 transition-all"
+      [title]="shellState.sidebarOpen() ? 'Close sidebar' : 'Open sidebar'">
+      <i class="pi pi-bars text-base"></i>
+    </button>
+    <div class="flex items-center gap-2">
+      <div class="w-[1.375rem] h-[1.375rem] bg-primary rounded-[0.3125rem]"></div>
+      <span class="text-sm font-medium text-[#e6edf3]">DAP</span>
+    </div>
   </div>
 
   <div class="flex items-center gap-3">
-    <i class="pi pi-bell text-[#8b949e] text-lg"></i>
-    <div class="flex items-center gap-2">
-      <dap-avatar [name]="displayName()" size="md" />
-      <span class="text-caption text-[#e6edf3]">{{ displayName() }}</span>
+    <div class="relative" data-user-menu>
+      <button
+        (click)="toggleDropdown()"
+        class="flex items-center gap-2 px-2 py-1 rounded hover:bg-white/5 transition-colors">
+        <dap-avatar [name]="displayName()" size="md" />
+        <span class="text-caption text-[#e6edf3]">{{ displayName() | titlecase }}</span>
+        <i [class]="'pi pi-chevron-down text-[#8b949e] text-[10px] transition-transform duration-150 ' + (dropdownOpen() ? 'rotate-180' : '')"></i>
+      </button>
+
+      @if (dropdownOpen()) {
+        <div class="absolute right-0 top-full mt-1.5 w-36 bg-shell border border-border-dark rounded-card shadow-xl z-50 py-1 overflow-hidden">
+          <button
+            (click)="navigateToSettings()"
+            class="w-full flex items-center gap-2.5 px-3 py-2 text-caption text-[#8b949e] hover:bg-white/5 hover:text-[#e6edf3] transition-colors">
+            <i class="pi pi-cog text-[13px] flex-shrink-0"></i>
+            <span>Settings</span>
+          </button>
+          <div class="border-t border-border-dark mx-2 my-0.5"></div>
+          <button
+            (click)="logout()"
+            class="w-full flex items-center gap-2.5 px-3 py-2 text-caption text-[#8b949e] hover:bg-white/5 hover:text-[#e6edf3] transition-colors">
+            <i class="pi pi-sign-out text-[13px] flex-shrink-0"></i>
+            <span>Logout</span>
+          </button>
+        </div>
+      }
     </div>
-    <button
-      (click)="logout()"
-      class="px-3 py-1 rounded-input bg-white text-black text-caption font-medium hover:bg-gray-100 transition-colors">
-      Logout
-    </button>
   </div>
+
 </header>

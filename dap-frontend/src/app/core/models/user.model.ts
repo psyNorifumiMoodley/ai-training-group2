@@ -20,6 +20,7 @@ export interface MarkerResponse {
   id: string;
   name: string;
   email: string;
+  createdAt: string;
 }
 
 export interface PageResponse<T> {
