@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { QuestionService } from '../../../../core/services/question.service';
@@ -30,6 +30,7 @@ const TYPE_FILTERS: TypeFilter[] = ['ALL', 'MCQ', 'TEXT', 'DOC', 'GROUP'];
 })
 export class QuestionSelectionComponent {
   private readonly route             = inject(ActivatedRoute);
+  private readonly router            = inject(Router);
   private readonly questionService   = inject(QuestionService);
   private readonly assessmentService = inject(AssessmentService);
   private readonly toastService      = inject(ToastService);
@@ -123,6 +124,10 @@ export class QuestionSelectionComponent {
       MCQ: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info',
     };
     return map[type];
+  }
+
+  onDone(): void {
+    this.router.navigate(['/assessments']);
   }
 
   submit(): void {

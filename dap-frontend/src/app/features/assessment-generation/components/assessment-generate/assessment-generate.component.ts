@@ -37,6 +37,7 @@ export class AssessmentGenerateComponent {
   private readonly destroyRef        = inject(DestroyRef);
 
   readonly cancelled           = output<void>();
+  readonly assessmentCreated   = output<void>();
   readonly navigateToQuestions = output<NavigateToQuestionsPayload>();
 
   // Candidates + dropdown
@@ -110,6 +111,7 @@ export class AssessmentGenerateComponent {
           this.done.set(true);
           this.submitting.set(false);
           this.toastService.success('Assessment generated successfully.');
+          this.assessmentCreated.emit();
         },
         error: () => {
           this.submitError.set('Failed to generate assessment. Please try again.');

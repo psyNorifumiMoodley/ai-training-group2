@@ -21,11 +21,10 @@ export interface Assessment {
   id: string;
   candidateName: string;
   candidateInitials: string;
-  role: string;
-  bankName: string;
   status: AssessmentStatus;
   assignedDate: string;
   timeLimitMinutes: number;
+  invitationLink: string | null;
 }
 
 export interface Question {

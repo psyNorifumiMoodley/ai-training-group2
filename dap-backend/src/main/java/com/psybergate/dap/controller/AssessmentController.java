@@ -116,6 +116,13 @@ public class AssessmentController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id}/remind")
+    @PreAuthorize("hasAnyRole('MARKER', 'ADMIN')")
+    public ResponseEntity<Void> remindCandidate(@PathVariable UUID id) {
+        assessmentService.remind(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/finalise")
     @PreAuthorize("hasAnyRole('MARKER', 'ADMIN')")
     public ResponseEntity<Void> finaliseMarking(

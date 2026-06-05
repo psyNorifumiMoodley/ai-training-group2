@@ -10,5 +10,6 @@ public record AssessmentSummaryResponse(
         String status,
         String assignedDate,
         String submittedAt,
-        int timeLimitMinutes
+        int timeLimitMinutes,
+        String invitationLink
 ) {}
