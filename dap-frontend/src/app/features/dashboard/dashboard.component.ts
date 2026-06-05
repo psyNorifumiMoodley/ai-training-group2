@@ -1,33 +1,82 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
 import { BadgeComponent } from '../../shared/components/badge/badge.component';
 import { AvatarComponent } from '../../shared/components/avatar/avatar.component';
 import { ProgressBarComponent } from '../../shared/components/progress-bar/progress-bar.component';
 import { Assessment } from '../../core/models/assessment.model';
-
-const STUB_ASSESSMENTS: Assessment[] = [
-  { id: '1', candidateName: 'Aisha Nkosi',      candidateInitials: 'AN', role: 'Backend Engineer',   bankName: 'Java Core',      status: 'IN_PROGRESS', assignedDate: '2026-05-28', timeLimitMinutes: 60 },
-  { id: '2', candidateName: 'Liam Okonkwo',     candidateInitials: 'LO', role: 'Frontend Engineer',  bankName: 'Angular',        status: 'PENDING',     assignedDate: '2026-05-27', timeLimitMinutes: 90 },
-  { id: '3', candidateName: 'Sara Patel',        candidateInitials: 'SP', role: 'Full Stack',         bankName: 'Spring Boot',    status: 'SUBMITTED',   assignedDate: '2026-05-26', timeLimitMinutes: 120 },
-  { id: '4', candidateName: 'David Chen',        candidateInitials: 'DC', role: 'DevOps',             bankName: 'Cloud & Infra',  status: 'MARKED',      assignedDate: '2026-05-24', timeLimitMinutes: 60 },
-  { id: '5', candidateName: 'Mia Fernandez',     candidateInitials: 'MF', role: 'Backend Engineer',   bankName: 'SQL Basics',     status: 'PENDING',     assignedDate: '2026-05-23', timeLimitMinutes: 45 },
-];
-
-const STUB_ACTIVITY = [
-  { dot: 'bg-primary',   text: 'Aisha Nkosi started assessment',      time: '12 min ago' },
-  { dot: 'bg-blue-400',  text: 'Sara Patel submitted for review',     time: '1 hr ago'   },
-  { dot: 'bg-green-400', text: "David Chen's assessment was marked",  time: '3 hr ago'   },
-  { dot: 'bg-amber-400', text: 'Liam Okonkwo invited via email',      time: 'Yesterday'  },
-];
+import { DashboardStats } from '../../core/models/dashboard.model';
+import { DashboardService } from '../../core/services/dashboard.service';
+import { AssessmentService } from '../../core/services/assessment.service';
 
 @Component({
   selector: 'dap-dashboard',
   standalone: true,
-  imports: [StatCardComponent, BadgeComponent, AvatarComponent, ProgressBarComponent],
+  imports: [StatCardComponent, BadgeComponent, AvatarComponent, ProgressBarComponent, DatePipe],
   templateUrl: './dashboard.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DashboardComponent {
-  readonly assessments = STUB_ASSESSMENTS;
-  readonly activity    = STUB_ACTIVITY;
+export class DashboardComponent implements OnInit {
+  private readonly dashboardService  = inject(DashboardService);
+  private readonly assessmentService = inject(AssessmentService);
+  private readonly destroyRef        = inject(DestroyRef);
+
+  readonly stats        = signal<DashboardStats | null>(null);
+  readonly assessments  = signal<Assessment[]>([]);
+  readonly loadingStats = signal(true);
+  readonly loadingList  = signal(true);
+
+  readonly candidatesAddedThisWeekSub = computed(() => {
+    const n = this.stats()?.candidatesAddedThisWeek;
+    return n != null ? `${n} added this week` : undefined;
+  });
+
+  readonly markedTodaySub = computed(() => {
+    const n = this.stats()?.markedToday;
+    return n != null ? `${n} marked today` : undefined;
+  });
+
+  /** Percentage of each status bucket relative to total assessments. */
+  readonly pendingPct    = computed(() => this.pct(this.stats()?.pendingCount));
+  readonly inProgressPct = computed(() => this.pct(this.stats()?.inProgressCount));
+  readonly submittedPct  = computed(() => this.pct(this.stats()?.submittedCount));
+  readonly markedPct     = computed(() => this.pct(this.stats()?.markedCount));
+
+  ngOnInit(): void {
+    this.loadStats();
+    this.loadRecentAssessments();
+  }
+
+  private loadStats(): void {
+    this.dashboardService
+      .getStats()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: stats => {
+          this.stats.set(stats);
+          this.loadingStats.set(false);
+        },
+        error: () => this.loadingStats.set(false),
+      });
+  }
+
+  private loadRecentAssessments(): void {
+    this.assessmentService
+      .getAssessments(0, 5)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: response => {
+          this.assessments.set(response.content);
+          this.loadingList.set(false);
+        },
+        error: () => this.loadingList.set(false),
+      });
+  }
+
+  private pct(count: number | undefined): number {
+    const total = this.stats()?.totalAssessments ?? 0;
+    if (!count || total === 0) return 0;
+    return Math.round((count / total) * 100);
+  }
 }
