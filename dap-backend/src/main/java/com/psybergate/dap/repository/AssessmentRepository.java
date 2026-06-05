@@ -41,4 +41,6 @@ public interface AssessmentRepository extends JpaRepository<Assessment, UUID> {
 
     @EntityGraph(attributePaths = {"candidate", "candidate.user", "questions"})
     Page<Assessment> findByStatus(AssessmentStatus status, Pageable pageable);
+
+    long countByStatus(AssessmentStatus status);
 }
