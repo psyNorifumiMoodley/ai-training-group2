@@ -86,7 +86,7 @@ export const routes: Routes = [
       {
         path: 'marking/:assessmentId',
         canActivate: [roleGuard],
-        data: { roles: ['MARKER'] },
+        data: { roles: ['ADMIN', 'MARKER'] },
         loadComponent: () =>
           import('./features/assessments/marking/marking.component')
             .then(m => m.MarkingComponent),
