@@ -11,6 +11,8 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.*;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import java.util.Map;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -235,5 +237,77 @@ class FinaliseTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         Assessment updated = assessmentRepository.findById(assessment.getId()).orElseThrow();
         assertThat(updated.getStatus()).isEqualTo(AssessmentStatus.MARKED);
+    }
+
+    @Test
+    void finalise_mcqWithNoFeedbackRecord_andTextWithFeedback_succeeds() {
+        McqQuestion mcq = txTemplate.execute(status -> {
+            McqQuestion q = new McqQuestion(List.of("A", "B"), List.of("A"));
+            q.setCategory("Java");
+            q.setQuestion("Which is correct?");
+            return mcqQuestionRepository.save(q);
+        });
+
+        TextQuestion text = txTemplate.execute(status -> {
+            TextQuestion q = new TextQuestion(List.of("jvm"));
+            q.setCategory("Java");
+            q.setQuestion("What is a JVM?");
+            return textQuestionRepository.save(q);
+        });
+
+        Assessment assessment = submittedAssessment(List.of(mcq, text));
+
+        txTemplate.execute(status -> {
+            Assessment a = assessmentRepository.findById(assessment.getId()).orElseThrow();
+            TextQuestion q = textQuestionRepository.findById(text.getId()).orElseThrow();
+            feedbackRepository.save(Feedback.builder()
+                    .assessment(a)
+                    .question(q)
+                    .draft("Good explanation.")
+                    .finalised(false)
+                    .build());
+            return null;
+        });
+
+        ResponseEntity<Void> response = doFinalise(assessment.getId());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Assessment updated = assessmentRepository.findById(assessment.getId()).orElseThrow();
+        assertThat(updated.getStatus()).isEqualTo(AssessmentStatus.MARKED);
+    }
+
+    @Test
+    void finalise_withOverallFeedbackBody_returns200() {
+        TextQuestion question = txTemplate.execute(status -> {
+            TextQuestion q = new TextQuestion(List.of("jvm"));
+            q.setCategory("Java");
+            q.setQuestion("What is a JVM?");
+            return textQuestionRepository.save(q);
+        });
+
+        Assessment assessment = submittedAssessment(List.of(question));
+
+        txTemplate.execute(status -> {
+            Assessment a = assessmentRepository.findById(assessment.getId()).orElseThrow();
+            TextQuestion q = textQuestionRepository.findById(question.getId()).orElseThrow();
+            feedbackRepository.save(Feedback.builder()
+                    .assessment(a)
+                    .question(q)
+                    .draft("Well done.")
+                    .finalised(false)
+                    .build());
+            return null;
+        });
+
+        HttpHeaders headers = markerHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        ResponseEntity<Void> response = restTemplate.exchange(
+                "/api/assessments/{id}/finalise",
+                HttpMethod.POST,
+                new HttpEntity<>(Map.of("overallFeedback", "Strong performance overall."), headers),
+                Void.class,
+                assessment.getId());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 }

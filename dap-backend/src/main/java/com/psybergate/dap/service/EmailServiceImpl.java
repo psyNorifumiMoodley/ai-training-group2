@@ -9,9 +9,6 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-import java.util.UUID;
-
 @Service
 public class EmailServiceImpl implements EmailService {
 
@@ -51,7 +48,7 @@ public class EmailServiceImpl implements EmailService {
 
     @Async
     @Override
-    public void sendFeedback(String toEmail, String candidateName, Map<UUID, String> feedbackByQuestion) {
+    public void sendFeedback(String toEmail, String candidateName, String overallFeedback) {
         if (fromAddress == null || fromAddress.isBlank()) {
             log.warn("Mail not configured (spring.mail.username is empty) — skipping feedback email to {}", toEmail);
             return;
@@ -61,7 +58,7 @@ public class EmailServiceImpl implements EmailService {
             message.setFrom(fromAddress);
             message.setTo(toEmail);
             message.setSubject("Your Assessment Feedback");
-            message.setText(buildFeedbackBody(candidateName, feedbackByQuestion));
+            message.setText(buildFeedbackBody(candidateName, overallFeedback));
             mailSender.send(message);
             log.info("Feedback email sent to {}", toEmail);
         } catch (MailException ex) {
@@ -83,14 +80,16 @@ public class EmailServiceImpl implements EmailService {
                 candidateName, invitationLink);
     }
 
-    private String buildFeedbackBody(String candidateName, Map<UUID, String> feedbackByQuestion) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(String.format("Dear %s,%n%n", candidateName));
-        sb.append("Your assessment has been reviewed. Here is the feedback from your marker:%n%n");
-        feedbackByQuestion.forEach((questionId, feedback) ->
-                sb.append(String.format("Question [%s]:%n%s%n%n", questionId, feedback)));
-        sb.append("Thank you for completing the assessment.%n%n");
-        sb.append("The Developer Assessment Platform Team");
-        return sb.toString();
+    private String buildFeedbackBody(String candidateName, String overallFeedback) {
+        String feedbackText = (overallFeedback != null && !overallFeedback.isBlank())
+                ? overallFeedback
+                : "(No additional feedback provided.)";
+        return String.format(
+                "Dear %s,%n%n" +
+                "Your assessment has been reviewed. Here is the feedback from your marker:%n%n" +
+                "%s%n%n" +
+                "Thank you for completing the assessment.%n%n" +
+                "The Developer Assessment Platform Team",
+                candidateName, feedbackText);
     }
 }
