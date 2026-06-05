@@ -72,6 +72,15 @@ public class AssessmentController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id}/start")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ResponseEntity<Void> startAssessment(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AppUser currentUser) {
+        assessmentService.startAssessment(id, currentUser.getId());
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/submit")
     @PreAuthorize("hasRole('CANDIDATE')")
     public ResponseEntity<AssessmentResponse> submitAssessment(

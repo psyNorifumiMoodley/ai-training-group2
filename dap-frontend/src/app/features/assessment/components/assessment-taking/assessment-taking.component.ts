@@ -6,11 +6,13 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { debounceTime, switchMap } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CandidateAssessmentService } from '../../../../core/services/candidate-assessment.service';
+import { AuthService } from '../../../../core/services/auth.service';
 import { AssessmentAccessResponse, ResponseRequest } from '../../../../core/models/assessment-session.model';
 import { CountdownTimerComponent } from '../countdown-timer/countdown-timer.component';
 import { QuestionRendererComponent, AnswerChangedEvent } from '../question-renderer/question-renderer.component';
@@ -23,6 +25,7 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
   selector: 'dap-assessment-taking',
   standalone: true,
   imports: [
+    DecimalPipe,
     CountdownTimerComponent,
     QuestionRendererComponent,
     ConfirmModalComponent,
@@ -36,6 +39,7 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 export class AssessmentTakingComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly service = inject(CandidateAssessmentService);
+  private readonly auth = inject(AuthService);
 
   readonly session = signal<AssessmentAccessResponse | null>(
     history.state['session'] ?? null,
@@ -46,6 +50,8 @@ export class AssessmentTakingComponent implements OnInit {
   readonly savedAnswers = signal<Record<string, ResponseRequest>>({});
   readonly showConfirm = signal(false);
   readonly submitting = signal(false);
+  readonly started = signal(history.state['session']?.alreadyStarted === true);
+  readonly starting = signal(false);
 
   readonly questions = computed(() => this.session()?.questions ?? []);
   readonly currentQuestion = computed(() => this.questions()[this.currentIndex()]);
@@ -69,9 +75,25 @@ export class AssessmentTakingComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (!this.session()) {
+    const s = this.session();
+    if (!s) {
       this.router.navigate(['/login']);
+      return;
     }
+    this.auth.storeToken(s.candidateToken);
+  }
+
+  startAssessment(): void {
+    const id = this.session()?.assessmentId;
+    if (!id || this.starting()) return;
+    this.starting.set(true);
+    this.service.startAssessment(id).subscribe({
+      next: () => {
+        this.starting.set(false);
+        this.started.set(true);
+      },
+      error: () => this.starting.set(false),
+    });
   }
 
   navState(index: number): 'done' | 'active' | 'todo' {
@@ -117,8 +139,10 @@ export class AssessmentTakingComponent implements OnInit {
   }
 
   private doSubmit(): void {
-    const id = this.session()?.assessmentId;
-    if (!id || this.submitting()) return;
+    const s = this.session();
+    const id = s?.assessmentId;
+    if (!s || !id || this.submitting()) return;
+    this.auth.storeToken(s!.candidateToken);
     this.submitting.set(true);
     this.service.submitAssessment(id).subscribe({
       next: () => this.router.navigate(['/assessment', id, 'confirmation']),

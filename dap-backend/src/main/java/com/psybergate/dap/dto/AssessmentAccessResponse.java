@@ -7,6 +7,7 @@ public record AssessmentAccessResponse(
         UUID assessmentId,
         List<QuestionResponse> questions,
         int remainingSeconds,
-        String candidateToken
+        String candidateToken,
+        boolean alreadyStarted
 ) {
 }

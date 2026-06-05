@@ -153,21 +153,42 @@ public class AssessmentService {
             }
         }
 
-        if (status == AssessmentStatus.PENDING) {
-            assessment.setStatus(AssessmentStatus.IN_PROGRESS);
-            assessment.setStartTime(Instant.now());
-            assessment = assessmentRepository.save(assessment);
+        long remainingSeconds;
+        if (status == AssessmentStatus.PENDING || assessment.getStartTime() == null) {
+            remainingSeconds = (long) assessment.getTimeLimitMinutes() * 60;
+        } else {
+            Instant deadline = assessment.getStartTime().plus(assessment.getTimeLimitMinutes(), ChronoUnit.MINUTES);
+            remainingSeconds = ChronoUnit.SECONDS.between(Instant.now(), deadline);
         }
-
-        Instant deadline = assessment.getStartTime().plus(assessment.getTimeLimitMinutes(), ChronoUnit.MINUTES);
-        long remainingSeconds = ChronoUnit.SECONDS.between(Instant.now(), deadline);
 
         List<QuestionResponse> questionResponses = assessment.getQuestions().stream()
                 .map(this::toQuestionResponse)
                 .collect(Collectors.toList());
 
         String candidateToken = jwtUtil.generateToken(assessment.getCandidate().getUser());
-        return new AssessmentAccessResponse(assessment.getId(), questionResponses, (int) remainingSeconds, candidateToken);
+        boolean alreadyStarted = status == AssessmentStatus.IN_PROGRESS;
+        return new AssessmentAccessResponse(assessment.getId(), questionResponses, (int) remainingSeconds, candidateToken, alreadyStarted);
+    }
+
+    @Transactional
+    public void startAssessment(UUID assessmentId, UUID requestingUserId) {
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new NoSuchElementException("Assessment not found: " + assessmentId));
+
+        if (!assessment.getCandidate().getId().equals(requestingUserId)) {
+            throw new AccessDeniedException("Forbidden: you are not the assigned candidate");
+        }
+
+        AssessmentStatus status = assessment.getStatus();
+        if (status == AssessmentStatus.SUBMITTED || status == AssessmentStatus.MARKED) {
+            throw new ConflictException("Assessment has already been submitted");
+        }
+
+        if (status == AssessmentStatus.PENDING) {
+            assessment.setStatus(AssessmentStatus.IN_PROGRESS);
+            assessment.setStartTime(Instant.now());
+            assessmentRepository.save(assessment);
+        }
     }
 
     private QuestionResponse toQuestionResponse(AssessmentQuestion q) {
