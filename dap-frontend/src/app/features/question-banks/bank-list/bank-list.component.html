@@ -18,6 +18,19 @@
       } @else if (banks().length === 0) {
         <p class="text-caption text-gray-400 text-center py-4">No banks yet.</p>
       } @else {
+        <!-- All categories pill -->
+        <button
+          (click)="selectBank('')"
+          [class]="'w-full text-left bg-white border rounded-card py-[0.6875rem] px-3 cursor-pointer transition-colors ' +
+            (selectedCategory() === '' ? 'border-primary' : 'border-gray-200 hover:border-gray-300')">
+          <div class="flex items-center justify-between mb-[0.1875rem]">
+            <span class="text-caption font-medium text-gray-800 truncate">All</span>
+            <span class="inline-block rounded-badge px-[0.4375rem] py-0.5 text-[0.6875rem] font-medium bg-primary-fill text-primary-text flex-shrink-0 ml-1">
+              {{ allQuestions().length }}
+            </span>
+          </div>
+        </button>
+
         @for (bank of banks(); track bank.name) {
           <button
             (click)="selectBank(bank.name)"
@@ -40,12 +53,11 @@
 
     <!-- Question list header + type filter -->
     <div class="mb-3">
-      @if (activeBank()) {
+      @if (!loading()) {
         <h2 class="text-sm font-medium text-gray-800 mb-2">
-          {{ activeBank()!.name }} · {{ categoryQuestions().length }} question{{ categoryQuestions().length !== 1 ? 's' : '' }}
+          @if (activeBank()) { {{ activeBank()!.name }} } @else { All categories }
+          · {{ categoryQuestions().length }} question{{ categoryQuestions().length !== 1 ? 's' : '' }}
         </h2>
-      } @else if (!loading()) {
-        <h2 class="text-sm font-medium text-gray-800 mb-2">All questions</h2>
       }
 
       <!-- Type filter pill row -->

@@ -125,7 +125,7 @@ class CandidateControllerTest {
     void register_asMarker_returns201() throws Exception {
         UUID id = UUID.randomUUID();
         when(candidateService.register(any(CandidateRequest.class)))
-                .thenReturn(new CandidateResponse(id, "Jane Doe", "jane@example.com"));
+                .thenReturn(new CandidateResponse(id, "Jane Doe", "jane@example.com", "2026-06-05T00:00:00Z"));
 
         AppUser marker = AppUser.builder()
                 .email("marker@example.com").passwordHash("x").name("Marker").role(Role.MARKER).build();

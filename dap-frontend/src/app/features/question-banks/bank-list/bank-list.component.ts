@@ -159,9 +159,6 @@ export class BankListComponent {
       .subscribe({
         next: page => {
           this.allQuestions.set(page.content);
-          if (!this.selectedCategory() && page.content.length > 0) {
-            this.selectedCategory.set(page.content[0].category);
-          }
           this.loading.set(false);
         },
         error: () => this.loading.set(false),
