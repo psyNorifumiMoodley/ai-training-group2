@@ -139,8 +139,10 @@ export class AssessmentTakingComponent implements OnInit {
   }
 
   private doSubmit(): void {
-    const id = this.session()?.assessmentId;
-    if (!id || this.submitting()) return;
+    const s = this.session();
+    const id = s?.assessmentId;
+    if (!s || !id || this.submitting()) return;
+    this.auth.storeToken(s!.candidateToken);
     this.submitting.set(true);
     this.service.submitAssessment(id).subscribe({
       next: () => this.router.navigate(['/assessment', id, 'confirmation']),
