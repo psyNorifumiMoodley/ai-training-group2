@@ -53,7 +53,9 @@ export class BankListComponent {
     for (const q of this.allQuestions()) {
       counts.set(q.category, (counts.get(q.category) ?? 0) + 1);
     }
-    return Array.from(counts.entries()).map(([name, questionCount]) => ({ name, questionCount }));
+    return Array.from(counts.entries())
+      .map(([name, questionCount]) => ({ name, questionCount }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   });
 
   readonly categoryQuestions = computed(() => {
