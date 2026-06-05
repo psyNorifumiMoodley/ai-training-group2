@@ -13,6 +13,10 @@ export class CandidateAssessmentService {
     return this.http.get<AssessmentAccessResponse>(`${this.base}/assessments/access/${token}`);
   }
 
+  startAssessment(assessmentId: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/assessments/${assessmentId}/start`, {});
+  }
+
   saveResponse(assessmentId: string, questionId: string, request: ResponseRequest): Observable<void> {
     return this.http.put<void>(`${this.base}/assessments/${assessmentId}/responses/${questionId}`, request);
   }
