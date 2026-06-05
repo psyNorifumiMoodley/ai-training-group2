@@ -28,7 +28,7 @@ export class MarkingService {
     return this.http.patch<void>(`${this.base}/${assessmentId}/responses/${responseId}`, request);
   }
 
-  finaliseMarking(assessmentId: string): Observable<void> {
-    return this.http.post<void>(`${this.base}/${assessmentId}/finalise`, {});
+  finaliseMarking(assessmentId: string, overallFeedback: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/${assessmentId}/finalise`, { overallFeedback });
   }
 }
