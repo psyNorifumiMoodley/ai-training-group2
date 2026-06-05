@@ -8,61 +8,130 @@
   <dap-button iconLeft="pi-plus" (clicked)="openAdd()">Add question</dap-button>
 </div>
 
-<div class="flex gap-4">
-  <!-- Bank list sidebar -->
-  <div class="w-[12.5rem] flex-shrink-0 space-y-2">
-    @if (loading()) {
-      <p class="text-caption text-gray-400 text-center py-4">Loading...</p>
-    } @else if (banks().length === 0) {
-      <p class="text-caption text-gray-400 text-center py-4">No banks yet.</p>
-    } @else {
-      @for (bank of banks(); track bank.name) {
+<div class="flex gap-4 min-h-0">
+
+  <!-- Bank list sidebar — scrollable -->
+  <div class="w-[12.5rem] flex-shrink-0 flex flex-col min-h-0">
+    <div class="overflow-y-auto flex-1 space-y-2 pr-0.5" style="max-height: calc(100vh - 14rem)">
+      @if (loading()) {
+        <p class="text-caption text-gray-400 text-center py-4">Loading...</p>
+      } @else if (banks().length === 0) {
+        <p class="text-caption text-gray-400 text-center py-4">No banks yet.</p>
+      } @else {
+        <!-- All categories pill -->
         <button
-          (click)="selectBank(bank.name)"
+          (click)="selectBank('')"
           [class]="'w-full text-left bg-white border rounded-card py-[0.6875rem] px-3 cursor-pointer transition-colors ' +
-            (selectedCategory() === bank.name ? 'border-primary' : 'border-gray-200 hover:border-gray-300')">
+            (selectedCategory() === '' ? 'border-primary' : 'border-gray-200 hover:border-gray-300')">
           <div class="flex items-center justify-between mb-[0.1875rem]">
-            <span class="text-caption font-medium text-gray-800 truncate">{{ bank.name }}</span>
+            <span class="text-caption font-medium text-gray-800 truncate">All</span>
             <span class="inline-block rounded-badge px-[0.4375rem] py-0.5 text-[0.6875rem] font-medium bg-primary-fill text-primary-text flex-shrink-0 ml-1">
-              {{ bank.questionCount }}
+              {{ allQuestions().length }}
             </span>
           </div>
         </button>
+
+        @for (bank of banks(); track bank.name) {
+          <button
+            (click)="selectBank(bank.name)"
+            [class]="'w-full text-left bg-white border rounded-card py-[0.6875rem] px-3 cursor-pointer transition-colors ' +
+              (selectedCategory() === bank.name ? 'border-primary' : 'border-gray-200 hover:border-gray-300')">
+            <div class="flex items-center justify-between mb-[0.1875rem]">
+              <span class="text-caption font-medium text-gray-800 truncate">{{ bank.name }}</span>
+              <span class="inline-block rounded-badge px-[0.4375rem] py-0.5 text-[0.6875rem] font-medium bg-primary-fill text-primary-text flex-shrink-0 ml-1">
+                {{ bank.questionCount }}
+              </span>
+            </div>
+          </button>
+        }
       }
-    }
+    </div>
   </div>
 
   <!-- Question list -->
-  <div class="flex-1 min-w-0">
-    @if (activeBank()) {
-      <h2 class="text-sm font-medium text-gray-800 mb-3">
-        {{ activeBank()!.name }} · {{ filteredQuestions().length }} question{{ filteredQuestions().length !== 1 ? 's' : '' }}
-      </h2>
-    } @else if (!loading()) {
-      <h2 class="text-sm font-medium text-gray-800 mb-3">All questions</h2>
-    }
+  <div class="flex-1 min-w-0 flex flex-col min-h-0">
 
-    <div class="space-y-2">
+    <!-- Question list header + type filter -->
+    <div class="mb-3">
+      @if (!loading()) {
+        <h2 class="text-sm font-medium text-gray-800 mb-2">
+          @if (activeBank()) { {{ activeBank()!.name }} } @else { All categories }
+          · {{ categoryQuestions().length }} question{{ categoryQuestions().length !== 1 ? 's' : '' }}
+        </h2>
+      }
+
+      <!-- Type filter pill row -->
+      <div class="flex items-center gap-1.5 flex-wrap">
+        @for (f of filterTypes; track f.value) {
+          <button
+            (click)="setTypeFilter(f.value)"
+            [class]="'px-3 py-1 rounded-full text-[0.6875rem] font-medium border transition-colors ' +
+              (typeFilter() === f.value
+                ? 'bg-primary text-white border-primary'
+                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700')">
+            {{ f.label }}
+          </button>
+        }
+        @if (typeFilter() !== 'ALL') {
+          <span class="text-[0.6875rem] text-gray-400 ml-1">
+            {{ filteredQuestions().length }} result{{ filteredQuestions().length !== 1 ? 's' : '' }}
+          </span>
+        }
+      </div>
+    </div>
+
+    <!-- Scrollable question cards -->
+    <div class="overflow-y-auto flex-1 space-y-2 pr-0.5" style="max-height: calc(100vh - 18rem)">
       @if (loading()) {
         <p class="text-caption text-gray-400 text-center py-8">Loading questions...</p>
       } @else if (filteredQuestions().length === 0) {
-        <p class="text-caption text-gray-400 text-center py-8">No questions in this bank.</p>
+        <p class="text-caption text-gray-400 text-center py-8">
+          No questions
+          @if (typeFilter() !== 'ALL') { matching this filter }
+          in this bank.
+          @if (typeFilter() !== 'ALL') {
+            <button class="text-primary hover:underline ml-1 text-caption"
+                    (click)="setTypeFilter('ALL')">Clear filter</button>
+          }
+        </p>
       } @else {
         @for (q of filteredQuestions(); track q.id) {
-          <div class="bg-white border border-gray-200 rounded-card py-[0.8125rem] px-3.5">
+          <!-- Question card -->
+          <div class="bg-white border border-gray-200 rounded-card py-[0.8125rem] px-3.5 relative">
             <div class="flex items-start justify-between gap-3">
               <p class="text-caption text-gray-800 line-clamp-2 flex-1">{{ q.question }}</p>
-              <div class="flex items-center gap-1 flex-shrink-0">
-                <button (click)="openEdit(q)"
-                        class="px-3 py-1 rounded-input bg-white text-primary border border-primary text-caption font-medium hover:bg-primary-light transition-colors">
-                  Edit
+
+              <!-- Ellipsis menu trigger -->
+              <div class="relative flex-shrink-0">
+                <button
+                  (click)="toggleMenu(q.id)"
+                  class="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                  <i class="pi pi-ellipsis-v text-caption"></i>
                 </button>
-                <button (click)="requestDelete(q)"
-                        class="px-3 py-1 rounded-input bg-white text-red-600 border border-red-500 text-caption font-medium hover:bg-red-50 transition-colors">
-                  Delete
-                </button>
+
+                <!-- Dropdown menu -->
+                @if (openMenuId() === q.id) {
+                  <!-- Backdrop to close menu on outside click -->
+                  <div class="fixed inset-0 z-10" (click)="closeMenu()"></div>
+
+                  <div class="absolute right-0 top-8 z-20 bg-white border border-gray-200 rounded-card shadow-md w-32 py-1">
+                    <button
+                      (click)="openEdit(q)"
+                      class="w-full flex items-center gap-2 px-3 py-2 text-caption text-gray-700 hover:bg-gray-50 transition-colors">
+                      <i class="pi pi-pencil text-[0.6875rem] text-gray-400"></i>
+                      Edit
+                    </button>
+                    <button
+                      (click)="requestDelete(q)"
+                      class="w-full flex items-center gap-2 px-3 py-2 text-caption text-red-600 hover:bg-red-50 transition-colors">
+                      <i class="pi pi-trash text-[0.6875rem] text-red-400"></i>
+                      Delete
+                    </button>
+                  </div>
+                }
               </div>
             </div>
+
             <div class="flex items-center gap-1.5 mt-2">
               <dap-tag [label]="resolveType(q)" [variant]="typeVariant(resolveType(q))" />
               <span class="text-[0.6875rem] text-gray-400">{{ q.category }}</span>
