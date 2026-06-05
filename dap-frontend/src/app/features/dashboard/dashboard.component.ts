@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
 import { BadgeComponent } from '../../shared/components/badge/badge.component';
@@ -12,7 +13,7 @@ import { AssessmentService } from '../../core/services/assessment.service';
 @Component({
   selector: 'dap-dashboard',
   standalone: true,
-  imports: [StatCardComponent, BadgeComponent, AvatarComponent, ProgressBarComponent],
+  imports: [StatCardComponent, BadgeComponent, AvatarComponent, ProgressBarComponent, DatePipe],
   templateUrl: './dashboard.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

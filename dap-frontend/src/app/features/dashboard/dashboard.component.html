@@ -57,7 +57,7 @@
             </td>
             <td class="py-2.5 pr-4 text-gray-500">{{ a.bankName }}</td>
             <td class="py-2.5 pr-4"><dap-badge [status]="a.status" /></td>
-            <td class="py-2.5 text-gray-400">{{ a.assignedDate }}</td>
+            <td class="py-2.5 text-gray-400">{{ a.assignedDate | date:'d MMM yyyy' }}</td>
           </tr>
         }
       </tbody>
@@ -85,7 +85,7 @@
           <div class="flex justify-between text-xs text-gray-500 mb-1">
             <span>In progress</span><span>{{ inProgressPct() }}%</span>
           </div>
-          <dap-progress-bar [value]="inProgressPct()" color="bg-amber-400" height="sm" />
+          <dap-progress-bar [value]="inProgressPct()" color="bg-cyan-500" height="sm" />
         </div>
         <div>
           <div class="flex justify-between text-xs text-gray-500 mb-1">
