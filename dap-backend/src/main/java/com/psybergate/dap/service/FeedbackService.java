@@ -2,6 +2,7 @@ package com.psybergate.dap.service;
 
 import com.psybergate.dap.domain.Assessment;
 import com.psybergate.dap.domain.AssessmentQuestion;
+import com.psybergate.dap.domain.AssessmentStatus;
 import com.psybergate.dap.domain.Feedback;
 import com.psybergate.dap.domain.McqQuestion;
 import com.psybergate.dap.domain.McqResponse;
@@ -12,6 +13,7 @@ import com.psybergate.dap.repository.AssessmentQuestionRepository;
 import com.psybergate.dap.repository.AssessmentRepository;
 import com.psybergate.dap.repository.FeedbackRepository;
 import com.psybergate.dap.repository.ResponseRepository;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,7 +93,22 @@ public class FeedbackService {
 
     @Transactional(readOnly = true)
     public List<FeedbackItem> getCandidateFeedback(UUID assessmentId, UUID requestingCandidateId) {
-        // stub — implemented in ATG-37
-        return List.of();
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new NoSuchElementException("Assessment not found: " + assessmentId));
+
+        if (!assessment.getCandidate().getId().equals(requestingCandidateId)) {
+            throw new AccessDeniedException("You are not the assigned candidate for this assessment");
+        }
+
+        if (assessment.getStatus() != AssessmentStatus.MARKED) {
+            throw new AccessDeniedException("Feedback is not yet available");
+        }
+
+        return feedbackRepository.findWithQuestionByAssessmentId(assessmentId).stream()
+                .map(f -> new FeedbackItem(
+                        f.getQuestion().getId(),
+                        f.getQuestion().getQuestion(),
+                        f.getDraft()))
+                .toList();
     }
 }
