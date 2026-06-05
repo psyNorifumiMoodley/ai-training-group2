@@ -5,14 +5,15 @@
   <dap-stat-card
     label="Candidates"
     [value]="stats()?.totalCandidates ?? '—'"
+    [sub]="candidatesAddedThisWeekSub()"
     subColor="primary"
     accentColor="#2563eb" />
   <dap-stat-card
     label="Active"
     [value]="stats()?.inProgressCount ?? '—'"
     sub="In progress"
-    subColor="primary"
-    accentColor="#f59e0b" />
+    subColor="info"
+    accentColor="#06b6d4" />
   <dap-stat-card
     label="Pending review"
     [value]="stats()?.submittedCount ?? '—'"
@@ -22,6 +23,7 @@
   <dap-stat-card
     label="Marked"
     [value]="stats()?.markedCount ?? '—'"
+    [sub]="markedTodaySub()"
     subColor="success"
     accentColor="#22c55e" />
 </div>

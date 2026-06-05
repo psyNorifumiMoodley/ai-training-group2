@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
+
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,4 +44,6 @@ public interface AssessmentRepository extends JpaRepository<Assessment, UUID> {
     Page<Assessment> findByStatus(AssessmentStatus status, Pageable pageable);
 
     long countByStatus(AssessmentStatus status);
+
+    long countByStatusAndUpdatedAtAfter(AssessmentStatus status, Instant since);
 }

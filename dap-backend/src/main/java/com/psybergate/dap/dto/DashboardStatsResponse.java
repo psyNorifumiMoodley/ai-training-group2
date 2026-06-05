@@ -2,9 +2,11 @@ package com.psybergate.dap.dto;
 
 public record DashboardStatsResponse(
         long totalCandidates,
+        long candidatesAddedThisWeek,
         long totalAssessments,
         long pendingCount,
         long inProgressCount,
         long submittedCount,
-        long markedCount
+        long markedCount,
+        long markedToday
 ) {}

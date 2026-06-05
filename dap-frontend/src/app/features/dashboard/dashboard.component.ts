@@ -26,6 +26,16 @@ export class DashboardComponent implements OnInit {
   readonly loadingStats = signal(true);
   readonly loadingList  = signal(true);
 
+  readonly candidatesAddedThisWeekSub = computed(() => {
+    const n = this.stats()?.candidatesAddedThisWeek;
+    return n != null ? `${n} added this week` : undefined;
+  });
+
+  readonly markedTodaySub = computed(() => {
+    const n = this.stats()?.markedToday;
+    return n != null ? `${n} marked today` : undefined;
+  });
+
   /** Percentage of each status bucket relative to total assessments. */
   readonly pendingPct    = computed(() => this.pct(this.stats()?.pendingCount));
   readonly inProgressPct = computed(() => this.pct(this.stats()?.inProgressCount));

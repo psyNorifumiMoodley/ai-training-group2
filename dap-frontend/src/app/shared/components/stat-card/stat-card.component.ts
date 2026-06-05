@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 const SUB_COLOR_CLASSES = {
   primary: 'text-primary',
+  info:    'text-cyan-500',
   success: 'text-green-600',
   warning: 'text-amber-600',
   danger:  'text-red-600',
@@ -28,7 +29,7 @@ export class StatCardComponent {
   readonly label       = input.required<string>();
   readonly value       = input.required<string | number>();
   readonly sub         = input<string | undefined>(undefined);
-  readonly subColor    = input<'primary' | 'success' | 'warning' | 'danger'>('primary');
+  readonly subColor    = input<'primary' | 'info' | 'success' | 'warning' | 'danger'>('primary');
   readonly accentColor = input<string | undefined>(undefined);
 
   subColorClass(): string { return SUB_COLOR_CLASSES[this.subColor()]; }
