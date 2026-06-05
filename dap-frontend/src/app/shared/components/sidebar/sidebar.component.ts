@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { ShellStateService } from '../../../core/services/shell-state.service';
 import { Role } from '../../../core/models/auth.model';
 
 interface NavItem {
@@ -11,12 +12,11 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard',      icon: 'pi-home',      route: '/dashboard',      roles: ['ADMIN', 'MARKER'] },
-  { label: 'Candidates',     icon: 'pi-users',     route: '/candidates',     roles: ['ADMIN', 'MARKER'] },
-  { label: 'Assessments',    icon: 'pi-list',        route: '/assessments',          roles: ['ADMIN', 'MARKER'] },
-  { label: 'Question banks', icon: 'pi-folder',    route: '/question-banks', roles: ['ADMIN', 'MARKER'] },
-  { label: 'Markers',        icon: 'pi-id-card',   route: '/markers',        roles: ['ADMIN'] },
-  { label: 'Settings',       icon: 'pi-cog',       route: '/settings',       roles: ['ADMIN'] },
+  { label: 'Dashboard',      icon: 'pi-home',     route: '/dashboard',      roles: ['ADMIN', 'MARKER'] },
+  { label: 'Candidates',     icon: 'pi-users',    route: '/candidates',     roles: ['ADMIN', 'MARKER'] },
+  { label: 'Assessments',    icon: 'pi-list',     route: '/assessments',    roles: ['ADMIN', 'MARKER'] },
+  { label: 'Question banks', icon: 'pi-folder',   route: '/question-banks', roles: ['ADMIN', 'MARKER'] },
+  { label: 'Markers',        icon: 'pi-id-card',  route: '/markers',        roles: ['ADMIN'] },
 ];
 
 @Component({
@@ -28,6 +28,12 @@ const NAV_ITEMS: NavItem[] = [
 })
 export class SidebarComponent {
   private readonly authService = inject(AuthService);
+  readonly shellState = inject(ShellStateService);
+
+  readonly navClasses = computed(() =>
+    (this.shellState.sidebarOpen() ? 'w-[11rem]' : 'w-0') +
+    ' h-full flex-shrink-0 bg-sidebar border-r border-border-dark flex flex-col overflow-hidden transition-[width] duration-200'
+  );
 
   readonly visibleItems = computed(() => {
     const role = this.authService.currentUser()?.role;

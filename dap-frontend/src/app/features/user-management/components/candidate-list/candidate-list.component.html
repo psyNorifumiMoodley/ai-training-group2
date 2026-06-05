@@ -6,17 +6,65 @@
   </button>
 </div>
 
+<div class="flex items-center gap-3 mb-4">
+  <div class="relative flex-1 max-w-sm">
+    <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[0.75rem]"></i>
+    <input [formControl]="searchControl"
+           type="text"
+           placeholder="Search by name or email…"
+           class="w-full pl-8 pr-3 py-2 text-caption border border-gray-200 rounded-input focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors">
+  </div>
+  <select (change)="onStatusFilterChange($event)"
+          class="px-3 py-2 text-caption border border-gray-200 rounded-input focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white transition-colors">
+    @for (opt of statusOptions; track opt.value) {
+      <option [value]="opt.value">{{ opt.label }}</option>
+    }
+  </select>
+</div>
+
 @if (loading()) {
   <p class="text-caption text-gray-400">Loading...</p>
 } @else if (candidates().length === 0) {
-  <p class="text-caption text-gray-400">No candidates registered yet.</p>
+  <p class="text-caption text-gray-400">No candidates found.</p>
 } @else {
   <div class="bg-white border border-gray-200 rounded-card p-3.5">
     <table class="w-full text-caption">
       <thead>
         <tr class="border-b border-gray-100">
-          <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Name</th>
-          <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2">Email</th>
+          <th class="text-left pb-2 pr-4">
+            <button (click)="toggleSort('name')"
+                    class="flex items-center gap-1 text-[0.6875rem] font-medium text-gray-400 hover:text-gray-600 transition-colors">
+              Name
+              @if (sortBy() === 'name') {
+                <i class="pi text-[0.6rem]" [class.pi-sort-amount-up]="sortDir() === 'asc'" [class.pi-sort-amount-down]="sortDir() === 'desc'"></i>
+              } @else {
+                <i class="pi pi-sort text-[0.6rem] opacity-30"></i>
+              }
+            </button>
+          </th>
+          <th class="text-left pb-2 pr-4">
+            <button (click)="toggleSort('email')"
+                    class="flex items-center gap-1 text-[0.6875rem] font-medium text-gray-400 hover:text-gray-600 transition-colors">
+              Email
+              @if (sortBy() === 'email') {
+                <i class="pi text-[0.6rem]" [class.pi-sort-amount-up]="sortDir() === 'asc'" [class.pi-sort-amount-down]="sortDir() === 'desc'"></i>
+              } @else {
+                <i class="pi pi-sort text-[0.6rem] opacity-30"></i>
+              }
+            </button>
+          </th>
+          <th class="text-left pb-2 pr-4">
+            <button (click)="toggleSort('createdAt')"
+                    class="flex items-center gap-1 text-[0.6875rem] font-medium text-gray-400 hover:text-gray-600 transition-colors">
+              Registered
+              @if (sortBy() === 'createdAt') {
+                <i class="pi text-[0.6rem]" [class.pi-sort-amount-up]="sortDir() === 'asc'" [class.pi-sort-amount-down]="sortDir() === 'desc'"></i>
+              } @else {
+                <i class="pi pi-sort text-[0.6rem] opacity-30"></i>
+              }
+            </button>
+          </th>
+          <th class="pb-2 w-16"></th>
         </tr>
       </thead>
       <tbody>
@@ -30,7 +78,14 @@
                 <span class="text-gray-800">{{ candidate.name }}</span>
               </div>
             </td>
-            <td class="py-2.5 text-gray-500">{{ candidate.email }}</td>
+            <td class="py-2.5 pr-4 text-gray-500">{{ candidate.email }}</td>
+            <td class="py-2.5 pr-4 text-gray-400 text-[0.6875rem]">{{ formatDate(candidate.createdAt) }}</td>
+            <td class="py-2.5 text-right">
+              <a [routerLink]="['/candidates', candidate.id]"
+                 class="inline-flex items-center gap-1 px-2.5 py-1 text-[0.6875rem] font-medium text-primary border border-primary/30 rounded-input hover:bg-primary/5 transition-colors">
+                <i class="pi pi-eye text-[0.6875rem]"></i> View
+              </a>
+            </td>
           </tr>
         }
       </tbody>

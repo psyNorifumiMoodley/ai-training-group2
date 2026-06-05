@@ -1,7 +1,9 @@
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
   <div class="bg-white rounded-modal shadow-xl w-full max-w-md mx-4">
     <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-      <h2 class="text-[0.9375rem] font-medium text-gray-900">Register new marker</h2>
+      <h2 class="text-[0.9375rem] font-medium text-gray-900">
+        {{ isEditMode ? 'Edit marker' : 'Register new marker' }}
+      </h2>
       <button type="button" (click)="cancel()" class="text-gray-400 hover:text-gray-600 w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors">
         <i class="pi pi-times text-caption"></i>
       </button>
@@ -38,19 +40,21 @@
         }
       </div>
 
-      <div>
-        <label class="block text-xs font-medium text-gray-500 mb-1" for="m-password">Password</label>
-        <input id="m-password" formControlName="password" type="password"
-               class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
-               [class.border-red-400]="passwordControl.invalid && passwordControl.touched">
-        @if (passwordControl.touched) {
-          @if (passwordControl.errors?.['required']) {
-            <p class="text-[0.6875rem] text-red-500 mt-1">Password is required.</p>
-          } @else if (passwordControl.errors?.['minlength']) {
-            <p class="text-[0.6875rem] text-red-500 mt-1">Password must be at least 8 characters.</p>
+      @if (!isEditMode) {
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1" for="m-password">Password</label>
+          <input id="m-password" formControlName="password" type="password"
+                 class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                 [class.border-red-400]="passwordControl.invalid && passwordControl.touched">
+          @if (passwordControl.touched) {
+            @if (passwordControl.errors?.['required']) {
+              <p class="text-[0.6875rem] text-red-500 mt-1">Password is required.</p>
+            } @else if (passwordControl.errors?.['minlength']) {
+              <p class="text-[0.6875rem] text-red-500 mt-1">Password must be at least 8 characters.</p>
+            }
           }
-        }
-      </div>
+        </div>
+      }
 
       <div class="flex justify-end gap-2 pt-2">
         <button type="button" (click)="cancel()"
@@ -59,7 +63,7 @@
         </button>
         <button type="submit" [disabled]="submitting()"
                 class="px-4 py-2 text-caption font-medium text-white bg-primary rounded-input hover:bg-primary-hover disabled:opacity-50 transition-colors">
-          @if (submitting()) { Saving... } @else { Register }
+          @if (submitting()) { Saving... } @else if (isEditMode) { Save changes } @else { Register }
         </button>
       </div>
     </form>

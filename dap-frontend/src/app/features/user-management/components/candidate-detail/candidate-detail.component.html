@@ -1,0 +1,115 @@
+@if (loading()) {
+  <p class="text-caption text-gray-400">Loading...</p>
+} @else if (!candidate()) {
+  <div class="flex items-center gap-3 mb-4">
+    <a routerLink="/candidates"
+       class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-md hover:bg-gray-50 transition-colors text-gray-500">
+      <i class="pi pi-arrow-left text-[0.75rem]"></i>
+    </a>
+  </div>
+  <p class="text-caption text-red-500">{{ error() ?? 'Candidate not found.' }}</p>
+} @else {
+  <!-- Header -->
+  <div class="flex items-center gap-3 mb-6">
+    <a routerLink="/candidates"
+       class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-md hover:bg-gray-50 transition-colors text-gray-500">
+      <i class="pi pi-arrow-left text-[0.75rem]"></i>
+    </a>
+    <div class="flex items-center gap-2 flex-1">
+      <div class="w-8 h-8 rounded-avatar bg-primary-fill text-primary-text flex items-center justify-center text-sm font-medium flex-shrink-0">
+        {{ candidate()!.name.charAt(0).toUpperCase() }}
+      </div>
+      <h1 class="text-h2 text-gray-900">{{ candidate()!.name }}</h1>
+    </div>
+    @if (isAdmin) {
+      <div class="flex items-center gap-2">
+        <button (click)="openEditForm()"
+                class="flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium text-gray-600 border border-gray-200 rounded-input hover:bg-gray-50 transition-colors">
+          <i class="pi pi-pencil text-[0.75rem]"></i> Edit
+        </button>
+        @if (!confirmingDelete()) {
+          <button (click)="requestDelete()"
+                  class="flex items-center gap-1.5 px-3 py-1.5 text-caption font-medium text-red-600 border border-red-200 rounded-input hover:bg-red-50 transition-colors">
+            <i class="pi pi-trash text-[0.75rem]"></i> Delete
+          </button>
+        } @else {
+          <span class="text-caption text-gray-600">Are you sure?</span>
+          <button (click)="confirmDelete()" [disabled]="deleting()"
+                  class="px-3 py-1.5 text-caption font-medium text-white bg-red-600 rounded-input hover:bg-red-700 disabled:opacity-50 transition-colors">
+            {{ deleting() ? 'Deleting…' : 'Yes, delete' }}
+          </button>
+          <button (click)="cancelDelete()"
+                  class="px-3 py-1.5 text-caption font-medium text-gray-500 border border-gray-200 rounded-input hover:bg-gray-50 transition-colors">
+            Cancel
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  @if (error()) {
+    <p class="text-caption text-red-500 bg-red-50 rounded-input px-3 py-2 mb-4">{{ error() }}</p>
+  }
+
+  <!-- Profile card -->
+  <div class="bg-white border border-gray-200 rounded-card p-5 mb-6">
+    <h2 class="text-[0.8125rem] font-medium text-gray-500 mb-3">Profile</h2>
+    <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div>
+        <dt class="text-[0.6875rem] font-medium text-gray-400 mb-0.5">Name</dt>
+        <dd class="text-caption text-gray-800">{{ candidate()!.name }}</dd>
+      </div>
+      <div>
+        <dt class="text-[0.6875rem] font-medium text-gray-400 mb-0.5">Email</dt>
+        <dd class="text-caption text-gray-800">{{ candidate()!.email }}</dd>
+      </div>
+      <div>
+        <dt class="text-[0.6875rem] font-medium text-gray-400 mb-0.5">Registered</dt>
+        <dd class="text-caption text-gray-800">{{ formatDate(candidate()!.createdAt) }}</dd>
+      </div>
+    </dl>
+  </div>
+
+  <!-- Assessments -->
+  <div>
+    <h2 class="text-[0.8125rem] font-medium text-gray-700 mb-3">Assessments</h2>
+
+    @if (loadingAssessments()) {
+      <p class="text-caption text-gray-400">Loading assessments...</p>
+    } @else if (assessments().length === 0) {
+      <p class="text-caption text-gray-400">No assessments have been assigned to this candidate yet.</p>
+    } @else {
+      <div class="bg-white border border-gray-200 rounded-card p-3.5">
+        <table class="w-full text-caption">
+          <thead>
+            <tr class="border-b border-gray-100">
+              <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Status</th>
+              <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Time limit</th>
+              <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2">Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (assessment of assessments(); track assessment.id) {
+              <tr class="border-b border-gray-50 last:border-0">
+                <td class="py-2.5 pr-4">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[0.6875rem] font-medium {{ statusClass(assessment.status) }}">
+                    {{ statusLabel(assessment.status) }}
+                  </span>
+                </td>
+                <td class="py-2.5 pr-4 text-gray-600">{{ assessment.timeLimitMinutes }} min</td>
+                <td class="py-2.5 text-gray-400 text-[0.6875rem]">{{ formatDate(assessment.createdAt) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+}
+
+@if (showEditForm()) {
+  <app-candidate-form
+    [editCandidate]="candidate()"
+    (saved)="onFormSaved()"
+    (cancelled)="onFormCancelled()" />
+}

@@ -39,6 +39,14 @@ export const routes: Routes = [
             .then(m => m.CandidateListComponent),
       },
       {
+        path: 'candidates/:id',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'MARKER'] },
+        loadComponent: () =>
+          import('./features/user-management/components/candidate-detail/candidate-detail.component')
+            .then(m => m.CandidateDetailComponent),
+      },
+      {
         path: 'assessments',
         canActivate: [roleGuard],
         data: { roles: ['ADMIN', 'MARKER'] },

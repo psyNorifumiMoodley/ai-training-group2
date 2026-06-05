@@ -1,7 +1,9 @@
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
   <div class="bg-white rounded-modal shadow-xl w-full max-w-md mx-4">
     <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-      <h2 class="text-[0.9375rem] font-medium text-gray-900">Register new candidate</h2>
+      <h2 class="text-[0.9375rem] font-medium text-gray-900">
+        {{ editCandidate() ? 'Edit candidate' : 'Register new candidate' }}
+      </h2>
       <button type="button" (click)="cancel()" class="text-gray-400 hover:text-gray-600 w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors">
         <i class="pi pi-times text-caption"></i>
       </button>
@@ -45,7 +47,7 @@
         </button>
         <button type="submit" [disabled]="submitting()"
                 class="px-4 py-2 text-caption font-medium text-white bg-primary rounded-input hover:bg-primary-hover disabled:opacity-50 transition-colors">
-          @if (submitting()) { Saving... } @else { Register }
+          @if (submitting()) { Saving... } @else { {{ editCandidate() ? 'Save changes' : 'Register' }} }
         </button>
       </div>
     </form>

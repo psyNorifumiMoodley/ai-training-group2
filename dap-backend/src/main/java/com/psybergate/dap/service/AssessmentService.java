@@ -298,6 +298,20 @@ public class AssessmentService {
         return fetchSeenQuestionIds(candidateId);
     }
 
+    @Transactional(readOnly = true)
+    public List<AssessmentResponse> getCandidateAssessments(UUID candidateId) {
+        return assessmentRepository.findByCandidateId(candidateId).stream()
+                .map(a -> new AssessmentResponse(
+                        a.getId(),
+                        candidateId,
+                        a.getStatus().name(),
+                        a.getInvitationToken() != null ? frontendBaseUrl + "/assessment/access/" + a.getInvitationToken() : null,
+                        a.getTimeLimitMinutes(),
+                        a.getCreatedAt() != null ? a.getCreatedAt().toString() : null
+                ))
+                .toList();
+    }
+
     @Transactional
     public AssessmentResponse submit(UUID assessmentId, UUID requestingUserId) {
         Assessment assessment = assessmentRepository.findById(assessmentId)

@@ -11,6 +11,7 @@ import com.psybergate.dap.domain.Role;
 import com.psybergate.dap.dto.CandidateRequest;
 import com.psybergate.dap.dto.CandidateResponse;
 import com.psybergate.dap.dto.PageResponse;
+import com.psybergate.dap.service.AssessmentService;
 import com.psybergate.dap.service.AuthService;
 import com.psybergate.dap.service.CandidateService;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +60,9 @@ class CandidateControllerTest {
     @MockBean
     private CandidateService candidateService;
 
+    @MockBean
+    private AssessmentService assessmentService;
+
     private String adminToken;
 
     @BeforeEach
@@ -81,7 +86,7 @@ class CandidateControllerTest {
     void register_asAdmin_returns201() throws Exception {
         UUID id = UUID.randomUUID();
         when(candidateService.register(any(CandidateRequest.class)))
-                .thenReturn(new CandidateResponse(id, "Jane Doe", "jane@example.com"));
+                .thenReturn(new CandidateResponse(id, "Jane Doe", "jane@example.com", null));
 
         mockMvc.perform(post("/api/candidates")
                         .header("Authorization", "Bearer " + adminToken)
@@ -139,7 +144,7 @@ class CandidateControllerTest {
 
     @Test
     void list_asAdmin_returns200() throws Exception {
-        when(candidateService.listCandidates(0, 20))
+        when(candidateService.listCandidates(anyInt(), anyInt(), any(), anyString(), anyString(), any()))
                 .thenReturn(new PageResponse<>(List.of(), 0, 0, 20, 0));
 
         mockMvc.perform(get("/api/candidates")

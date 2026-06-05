@@ -7,6 +7,7 @@ export interface CandidateResponse {
   id: string;
   name: string;
   email: string;
+  createdAt: string;
 }
 
 export interface MarkerRequest {
@@ -19,6 +20,7 @@ export interface MarkerResponse {
   id: string;
   name: string;
   email: string;
+  createdAt: string;
 }
 
 export interface PageResponse<T> {
