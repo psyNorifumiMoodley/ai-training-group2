@@ -99,6 +99,14 @@ export const routes: Routes = [
           import('./features/user-management/components/marker-list/marker-list.component')
             .then(m => m.MarkerListComponent),
       },
+      {
+        path: 'settings',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN', 'MARKER'] },
+        loadComponent: () =>
+          import('./features/settings/settings.component')
+            .then(m => m.SettingsComponent),
+      },
     ],
   },
   { path: '**', redirectTo: 'login' },

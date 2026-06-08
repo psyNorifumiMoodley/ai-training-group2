@@ -31,6 +31,11 @@ public class AppUser extends BaseEntity implements UserDetails {
     @Column(nullable = false)
     private Role role;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ThemePreference themePreference = ThemePreference.LIGHT;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));

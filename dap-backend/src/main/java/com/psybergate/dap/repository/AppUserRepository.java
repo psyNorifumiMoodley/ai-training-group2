@@ -17,6 +17,8 @@ public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
 
     boolean existsByEmail(String email);
 
+    boolean existsByEmailAndIdNot(String email, UUID id);
+
     Page<AppUser> findAllByRole(Role role, Pageable pageable);
 
     @Query(value = """
