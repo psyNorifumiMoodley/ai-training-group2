@@ -2,10 +2,11 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { AssessmentStatus } from '../../../core/models/assessment.model';
 
 const STATUS_CLASSES: Record<AssessmentStatus, string> = {
-  PENDING:     'bg-primary-fill text-primary-text',
+  PENDING:     'bg-orange-100 text-orange-700',
   IN_PROGRESS: 'bg-amber-100 text-amber-800',
   SUBMITTED:   'bg-blue-100 text-blue-800',
   MARKED:      'bg-green-100 text-green-800',
+  CLOSED:      'bg-gray-100 text-gray-500',
 };
 
 const STATUS_LABELS: Record<AssessmentStatus, string> = {
@@ -13,6 +14,7 @@ const STATUS_LABELS: Record<AssessmentStatus, string> = {
   IN_PROGRESS: 'In progress',
   SUBMITTED:   'Submitted',
   MARKED:      'Marked',
+  CLOSED:      'Closed',
 };
 
 @Component({

@@ -8,6 +8,7 @@ import com.psybergate.dap.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -387,6 +388,33 @@ public class AssessmentService {
         responseService.autoMarkMcqResponses(assessmentId);
 
         return toResponse(saved);
+    }
+
+    @Scheduled(fixedRate = 60_000)
+    @Transactional
+    public void autoSubmitExpiredAssessments() {
+        List<Assessment> expired = assessmentRepository.findExpiredInProgress();
+        for (Assessment assessment : expired) {
+            assessment.setStatus(AssessmentStatus.SUBMITTED);
+            assessment.setAutoSubmitted(true);
+            assessmentRepository.save(assessment);
+            responseService.autoMarkMcqResponses(assessment.getId());
+            log.info("Auto-submitted expired assessment {}", assessment.getId());
+        }
+    }
+
+    @Transactional
+    public void close(UUID assessmentId) {
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new NoSuchElementException("Assessment not found: " + assessmentId));
+        if (assessment.getStatus() == AssessmentStatus.CLOSED) {
+            throw new ConflictException("Assessment is already closed");
+        }
+        if (assessment.getStatus() != AssessmentStatus.SUBMITTED) {
+            throw new ConflictException("Only submitted assessments can be closed");
+        }
+        assessment.setStatus(AssessmentStatus.CLOSED);
+        assessmentRepository.save(assessment);
     }
 
     @Transactional

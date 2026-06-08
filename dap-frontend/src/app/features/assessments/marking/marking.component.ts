@@ -51,6 +51,7 @@ export class MarkingComponent implements OnInit {
   readonly activeTab       = signal<TabType>('ALL');
   readonly loading         = signal(true);
   readonly finalising      = signal(false);
+  readonly closing         = signal(false);
 
   readonly availableTabs = computed<TabType[]>(() => {
     const types = new Set(this.reviewItems().map(i => i.questionType as TabType));
@@ -161,6 +162,17 @@ export class MarkingComponent implements OnInit {
 
   backToAssessments(): void {
     this.router.navigate(['/assessments']);
+  }
+
+  close(): void {
+    this.closing.set(true);
+    this.markingService
+      .closeAssessment(this.assessmentId())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.router.navigate(['/assessments']),
+        error: () => this.closing.set(false),
+      });
   }
 
   finalise(): void {

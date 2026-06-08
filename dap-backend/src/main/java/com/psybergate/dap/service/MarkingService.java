@@ -23,6 +23,7 @@ import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,7 +51,7 @@ public class MarkingService {
 
     @Transactional(readOnly = true)
     public Page<AssessmentSummaryResponse> listAssessments(String status, int page, int size) {
-        PageRequest pageable = PageRequest.of(page, size);
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"));
         Page<Assessment> assessments = (status != null && !status.isBlank())
                 ? assessmentRepository.findByStatus(AssessmentStatus.valueOf(status.toUpperCase()), pageable)
                 : assessmentRepository.findAll(pageable);

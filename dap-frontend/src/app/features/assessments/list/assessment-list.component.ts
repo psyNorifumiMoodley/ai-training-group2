@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, HostListener, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { SlicePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -32,9 +32,15 @@ export class AssessmentListComponent implements OnInit {
   readonly showModal      = signal(false);
 
   readonly searchText   = signal('');
-  readonly statusFilter = signal<AssessmentStatus | 'ALL'>('ALL');
+  readonly statusFilter = signal<AssessmentStatus | 'ALL'>('SUBMITTED');
 
-  readonly copiedId = signal<string | null>(null);
+  readonly copiedId        = signal<string | null>(null);
+  readonly openDropdownId  = signal<string | null>(null);
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.openDropdownId.set(null);
+  }
 
   readonly filteredAssessments = computed(() => {
     const q      = this.searchText().toLowerCase();
@@ -52,6 +58,7 @@ export class AssessmentListComponent implements OnInit {
     { label: 'In Progress', value: 'IN_PROGRESS' },
     { label: 'Submitted',   value: 'SUBMITTED' },
     { label: 'Marked',      value: 'MARKED' },
+    { label: 'Closed',      value: 'CLOSED' },
   ];
 
   ngOnInit(): void {
@@ -98,6 +105,15 @@ export class AssessmentListComponent implements OnInit {
       this.copiedId.set(a.id);
       setTimeout(() => this.copiedId.set(null), 2000);
     });
+  }
+
+  toggleDropdown(id: string, e: MouseEvent): void {
+    e.stopPropagation();
+    this.openDropdownId.update(current => current === id ? null : id);
+  }
+
+  closeDropdown(): void {
+    this.openDropdownId.set(null);
   }
 
   onRemind(a: Assessment): void {
