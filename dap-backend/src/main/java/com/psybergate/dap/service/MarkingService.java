@@ -4,6 +4,7 @@ import com.psybergate.dap.domain.Assessment;
 import com.psybergate.dap.domain.AssessmentQuestion;
 import com.psybergate.dap.domain.AssessmentStatus;
 import com.psybergate.dap.domain.DocResponse;
+import com.psybergate.dap.domain.McqQuestion;
 import com.psybergate.dap.domain.McqResponse;
 import com.psybergate.dap.domain.QuestionGroupResponse;
 import com.psybergate.dap.domain.Response;
@@ -18,6 +19,7 @@ import com.psybergate.dap.dto.ResponseReviewItem;
 import com.psybergate.dap.dto.TextAnswerPayload;
 import com.psybergate.dap.repository.AssessmentRepository;
 import com.psybergate.dap.repository.ResponseRepository;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -94,7 +96,7 @@ public class MarkingService {
 
         if (response instanceof McqResponse mcqResponse) {
             boolean correct = Boolean.TRUE.equals(mcqResponse.getCorrect());
-            McqQuestion mcqQuestion = (McqQuestion) response.getQuestion();
+            McqQuestion mcqQuestion = (McqQuestion) Hibernate.unproxy(response.getQuestion());
             return new ResponseReviewItem(
                     response.getId(),
                     questionId,
@@ -168,7 +170,7 @@ public class MarkingService {
                     null,
                     null,
                     feedbackDraft,
-                    1,
+                    childItems.size(),
                     response.getScore(),
                     childItems
             );
@@ -189,7 +191,7 @@ public class MarkingService {
             throw new ValidationException("MCQ scores are set automatically and cannot be updated manually");
         }
 
-        int marks = 1;
+        int marks = (response instanceof QuestionGroupResponse g) ? g.getChildResponses().size() : 1;
         if (request.score() > marks) {
             throw new ValidationException("Score " + request.score() + " exceeds maximum marks of " + marks);
         }

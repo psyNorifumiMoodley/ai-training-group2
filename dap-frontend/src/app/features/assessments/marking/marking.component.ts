@@ -11,7 +11,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { ProgressBarComponent } from '../../../shared/components/progress-bar/progress-bar.component';
-import { QuestionNavDotComponent } from '../../../shared/components/question-nav-dot/question-nav-dot.component';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { FeedbackItemEditorComponent } from './feedback-item-editor/feedback-item-editor.component';
 import { MarkingService } from '../../../core/services/marking.service';
@@ -31,7 +30,6 @@ type TabType = 'ALL' | 'MCQ' | 'TEXT' | 'GROUP' | 'DOC';
   imports: [
     AvatarComponent,
     ProgressBarComponent,
-    QuestionNavDotComponent,
     ButtonComponent,
     FeedbackItemEditorComponent,
   ],
@@ -50,7 +48,6 @@ export class MarkingComponent implements OnInit {
   readonly reviewItems     = signal<ResponseReviewItem[]>([]);
   readonly feedbackMap     = signal<Record<string, string>>({});
   readonly overallFeedback = signal('');
-  readonly activeIndex     = signal(0);
   readonly activeTab       = signal<TabType>('ALL');
   readonly loading         = signal(true);
   readonly finalising      = signal(false);
@@ -138,12 +135,6 @@ export class MarkingComponent implements OnInit {
         },
         error: () => this.loading.set(false),
       });
-  }
-
-  navState(index: number): 'done' | 'active' | 'todo' {
-    if (index < this.activeIndex()) return 'done';
-    if (index === this.activeIndex()) return 'active';
-    return 'todo';
   }
 
   onFeedbackChanged(event: { responseId: string; feedbackText: string }): void {
