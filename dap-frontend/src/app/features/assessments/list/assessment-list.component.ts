@@ -58,6 +58,7 @@ export class AssessmentListComponent implements OnInit {
     { label: 'In Progress', value: 'IN_PROGRESS' },
     { label: 'Submitted',   value: 'SUBMITTED' },
     { label: 'Marked',      value: 'MARKED' },
+    { label: 'Closed',      value: 'CLOSED' },
   ];
 
   ngOnInit(): void {

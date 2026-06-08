@@ -404,6 +404,20 @@ public class AssessmentService {
     }
 
     @Transactional
+    public void close(UUID assessmentId) {
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new NoSuchElementException("Assessment not found: " + assessmentId));
+        if (assessment.getStatus() == AssessmentStatus.CLOSED) {
+            throw new ConflictException("Assessment is already closed");
+        }
+        if (assessment.getStatus() != AssessmentStatus.SUBMITTED) {
+            throw new ConflictException("Only submitted assessments can be closed");
+        }
+        assessment.setStatus(AssessmentStatus.CLOSED);
+        assessmentRepository.save(assessment);
+    }
+
+    @Transactional
     public void finalise(UUID assessmentId, String overallFeedback) {
         Assessment assessment = assessmentRepository.findById(assessmentId)
                 .orElseThrow(() -> new NoSuchElementException("Assessment not found: " + assessmentId));

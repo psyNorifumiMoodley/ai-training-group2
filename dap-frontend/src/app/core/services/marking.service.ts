@@ -35,4 +35,8 @@ export class MarkingService {
   finaliseMarking(assessmentId: string, overallFeedback: string): Observable<void> {
     return this.http.post<void>(`${this.base}/${assessmentId}/finalise`, { overallFeedback });
   }
+
+  closeAssessment(assessmentId: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/${assessmentId}/close`, null);
+  }
 }

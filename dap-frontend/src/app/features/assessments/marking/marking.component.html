@@ -132,6 +132,9 @@
 
     <div class="flex justify-end gap-3">
       <dap-button variant="ghost" (clicked)="backToAssessments()">Cancel</dap-button>
+      <dap-button variant="ghost" [loading]="closing()" (clicked)="close()">
+        <i class="pi pi-ban text-xs mr-1"></i>Close without feedback
+      </dap-button>
       <dap-button variant="primary" [disabled]="!canFinalise()" [loading]="finalising()" (clicked)="finalise()">
         Finalise &amp; send
       </dap-button>

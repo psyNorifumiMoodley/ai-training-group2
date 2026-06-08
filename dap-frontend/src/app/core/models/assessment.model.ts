@@ -1,4 +1,4 @@
-export type AssessmentStatus = 'PENDING' | 'IN_PROGRESS' | 'SUBMITTED' | 'MARKED';
+export type AssessmentStatus = 'PENDING' | 'IN_PROGRESS' | 'SUBMITTED' | 'MARKED' | 'CLOSED';
 
 export interface AssessmentRequest {
   candidateId: string;
