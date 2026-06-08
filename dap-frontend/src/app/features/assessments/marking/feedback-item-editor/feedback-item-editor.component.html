@@ -1,4 +1,4 @@
-<div [class]="'bg-white border rounded-card p-4 cursor-pointer transition-colors ' + (isActive() ? 'border-primary' : 'border-gray-200 hover:border-gray-300')"
+<div [class]="'bg-white rounded-card p-4 cursor-pointer transition-colors ' + (isActive() ? 'border-2 border-primary' : 'border border-gray-200 hover:border-gray-300')"
      (click)="cardClicked.emit()">
 
   <!-- Header -->
@@ -8,23 +8,31 @@
   </div>
 
   <!-- Question stem -->
-  <p class="text-caption text-gray-700 mb-3">{{ item().questionBody }}</p>
+  <p class="text-caption font-medium text-gray-800 mb-4">{{ item().questionBody }}</p>
 
   <!-- MCQ response -->
   @if (item().questionType === 'MCQ') {
     <div class="space-y-1.5 mb-3">
-      @for (ans of mcqAnswers(); track ans) {
+      @for (opt of mcqAllOptions(); track opt) {
+        @let isCorrect = mcqCorrectAnswers().includes(opt);
+        @let isSelected = mcqAnswers().includes(opt);
         <div [class]="'flex items-center gap-3 px-3 py-2 rounded-input text-caption ' +
-          (item().correct ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700')">
-          <i [class]="'pi text-[0.9375rem] ' + (item().correct ? 'pi-check-circle text-green-500' : 'pi-times-circle text-red-400')"></i>
-          <span>{{ ans }}</span>
+          (isCorrect ? 'bg-green-50 text-green-700' : (isSelected ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-600'))">
+          <i [class]="'pi text-[0.9375rem] ' + (isCorrect ? 'pi-check-circle text-green-500' : (isSelected ? 'pi-times-circle text-red-400' : 'pi-circle text-gray-300'))"></i>
+          <span class="flex-1">{{ opt }}</span>
+          @if (isSelected) {
+            <span class="text-[0.625rem] font-medium px-1.5 py-0.5 rounded-badge"
+                  [class]="isCorrect ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'">
+              Candidate's answer
+            </span>
+          }
         </div>
       }
-      @if (!mcqAnswers().length) {
-        <p class="text-caption text-gray-400 italic">No answer selected.</p>
+      @if (!mcqAllOptions().length) {
+        <p class="text-caption text-gray-400 italic">No options available.</p>
       }
     </div>
-    <span [class]="'inline-block rounded-badge px-[0.4375rem] py-0.5 text-[0.6875rem] font-medium mb-3 ' +
+    <span [class]="'inline-block rounded-badge px-[0.4375rem] py-0.5 text-[0.6875rem] font-medium mb-4 ' +
       (item().correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')">
       {{ item().correct ? 'Correct · ' + item().score + '/' + item().marks : 'Incorrect · 0/' + item().marks }}
     </span>
@@ -35,18 +43,42 @@
     <div class="border-l-2 border-primary bg-gray-50 rounded-r-lg p-3 mb-3">
       <p class="text-caption text-gray-700 whitespace-pre-wrap">{{ textAnswerText() || 'No answer provided.' }}</p>
     </div>
-    <div class="mb-3">
-      <dap-score-input [max]="item().marks" [value]="item().score ?? 0" />
+    <div class="mb-4">
+      <dap-score-input [max]="item().marks" [value]="item().score ?? 0" (scoreChanged)="onScoreChanged($event)" />
     </div>
   }
 
   <!-- DOC response -->
   @if (item().questionType === 'DOC') {
-    <div class="flex items-center gap-2 border border-gray-200 rounded-input px-3 py-2 mb-3 text-caption text-gray-600">
+    <div class="flex items-center gap-2 border border-gray-200 rounded-input px-3 py-2 mb-2 text-caption text-gray-600">
       <i class="pi pi-file text-gray-400"></i>
       <span>{{ docFileName() || 'No file submitted.' }}</span>
     </div>
+    <div class="mb-4">
+      <dap-score-input [max]="item().marks" [value]="item().score ?? 0" (scoreChanged)="onScoreChanged($event)" />
+    </div>
   }
+
+  <!-- GROUP response -->
+  @if (item().questionType === 'GROUP') {
+    <div class="space-y-3 mb-3">
+      @for (child of (item().childItems ?? []); track child.questionId) {
+        <div class="border-l-2 border-gray-200 pl-3">
+          <p class="text-[0.6875rem] font-medium text-gray-500 mb-1">{{ child.questionBody }}</p>
+          <p class="text-caption text-gray-700 whitespace-pre-wrap">{{ childAnswerText(child) || 'No answer provided.' }}</p>
+        </div>
+      }
+      @if (!(item().childItems ?? []).length) {
+        <p class="text-caption text-gray-400 italic">No follow-up responses.</p>
+      }
+    </div>
+    <div class="mb-4">
+      <dap-score-input [max]="item().marks" [value]="item().score ?? 0" (scoreChanged)="onScoreChanged($event)" />
+    </div>
+  }
+
+  <!-- Separator before feedback -->
+  <div class="border-t border-gray-100 mb-3"></div>
 
   <!-- Feedback textarea -->
   <div (click)="$event.stopPropagation()">

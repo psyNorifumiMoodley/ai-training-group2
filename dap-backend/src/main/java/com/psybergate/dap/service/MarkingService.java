@@ -4,7 +4,9 @@ import com.psybergate.dap.domain.Assessment;
 import com.psybergate.dap.domain.AssessmentQuestion;
 import com.psybergate.dap.domain.AssessmentStatus;
 import com.psybergate.dap.domain.DocResponse;
+import com.psybergate.dap.domain.McqQuestion;
 import com.psybergate.dap.domain.McqResponse;
+import com.psybergate.dap.domain.QuestionGroupResponse;
 import com.psybergate.dap.domain.Response;
 import com.psybergate.dap.domain.TextResponse;
 import com.psybergate.dap.domain.ValidationException;
@@ -12,10 +14,12 @@ import com.psybergate.dap.dto.AssessmentSummaryResponse;
 import com.psybergate.dap.dto.DocAnswerPayload;
 import com.psybergate.dap.dto.FeedbackUpdateRequest;
 import com.psybergate.dap.dto.McqAnswerPayload;
+import com.psybergate.dap.dto.ScoreUpdateRequest;
 import com.psybergate.dap.dto.ResponseReviewItem;
 import com.psybergate.dap.dto.TextAnswerPayload;
 import com.psybergate.dap.repository.AssessmentRepository;
 import com.psybergate.dap.repository.ResponseRepository;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -78,7 +82,7 @@ public class MarkingService {
 
     @Transactional
     public List<ResponseReviewItem> getResponsesForReview(UUID assessmentId) {
-        List<Response> responses = responseRepository.findByAssessmentId(assessmentId);
+        List<Response> responses = responseRepository.findTopLevelByAssessmentId(assessmentId);
         return responses.stream()
                 .map(response -> mapToReviewItem(assessmentId, response))
                 .toList();
@@ -92,16 +96,21 @@ public class MarkingService {
 
         if (response instanceof McqResponse mcqResponse) {
             boolean correct = Boolean.TRUE.equals(mcqResponse.getCorrect());
+            McqQuestion mcqQuestion = (McqQuestion) Hibernate.unproxy(response.getQuestion());
             return new ResponseReviewItem(
                     response.getId(),
                     questionId,
                     questionBody,
                     "MCQ",
-                    new McqAnswerPayload(mcqResponse.getSelectedAnswers()),
+                    new McqAnswerPayload(
+                            mcqResponse.getSelectedAnswers(),
+                            mcqQuestion.getOptions(),
+                            mcqQuestion.getCorrectAnswers()),
                     mcqResponse.getCorrect(),
                     feedbackDraft,
                     1,
-                    correct ? 1 : 0
+                    correct ? 1 : 0,
+                    null
             );
         } else if (response instanceof TextResponse textResponse) {
             return new ResponseReviewItem(
@@ -113,6 +122,7 @@ public class MarkingService {
                     null,
                     feedbackDraft,
                     1,
+                    response.getScore(),
                     null
             );
         } else if (response instanceof DocResponse docResponse) {
@@ -129,9 +139,29 @@ public class MarkingService {
                     null,
                     feedbackDraft,
                     1,
+                    response.getScore(),
                     null
             );
         } else {
+            var groupResponse = (QuestionGroupResponse) response;
+            List<ResponseReviewItem> childItems = groupResponse.getChildResponses().stream()
+                    .map(child -> {
+                        String childBody = child.getQuestion().getQuestion();
+                        String childAnswer = child instanceof TextResponse textChild ? textChild.getAnswer() : null;
+                        return new ResponseReviewItem(
+                                child.getId(),
+                                child.getQuestion().getId(),
+                                childBody,
+                                "TEXT",
+                                new TextAnswerPayload(childAnswer),
+                                null,
+                                null,
+                                1,
+                                null,
+                                null
+                        );
+                    })
+                    .toList();
             return new ResponseReviewItem(
                     response.getId(),
                     questionId,
@@ -140,10 +170,34 @@ public class MarkingService {
                     null,
                     null,
                     feedbackDraft,
-                    1,
-                    null
+                    childItems.size(),
+                    response.getScore(),
+                    childItems
             );
         }
+    }
+
+    @Transactional
+    public void updateResponseScore(UUID assessmentId, UUID responseId, ScoreUpdateRequest request) {
+        Response response = responseRepository.findById(responseId)
+                .orElseThrow(() -> new NoSuchElementException("Response not found: " + responseId));
+
+        if (!response.getAssessment().getId().equals(assessmentId)) {
+            throw new ValidationException(
+                    "Response " + responseId + " does not belong to assessment " + assessmentId);
+        }
+
+        if (response instanceof McqResponse) {
+            throw new ValidationException("MCQ scores are set automatically and cannot be updated manually");
+        }
+
+        int marks = (response instanceof QuestionGroupResponse g) ? g.getChildResponses().size() : 1;
+        if (request.score() > marks) {
+            throw new ValidationException("Score " + request.score() + " exceeds maximum marks of " + marks);
+        }
+
+        response.setScore(request.score());
+        responseRepository.save(response);
     }
 
     @Transactional

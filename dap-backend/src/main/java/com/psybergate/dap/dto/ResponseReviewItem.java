@@ -1,5 +1,6 @@
 package com.psybergate.dap.dto;
 
+import java.util.List;
 import java.util.UUID;
 
 public record ResponseReviewItem(
@@ -11,5 +12,6 @@ public record ResponseReviewItem(
         Boolean correct,
         String feedbackDraft,
         Integer marks,
-        Integer score) {
+        Integer score,
+        List<ResponseReviewItem> childItems) {
 }

@@ -20,21 +20,38 @@
 
   <div class="flex gap-4">
     <!-- Response area -->
-    <div class="flex-1 min-w-0 space-y-3">
-      @for (item of reviewItems(); track item.responseId; let i = $index) {
-        <dap-feedback-item-editor
-          [item]="item"
-          [questionNumber]="i + 1"
-          [isActive]="i === activeIndex()"
-          (cardClicked)="activeIndex.set(i)"
-          (feedbackChanged)="onFeedbackChanged($event)" />
-      }
+    <div class="flex-1 min-w-0">
+      <!-- Tab bar -->
+      <div class="flex gap-1 mb-3 border-b border-gray-200">
+        @for (tab of availableTabs(); track tab) {
+          <button
+            type="button"
+            (click)="activeTab.set(tab)"
+            [class]="'px-3 py-2 text-[0.6875rem] font-medium transition-colors ' +
+              (activeTab() === tab
+                ? 'border-b-2 border-primary text-primary -mb-px'
+                : 'text-gray-500 hover:text-gray-700')">
+            {{ tab === 'ALL' ? 'All' : tab === 'MCQ' ? 'MCQ' : tab === 'TEXT' ? 'Text' : tab === 'GROUP' ? 'Group' : 'Doc' }}
+          </button>
+        }
+      </div>
 
-      @if (!reviewItems().length) {
-        <div class="bg-white border border-gray-200 rounded-card p-8 text-center">
-          <p class="text-caption text-gray-400">No responses found for this assessment.</p>
-        </div>
-      }
+      <div class="space-y-3">
+        @for (item of filteredItems(); track item.responseId) {
+          <dap-feedback-item-editor
+            [item]="item"
+            [questionNumber]="reviewItems().indexOf(item) + 1"
+            [isActive]="false"
+            (feedbackChanged)="onFeedbackChanged($event)"
+            (scoreChanged)="onScoreChanged($event)" />
+        }
+
+        @if (!filteredItems().length) {
+          <div class="bg-white border border-gray-200 rounded-card p-8 text-center">
+            <p class="text-caption text-gray-400">No responses found for this assessment.</p>
+          </div>
+        }
+      </div>
     </div>
 
     <!-- Right panel -->
@@ -55,21 +72,16 @@
             <span>{{ mcqScore() }}/{{ mcqMaxScore() }} pts</span>
           </div>
           <div class="flex justify-between text-gray-500">
-            <span>Text (manual)</span>
-            <span>— pts</span>
+            <span>Manual</span>
+            @if (hasAnyManualScore()) {
+              <span>{{ manualScore() }}/{{ manualMaxScore() }} pts</span>
+            } @else {
+              <span>— pts</span>
+            }
           </div>
         </div>
       </div>
 
-      <!-- Question nav -->
-      <div class="bg-white border border-gray-200 rounded-card p-3.5">
-        <p class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em] mb-2">Questions</p>
-        <div class="grid grid-cols-5 gap-1">
-          @for (item of reviewItems(); track item.responseId; let i = $index) {
-            <dap-question-nav-dot [number]="i + 1" [state]="navState(i)" (clicked)="activeIndex.set(i)" />
-          }
-        </div>
-      </div>
     </div>
   </div>
 
@@ -84,17 +96,21 @@
         <p class="text-[0.6875rem] text-gray-400 mt-0.5">MCQ score</p>
       </div>
       <div class="bg-gray-50 rounded-input p-3 text-center">
-        <p class="text-lg font-semibold text-gray-400">—</p>
-        <p class="text-[0.6875rem] text-gray-400 mt-0.5">Text score (pending)</p>
+        @if (hasAnyManualScore()) {
+          <p class="text-lg font-semibold text-primary">{{ manualScore() }}/{{ manualMaxScore() }}</p>
+        } @else {
+          <p class="text-lg font-semibold text-gray-400">—</p>
+        }
+        <p class="text-[0.6875rem] text-gray-400 mt-0.5">Manual score</p>
       </div>
     </div>
 
     <!-- Prepared templates -->
     <p class="text-[0.6875rem] font-medium text-gray-400 uppercase tracking-[0.07em] mb-2">Load template</p>
     <div class="flex flex-wrap gap-2 mb-4">
-      <dap-button variant="ghost" size="sm" (clicked)="setFeedbackTemplate('strong')">Strong performance</dap-button>
-      <dap-button variant="ghost" size="sm" (clicked)="setFeedbackTemplate('good')">Good effort</dap-button>
-      <dap-button variant="ghost" size="sm" (clicked)="setFeedbackTemplate('needs')">Needs improvement</dap-button>
+      <dap-button variant="ghost" size="sm" (clicked)="setFeedbackTemplate('interview')">Set up interview</dap-button>
+      <dap-button variant="ghost" size="sm" (clicked)="setFeedbackTemplate('additional')">Additional assessment</dap-button>
+      <dap-button variant="ghost" size="sm" (clicked)="setFeedbackTemplate('elsewhere')">Unfortunately looking elsewhere</dap-button>
     </div>
 
     <!-- Overall feedback textarea -->

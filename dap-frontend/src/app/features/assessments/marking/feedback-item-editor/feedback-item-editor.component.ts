@@ -15,8 +15,9 @@ export class FeedbackItemEditorComponent {
   readonly questionNumber = input.required<number>();
   readonly isActive       = input(false);
 
-  readonly cardClicked    = output<void>();
+  readonly cardClicked     = output<void>();
   readonly feedbackChanged = output<{ responseId: string; feedbackText: string }>();
+  readonly scoreChanged    = output<{ responseId: string; score: number }>();
 
   readonly feedbackText = linkedSignal(() => {
     const item = this.item();
@@ -26,13 +27,28 @@ export class FeedbackItemEditorComponent {
       : '';
   });
 
-  tagVariant(): 'mcq' | 'text' | 'doc' {
+  tagVariant(): 'mcq' | 'text' | 'doc' | 'default' {
     const t = this.item().questionType;
-    return t === 'MCQ' ? 'mcq' : t === 'TEXT' ? 'text' : 'doc';
+    if (t === 'MCQ') return 'mcq';
+    if (t === 'TEXT') return 'text';
+    if (t === 'DOC') return 'doc';
+    return 'default';
+  }
+
+  childAnswerText(child: ResponseReviewItem): string {
+    return (child.answer as TextAnswerPayload)?.answer ?? '';
   }
 
   mcqAnswers(): string[] {
     return (this.item().answer as McqAnswerPayload)?.selectedAnswers ?? [];
+  }
+
+  mcqAllOptions(): string[] {
+    return (this.item().answer as McqAnswerPayload)?.allOptions ?? [];
+  }
+
+  mcqCorrectAnswers(): string[] {
+    return (this.item().answer as McqAnswerPayload)?.correctAnswers ?? [];
   }
 
   textAnswerText(): string {
@@ -49,5 +65,9 @@ export class FeedbackItemEditorComponent {
 
   onFeedbackBlur(): void {
     this.feedbackChanged.emit({ responseId: this.item().responseId, feedbackText: this.feedbackText() });
+  }
+
+  onScoreChanged(score: number): void {
+    this.scoreChanged.emit({ responseId: this.item().responseId, score });
   }
 }

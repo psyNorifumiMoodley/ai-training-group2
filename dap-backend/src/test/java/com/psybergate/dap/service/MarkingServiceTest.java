@@ -5,8 +5,10 @@ import com.psybergate.dap.domain.Assessment;
 import com.psybergate.dap.domain.AssessmentStatus;
 import com.psybergate.dap.domain.Candidate;
 import com.psybergate.dap.domain.Feedback;
+import com.psybergate.dap.domain.GroupQuestion;
 import com.psybergate.dap.domain.McqQuestion;
 import com.psybergate.dap.domain.McqResponse;
+import com.psybergate.dap.domain.QuestionGroupResponse;
 import com.psybergate.dap.domain.Role;
 import com.psybergate.dap.domain.TextQuestion;
 import com.psybergate.dap.domain.TextResponse;
@@ -14,6 +16,7 @@ import com.psybergate.dap.domain.ValidationException;
 import com.psybergate.dap.dto.AssessmentSummaryResponse;
 import com.psybergate.dap.dto.FeedbackUpdateRequest;
 import com.psybergate.dap.dto.ResponseReviewItem;
+import com.psybergate.dap.dto.ScoreUpdateRequest;
 import com.psybergate.dap.dto.TextAnswerPayload;
 import com.psybergate.dap.repository.AssessmentRepository;
 import com.psybergate.dap.repository.ResponseRepository;
@@ -35,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -163,7 +167,7 @@ class MarkingServiceTest {
 
         Feedback feedback = feedbackWithDraft(assessment, "Correct");
 
-        when(responseRepository.findByAssessmentId(assessmentId))
+        when(responseRepository.findTopLevelByAssessmentId(assessmentId))
                 .thenReturn(List.of(response));
         when(feedbackService.getOrCreateDraft(assessmentId, question.getId()))
                 .thenReturn(feedback);
@@ -197,7 +201,7 @@ class MarkingServiceTest {
 
         Feedback feedback = feedbackWithDraft(assessment, "Incorrect — please review this topic");
 
-        when(responseRepository.findByAssessmentId(assessmentId))
+        when(responseRepository.findTopLevelByAssessmentId(assessmentId))
                 .thenReturn(List.of(response));
         when(feedbackService.getOrCreateDraft(assessmentId, question.getId()))
                 .thenReturn(feedback);
@@ -230,7 +234,7 @@ class MarkingServiceTest {
 
         Feedback feedback = feedbackWithDraft(assessment, "");
 
-        when(responseRepository.findByAssessmentId(assessmentId))
+        when(responseRepository.findTopLevelByAssessmentId(assessmentId))
                 .thenReturn(List.of(response));
         when(feedbackService.getOrCreateDraft(assessmentId, question.getId()))
                 .thenReturn(feedback);
@@ -285,5 +289,188 @@ class MarkingServiceTest {
         assertThatThrownBy(() -> markingService.updateResponseFeedback(
                 assessmentId, responseId, new FeedbackUpdateRequest("text")))
                 .isInstanceOf(java.util.NoSuchElementException.class);
+    }
+
+    // ---------- getResponsesForReview — GROUP response (task 3.1 & 3.2) ----------
+
+    @Test
+    void getResponsesForReview_groupResponse_countsAsOneItem() {
+        AppUser user = userWithName("Frank Lee");
+        Candidate candidate = candidateFor(user);
+        Assessment assessment = assessmentWith(candidate, AssessmentStatus.SUBMITTED);
+        UUID assessmentId = assessment.getId();
+
+        GroupQuestion groupQuestion = new GroupQuestion();
+        groupQuestion.setId(UUID.randomUUID());
+        groupQuestion.setCategory("Java");
+        groupQuestion.setQuestion("Describe software design.");
+
+        TextQuestion followUp1 = new TextQuestion(null);
+        followUp1.setId(UUID.randomUUID());
+        followUp1.setQuestion("What is MVC?");
+
+        TextQuestion followUp2 = new TextQuestion(null);
+        followUp2.setId(UUID.randomUUID());
+        followUp2.setQuestion("What is MVVM?");
+
+        TextResponse childR1 = TextResponse.builder().answer("Model-View-Controller").build();
+        childR1.setId(UUID.randomUUID());
+        childR1.setQuestion(followUp1);
+
+        TextResponse childR2 = TextResponse.builder().answer("Model-View-ViewModel").build();
+        childR2.setId(UUID.randomUUID());
+        childR2.setQuestion(followUp2);
+
+        QuestionGroupResponse groupResponse = new QuestionGroupResponse();
+        groupResponse.setId(UUID.randomUUID());
+        groupResponse.setAssessment(assessment);
+        groupResponse.setQuestion(groupQuestion);
+        groupResponse.getChildResponses().add(childR1);
+        groupResponse.getChildResponses().add(childR2);
+
+        Feedback feedback = feedbackWithDraft(assessment, "");
+
+        when(responseRepository.findTopLevelByAssessmentId(assessmentId))
+                .thenReturn(List.of(groupResponse));
+        when(feedbackService.getOrCreateDraft(assessmentId, groupQuestion.getId()))
+                .thenReturn(feedback);
+
+        List<ResponseReviewItem> items = markingService.getResponsesForReview(assessmentId);
+
+        assertThat(items).hasSize(1);
+        assertThat(items.get(0).questionType()).isEqualTo("GROUP");
+    }
+
+    // ---------- updateResponseScore ----------
+
+    @Test
+    void updateResponseScore_validScore_persistsScore() {
+        UUID assessmentId = UUID.randomUUID();
+
+        AppUser user = userWithName("Hans Muller");
+        Candidate candidate = candidateFor(user);
+        Assessment assessment = assessmentWith(candidate, AssessmentStatus.SUBMITTED);
+        assessment.setId(assessmentId);
+
+        TextQuestion question = textQuestion();
+        TextResponse response = TextResponse.builder().answer("Some answer").build();
+        UUID responseId = UUID.randomUUID();
+        response.setId(responseId);
+        response.setAssessment(assessment);
+        response.setQuestion(question);
+
+        when(responseRepository.findById(responseId)).thenReturn(Optional.of(response));
+
+        markingService.updateResponseScore(assessmentId, responseId, new ScoreUpdateRequest(1));
+
+        assertThat(response.getScore()).isEqualTo(1);
+        verify(responseRepository).save(response);
+    }
+
+    @Test
+    void updateResponseScore_scoreExceedsMarks_throwsValidationException() {
+        UUID assessmentId = UUID.randomUUID();
+
+        AppUser user = userWithName("Ivan Petrov");
+        Candidate candidate = candidateFor(user);
+        Assessment assessment = assessmentWith(candidate, AssessmentStatus.SUBMITTED);
+        assessment.setId(assessmentId);
+
+        TextQuestion question = textQuestion();
+        TextResponse response = TextResponse.builder().answer("Some answer").build();
+        UUID responseId = UUID.randomUUID();
+        response.setId(responseId);
+        response.setAssessment(assessment);
+        response.setQuestion(question);
+
+        when(responseRepository.findById(responseId)).thenReturn(Optional.of(response));
+
+        assertThatThrownBy(() -> markingService.updateResponseScore(assessmentId, responseId, new ScoreUpdateRequest(5)))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void updateResponseScore_mcqResponse_throwsValidationException() {
+        UUID assessmentId = UUID.randomUUID();
+
+        AppUser user = userWithName("Julia Chen");
+        Candidate candidate = candidateFor(user);
+        Assessment assessment = assessmentWith(candidate, AssessmentStatus.SUBMITTED);
+        assessment.setId(assessmentId);
+
+        McqQuestion question = mcqQuestion();
+        McqResponse response = McqResponse.builder().selectedAnswers(List.of("A")).correct(true).build();
+        UUID responseId = UUID.randomUUID();
+        response.setId(responseId);
+        response.setAssessment(assessment);
+        response.setQuestion(question);
+
+        when(responseRepository.findById(responseId)).thenReturn(Optional.of(response));
+
+        assertThatThrownBy(() -> markingService.updateResponseScore(assessmentId, responseId, new ScoreUpdateRequest(1)))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void getResponsesForReview_groupResponse_hasPopulatedChildItems() {
+        AppUser user = userWithName("Grace Kim");
+        Candidate candidate = candidateFor(user);
+        Assessment assessment = assessmentWith(candidate, AssessmentStatus.SUBMITTED);
+        UUID assessmentId = assessment.getId();
+
+        GroupQuestion groupQuestion = new GroupQuestion();
+        groupQuestion.setId(UUID.randomUUID());
+        groupQuestion.setCategory("Design");
+        groupQuestion.setQuestion("Describe patterns.");
+
+        TextQuestion followUp1 = new TextQuestion(null);
+        followUp1.setId(UUID.randomUUID());
+        followUp1.setQuestion("What is Singleton?");
+
+        TextQuestion followUp2 = new TextQuestion(null);
+        followUp2.setId(UUID.randomUUID());
+        followUp2.setQuestion("What is Factory?");
+
+        TextResponse childR1 = TextResponse.builder().answer("One instance.").build();
+        childR1.setId(UUID.randomUUID());
+        childR1.setQuestion(followUp1);
+
+        TextResponse childR2 = TextResponse.builder().answer("Creates objects.").build();
+        childR2.setId(UUID.randomUUID());
+        childR2.setQuestion(followUp2);
+
+        QuestionGroupResponse groupResponse = new QuestionGroupResponse();
+        groupResponse.setId(UUID.randomUUID());
+        groupResponse.setAssessment(assessment);
+        groupResponse.setQuestion(groupQuestion);
+        groupResponse.getChildResponses().add(childR1);
+        groupResponse.getChildResponses().add(childR2);
+
+        Feedback feedback = feedbackWithDraft(assessment, "Good understanding");
+
+        when(responseRepository.findTopLevelByAssessmentId(assessmentId))
+                .thenReturn(List.of(groupResponse));
+        when(feedbackService.getOrCreateDraft(assessmentId, groupQuestion.getId()))
+                .thenReturn(feedback);
+
+        List<ResponseReviewItem> items = markingService.getResponsesForReview(assessmentId);
+
+        ResponseReviewItem groupItem = items.get(0);
+        assertThat(groupItem.questionType()).isEqualTo("GROUP");
+        assertThat(groupItem.questionBody()).isEqualTo("Describe patterns.");
+        assertThat(groupItem.feedbackDraft()).isEqualTo("Good understanding");
+        assertThat(groupItem.childItems()).hasSize(2);
+
+        ResponseReviewItem child1 = groupItem.childItems().get(0);
+        assertThat(child1.questionType()).isEqualTo("TEXT");
+        assertThat(child1.questionBody()).isEqualTo("What is Singleton?");
+        assertThat(child1.answer()).isEqualTo(new TextAnswerPayload("One instance."));
+        assertThat(child1.feedbackDraft()).isNull();
+        assertThat(child1.correct()).isNull();
+        assertThat(child1.childItems()).isNull();
+
+        ResponseReviewItem child2 = groupItem.childItems().get(1);
+        assertThat(child2.questionBody()).isEqualTo("What is Factory?");
+        assertThat(child2.answer()).isEqualTo(new TextAnswerPayload("Creates objects."));
     }
 }

@@ -28,6 +28,10 @@ export class MarkingService {
     return this.http.patch<void>(`${this.base}/${assessmentId}/responses/${responseId}`, request);
   }
 
+  updateResponseScore(assessmentId: string, responseId: string, score: number): Observable<void> {
+    return this.http.patch<void>(`${this.base}/${assessmentId}/responses/${responseId}/score`, { score });
+  }
+
   finaliseMarking(assessmentId: string, overallFeedback: string): Observable<void> {
     return this.http.post<void>(`${this.base}/${assessmentId}/finalise`, { overallFeedback });
   }
