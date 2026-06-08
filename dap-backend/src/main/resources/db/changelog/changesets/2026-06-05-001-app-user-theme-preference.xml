@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="2026-06-05-001-app-user-theme-preference" author="norifumi.moodley">
+
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="app_user" columnName="theme_preference"/>
+            </not>
+        </preConditions>
+
+        <addColumn tableName="app_user">
+            <column name="theme_preference" type="VARCHAR(20)" defaultValue="LIGHT">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="app_user" columnName="theme_preference"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,138 @@
+<div class="p-6 max-w-2xl space-y-6">
+  <h1 class="text-h1 text-gray-900">Settings</h1>
+
+  <!-- Profile -->
+  <div class="bg-white rounded-card border border-gray-200 p-6 space-y-4">
+    <h2 class="text-h3 text-gray-900">Profile</h2>
+
+    @if (profileSuccess()) {
+      <p class="text-caption text-green-700 bg-green-50 rounded-input px-3 py-2">Profile updated successfully.</p>
+    }
+    @if (profileError()) {
+      <p class="text-caption text-red-600 bg-red-50 rounded-input px-3 py-2">{{ profileError() }}</p>
+    }
+
+    <form [formGroup]="profileForm" (ngSubmit)="submitProfile()" class="space-y-4">
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1" for="p-name">Name</label>
+        <input id="p-name" formControlName="name" type="text"
+               class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30"
+               [class.border-red-400]="nameControl.invalid && nameControl.touched">
+        @if (nameControl.invalid && nameControl.touched) {
+          <p class="text-[0.6875rem] text-red-500 mt-1">Name is required.</p>
+        }
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1" for="p-email">Email</label>
+        <input id="p-email" formControlName="email" type="email"
+               class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30"
+               [class.border-red-400]="emailControl.invalid && emailControl.touched">
+        @if (emailControl.touched) {
+          @if (emailControl.errors?.['required']) {
+            <p class="text-[0.6875rem] text-red-500 mt-1">Email is required.</p>
+          } @else if (emailControl.errors?.['email']) {
+            <p class="text-[0.6875rem] text-red-500 mt-1">Please enter a valid email address.</p>
+          }
+        }
+      </div>
+
+      <div class="flex justify-end">
+        <button type="submit" [disabled]="profileSubmitting()"
+                class="px-4 py-2 text-caption font-medium text-white bg-primary rounded-input hover:bg-primary-hover disabled:opacity-50 transition-colors">
+          @if (profileSubmitting()) { Saving... } @else { Save profile }
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Security -->
+  <div class="bg-white rounded-card border border-gray-200 p-6 space-y-4">
+    <h2 class="text-h3 text-gray-900">Security</h2>
+
+    @if (passwordSuccess()) {
+      <p class="text-caption text-green-700 bg-green-50 rounded-input px-3 py-2">Password changed successfully.</p>
+    }
+    @if (passwordError()) {
+      <p class="text-caption text-red-600 bg-red-50 rounded-input px-3 py-2">{{ passwordError() }}</p>
+    }
+
+    <form [formGroup]="passwordForm" (ngSubmit)="submitPassword()" class="space-y-4">
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1" for="s-current">Current password</label>
+        <input id="s-current" formControlName="currentPassword" type="password"
+               class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30"
+               [class.border-red-400]="currentPasswordControl.invalid && currentPasswordControl.touched">
+        @if (currentPasswordControl.invalid && currentPasswordControl.touched) {
+          <p class="text-[0.6875rem] text-red-500 mt-1">Current password is required.</p>
+        }
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1" for="s-new">New password</label>
+        <input id="s-new" formControlName="newPassword" type="password"
+               class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30"
+               [class.border-red-400]="newPasswordControl.invalid && newPasswordControl.touched">
+        @if (newPasswordControl.touched) {
+          @if (newPasswordControl.errors?.['required']) {
+            <p class="text-[0.6875rem] text-red-500 mt-1">New password is required.</p>
+          } @else if (newPasswordControl.errors?.['minlength']) {
+            <p class="text-[0.6875rem] text-red-500 mt-1">Password must be at least 8 characters.</p>
+          }
+        }
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1" for="s-confirm">Confirm new password</label>
+        <input id="s-confirm" formControlName="confirmPassword" type="password"
+               class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30"
+               [class.border-red-400]="(confirmPasswordControl.invalid || passwordForm.errors?.['passwordMismatch']) && confirmPasswordControl.touched">
+        @if (confirmPasswordControl.touched) {
+          @if (confirmPasswordControl.errors?.['required']) {
+            <p class="text-[0.6875rem] text-red-500 mt-1">Please confirm your new password.</p>
+          } @else if (confirmPasswordControl.errors?.['minlength']) {
+            <p class="text-[0.6875rem] text-red-500 mt-1">Password must be at least 8 characters.</p>
+          } @else if (passwordForm.errors?.['passwordMismatch']) {
+            <p class="text-[0.6875rem] text-red-500 mt-1">Passwords do not match.</p>
+          }
+        }
+      </div>
+
+      <div class="flex justify-end">
+        <button type="submit" [disabled]="passwordSubmitting()"
+                class="px-4 py-2 text-caption font-medium text-white bg-primary rounded-input hover:bg-primary-hover disabled:opacity-50 transition-colors">
+          @if (passwordSubmitting()) { Saving... } @else { Change password }
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Appearance -->
+  <div class="bg-white rounded-card border border-gray-200 p-6 space-y-4">
+    <h2 class="text-h3 text-gray-900">Appearance</h2>
+
+    @if (themeSuccess()) {
+      <p class="text-caption text-green-700 bg-green-50 rounded-input px-3 py-2">Theme preference saved.</p>
+    }
+    @if (themeError()) {
+      <p class="text-caption text-red-600 bg-red-50 rounded-input px-3 py-2">{{ themeError() }}</p>
+    }
+
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-body text-gray-900 font-medium">Dark mode</p>
+        <p class="text-caption text-gray-500">Switch between light and dark theme</p>
+      </div>
+      <button type="button" (click)="toggleTheme()"
+              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
+              [class.bg-primary]="isDark"
+              [class.bg-gray-300]="!isDark"
+              [attr.aria-pressed]="isDark">
+        <span class="sr-only">Toggle dark mode</span>
+        <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+              [class.translate-x-6]="isDark"
+              [class.translate-x-1]="!isDark"></span>
+      </button>
+    </div>
+  </div>
+</div>
