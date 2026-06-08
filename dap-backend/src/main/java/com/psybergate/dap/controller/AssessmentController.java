@@ -10,6 +10,7 @@ import com.psybergate.dap.dto.FeedbackUpdateRequest;
 import com.psybergate.dap.dto.FinaliseRequest;
 import com.psybergate.dap.dto.ResponseRequest;
 import com.psybergate.dap.dto.ResponseReviewItem;
+import com.psybergate.dap.dto.ScoreUpdateRequest;
 import com.psybergate.dap.dto.SubmitRequest;
 import com.psybergate.dap.service.AssessmentService;
 import com.psybergate.dap.service.FeedbackService;
@@ -104,6 +105,16 @@ public class AssessmentController {
     @PreAuthorize("hasAnyRole('MARKER', 'ADMIN')")
     public ResponseEntity<List<ResponseReviewItem>> getResponsesForReview(@PathVariable UUID id) {
         return ResponseEntity.ok(markingService.getResponsesForReview(id));
+    }
+
+    @PatchMapping("/{id}/responses/{responseId}/score")
+    @PreAuthorize("hasAnyRole('MARKER', 'ADMIN')")
+    public ResponseEntity<Void> updateResponseScore(
+            @PathVariable UUID id,
+            @PathVariable UUID responseId,
+            @Valid @RequestBody ScoreUpdateRequest request) {
+        markingService.updateResponseScore(id, responseId, request);
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/responses/{responseId}")

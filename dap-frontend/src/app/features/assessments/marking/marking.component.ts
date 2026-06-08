@@ -18,10 +18,12 @@ import { MarkingService } from '../../../core/services/marking.service';
 import { ResponseReviewItem } from '../../../core/models/marking.model';
 
 const FEEDBACK_TEMPLATES = {
-  strong: 'The candidate demonstrated a strong understanding of the core concepts and provided clear, well-reasoned responses throughout the assessment.',
-  good:   'The candidate showed a good grasp of the fundamentals. Some responses would benefit from greater depth, but the overall performance was satisfactory.',
-  needs:  "The candidate's responses indicate a basic familiarity with the subject matter. We recommend further study and practice before the next assessment.",
+  interview:   'We were impressed with your performance on the assessment and would like to invite you for an interview. Please let us know your availability — we\'re looking at scheduling this for [DATE/TIME]. We look forward to meeting you and discussing the role further.',
+  additional:  'Thank you for completing the assessment. We have reviewed your submission and would like to invite you to take a follow-up assessment to explore certain areas in more depth. We will be in touch shortly with the details.',
+  elsewhere:   'Thank you for taking the time to complete our assessment. After careful consideration, we have decided to move forward with other candidates whose profiles more closely match our current requirements. We appreciate your interest and wish you the best in your job search.',
 } as const;
+
+type TabType = 'ALL' | 'MCQ' | 'TEXT' | 'GROUP' | 'DOC';
 
 @Component({
   selector: 'dap-marking',
@@ -49,8 +51,20 @@ export class MarkingComponent implements OnInit {
   readonly feedbackMap     = signal<Record<string, string>>({});
   readonly overallFeedback = signal('');
   readonly activeIndex     = signal(0);
+  readonly activeTab       = signal<TabType>('ALL');
   readonly loading         = signal(true);
   readonly finalising      = signal(false);
+
+  readonly availableTabs = computed<TabType[]>(() => {
+    const types = new Set(this.reviewItems().map(i => i.questionType as TabType));
+    return ['ALL', ...(['MCQ', 'TEXT', 'GROUP', 'DOC'] as TabType[]).filter(t => types.has(t))];
+  });
+
+  readonly filteredItems = computed(() => {
+    const tab = this.activeTab();
+    if (tab === 'ALL') return this.reviewItems();
+    return this.reviewItems().filter(i => i.questionType === tab);
+  });
 
   readonly markedCount = computed(() => {
     const map = this.feedbackMap();
@@ -75,6 +89,22 @@ export class MarkingComponent implements OnInit {
   readonly mcqMaxScore = computed(() =>
     this.reviewItems()
       .filter(i => i.questionType === 'MCQ')
+      .reduce((sum, i) => sum + i.marks, 0)
+  );
+
+  readonly hasAnyManualScore = computed(() =>
+    this.reviewItems().some(i => i.questionType !== 'MCQ' && i.score !== null)
+  );
+
+  readonly manualScore = computed(() =>
+    this.reviewItems()
+      .filter(i => i.questionType !== 'MCQ' && i.score !== null)
+      .reduce((sum, i) => sum + (i.score ?? 0), 0)
+  );
+
+  readonly manualMaxScore = computed(() =>
+    this.reviewItems()
+      .filter(i => i.questionType !== 'MCQ')
       .reduce((sum, i) => sum + i.marks, 0)
   );
 
@@ -120,6 +150,16 @@ export class MarkingComponent implements OnInit {
     this.feedbackMap.update(m => ({ ...m, [event.responseId]: event.feedbackText }));
     this.markingService
       .updateResponseFeedback(this.assessmentId(), event.responseId, { feedbackText: event.feedbackText })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe();
+  }
+
+  onScoreChanged(event: { responseId: string; score: number }): void {
+    this.reviewItems.update(items =>
+      items.map(i => i.responseId === event.responseId ? { ...i, score: event.score } : i)
+    );
+    this.markingService
+      .updateResponseScore(this.assessmentId(), event.responseId, event.score)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe();
   }

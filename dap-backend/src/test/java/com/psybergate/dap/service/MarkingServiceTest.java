@@ -16,6 +16,7 @@ import com.psybergate.dap.domain.ValidationException;
 import com.psybergate.dap.dto.AssessmentSummaryResponse;
 import com.psybergate.dap.dto.FeedbackUpdateRequest;
 import com.psybergate.dap.dto.ResponseReviewItem;
+import com.psybergate.dap.dto.ScoreUpdateRequest;
 import com.psybergate.dap.dto.TextAnswerPayload;
 import com.psybergate.dap.repository.AssessmentRepository;
 import com.psybergate.dap.repository.ResponseRepository;
@@ -37,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -337,6 +339,76 @@ class MarkingServiceTest {
 
         assertThat(items).hasSize(1);
         assertThat(items.get(0).questionType()).isEqualTo("GROUP");
+    }
+
+    // ---------- updateResponseScore ----------
+
+    @Test
+    void updateResponseScore_validScore_persistsScore() {
+        UUID assessmentId = UUID.randomUUID();
+
+        AppUser user = userWithName("Hans Muller");
+        Candidate candidate = candidateFor(user);
+        Assessment assessment = assessmentWith(candidate, AssessmentStatus.SUBMITTED);
+        assessment.setId(assessmentId);
+
+        TextQuestion question = textQuestion();
+        TextResponse response = TextResponse.builder().answer("Some answer").build();
+        UUID responseId = UUID.randomUUID();
+        response.setId(responseId);
+        response.setAssessment(assessment);
+        response.setQuestion(question);
+
+        when(responseRepository.findById(responseId)).thenReturn(Optional.of(response));
+
+        markingService.updateResponseScore(assessmentId, responseId, new ScoreUpdateRequest(1));
+
+        assertThat(response.getScore()).isEqualTo(1);
+        verify(responseRepository).save(response);
+    }
+
+    @Test
+    void updateResponseScore_scoreExceedsMarks_throwsValidationException() {
+        UUID assessmentId = UUID.randomUUID();
+
+        AppUser user = userWithName("Ivan Petrov");
+        Candidate candidate = candidateFor(user);
+        Assessment assessment = assessmentWith(candidate, AssessmentStatus.SUBMITTED);
+        assessment.setId(assessmentId);
+
+        TextQuestion question = textQuestion();
+        TextResponse response = TextResponse.builder().answer("Some answer").build();
+        UUID responseId = UUID.randomUUID();
+        response.setId(responseId);
+        response.setAssessment(assessment);
+        response.setQuestion(question);
+
+        when(responseRepository.findById(responseId)).thenReturn(Optional.of(response));
+
+        assertThatThrownBy(() -> markingService.updateResponseScore(assessmentId, responseId, new ScoreUpdateRequest(5)))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void updateResponseScore_mcqResponse_throwsValidationException() {
+        UUID assessmentId = UUID.randomUUID();
+
+        AppUser user = userWithName("Julia Chen");
+        Candidate candidate = candidateFor(user);
+        Assessment assessment = assessmentWith(candidate, AssessmentStatus.SUBMITTED);
+        assessment.setId(assessmentId);
+
+        McqQuestion question = mcqQuestion();
+        McqResponse response = McqResponse.builder().selectedAnswers(List.of("A")).correct(true).build();
+        UUID responseId = UUID.randomUUID();
+        response.setId(responseId);
+        response.setAssessment(assessment);
+        response.setQuestion(question);
+
+        when(responseRepository.findById(responseId)).thenReturn(Optional.of(response));
+
+        assertThatThrownBy(() -> markingService.updateResponseScore(assessmentId, responseId, new ScoreUpdateRequest(1)))
+                .isInstanceOf(ValidationException.class);
     }
 
     @Test

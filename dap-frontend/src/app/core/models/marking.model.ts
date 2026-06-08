@@ -1,5 +1,7 @@
 export interface McqAnswerPayload {
   selectedAnswers: string[];
+  allOptions: string[];
+  correctAnswers: string[];
 }
 
 export interface TextAnswerPayload {

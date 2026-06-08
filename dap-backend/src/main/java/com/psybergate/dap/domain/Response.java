@@ -21,4 +21,7 @@ public abstract class Response extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "question_id")
     private AssessmentQuestion question;
+
+    @Column(name = "score")
+    private Integer score;
 }

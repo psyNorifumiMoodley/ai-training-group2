@@ -13,6 +13,7 @@ import com.psybergate.dap.dto.AssessmentSummaryResponse;
 import com.psybergate.dap.dto.DocAnswerPayload;
 import com.psybergate.dap.dto.FeedbackUpdateRequest;
 import com.psybergate.dap.dto.McqAnswerPayload;
+import com.psybergate.dap.dto.ScoreUpdateRequest;
 import com.psybergate.dap.dto.ResponseReviewItem;
 import com.psybergate.dap.dto.TextAnswerPayload;
 import com.psybergate.dap.repository.AssessmentRepository;
@@ -93,12 +94,16 @@ public class MarkingService {
 
         if (response instanceof McqResponse mcqResponse) {
             boolean correct = Boolean.TRUE.equals(mcqResponse.getCorrect());
+            McqQuestion mcqQuestion = (McqQuestion) response.getQuestion();
             return new ResponseReviewItem(
                     response.getId(),
                     questionId,
                     questionBody,
                     "MCQ",
-                    new McqAnswerPayload(mcqResponse.getSelectedAnswers()),
+                    new McqAnswerPayload(
+                            mcqResponse.getSelectedAnswers(),
+                            mcqQuestion.getOptions(),
+                            mcqQuestion.getCorrectAnswers()),
                     mcqResponse.getCorrect(),
                     feedbackDraft,
                     1,
@@ -115,7 +120,7 @@ public class MarkingService {
                     null,
                     feedbackDraft,
                     1,
-                    null,
+                    response.getScore(),
                     null
             );
         } else if (response instanceof DocResponse docResponse) {
@@ -132,7 +137,7 @@ public class MarkingService {
                     null,
                     feedbackDraft,
                     1,
-                    null,
+                    response.getScore(),
                     null
             );
         } else {
@@ -164,10 +169,33 @@ public class MarkingService {
                     null,
                     feedbackDraft,
                     1,
-                    null,
+                    response.getScore(),
                     childItems
             );
         }
+    }
+
+    @Transactional
+    public void updateResponseScore(UUID assessmentId, UUID responseId, ScoreUpdateRequest request) {
+        Response response = responseRepository.findById(responseId)
+                .orElseThrow(() -> new NoSuchElementException("Response not found: " + responseId));
+
+        if (!response.getAssessment().getId().equals(assessmentId)) {
+            throw new ValidationException(
+                    "Response " + responseId + " does not belong to assessment " + assessmentId);
+        }
+
+        if (response instanceof McqResponse) {
+            throw new ValidationException("MCQ scores are set automatically and cannot be updated manually");
+        }
+
+        int marks = 1;
+        if (request.score() > marks) {
+            throw new ValidationException("Score " + request.score() + " exceeds maximum marks of " + marks);
+        }
+
+        response.setScore(request.score());
+        responseRepository.save(response);
     }
 
     @Transactional
