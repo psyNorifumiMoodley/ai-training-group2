@@ -46,4 +46,12 @@ public interface AssessmentRepository extends JpaRepository<Assessment, UUID> {
     long countByStatus(AssessmentStatus status);
 
     long countByStatusAndUpdatedAtAfter(AssessmentStatus status, Instant since);
+
+    @Query(value = """
+            SELECT * FROM assessment
+            WHERE status = 'IN_PROGRESS'
+              AND start_time IS NOT NULL
+              AND start_time + (time_limit_minutes * interval '1 minute') < NOW()
+            """, nativeQuery = true)
+    List<Assessment> findExpiredInProgress();
 }

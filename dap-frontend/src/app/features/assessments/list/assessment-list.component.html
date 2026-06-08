@@ -19,7 +19,7 @@
     (change)="statusFilter.set($any($event.target).value)"
     class="text-caption border border-gray-200 rounded-input px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors bg-white">
     @for (opt of statusOptions; track opt.value) {
-      <option [value]="opt.value">{{ opt.label }}</option>
+      <option [value]="opt.value" [selected]="opt.value === statusFilter()">{{ opt.label }}</option>
     }
   </select>
 </div>
@@ -40,7 +40,7 @@
           <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Candidate</th>
           <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Status</th>
           <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2 pr-4">Assigned</th>
-          <th class="text-left text-[0.6875rem] font-medium text-gray-400 pb-2">Actions</th>
+          <th class="text-right text-[0.6875rem] font-medium text-gray-400 pb-2 w-px">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -54,12 +54,14 @@
             </td>
             <td class="py-2.5 pr-4"><dap-badge [status]="a.status" /></td>
             <td class="py-2.5 pr-4 text-gray-400">{{ a.assignedDate | slice:0:10 }}</td>
-            <td class="py-2.5">
-              <div class="flex items-center gap-1">
+            <td class="py-2.5 whitespace-nowrap">
+              <div class="flex items-center gap-1 justify-end">
                 @if (a.status === 'SUBMITTED' || a.status === 'MARKED') {
-                  <dap-button variant="ghost" size="sm" (clicked)="onMark(a)">Mark</dap-button>
+                  <dap-button variant="ghost" size="sm" (clicked)="onMark(a)">
+                    <i class="pi pi-pencil text-xs mr-1"></i>Mark
+                  </dap-button>
                 }
-                @if (a.status === 'PENDING' || a.status === 'IN_PROGRESS') {
+                @if (a.status === 'IN_PROGRESS') {
                   <button
                     type="button"
                     (click)="onCopyLink(a)"
@@ -72,9 +74,33 @@
                   </button>
                 }
                 @if (a.status === 'PENDING') {
-                  <dap-button variant="ghost" size="sm" (clicked)="onRemind(a)">
-                    <i class="pi pi-bell text-xs"></i> Remind
-                  </dap-button>
+                  <div class="relative">
+                    <button
+                      type="button"
+                      (click)="toggleDropdown(a.id, $event)"
+                      class="flex items-center gap-1.5 px-2.5 py-1 text-[0.6875rem] font-medium rounded-input border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">
+                      Actions
+                      <i class="pi pi-chevron-down text-[0.6rem]"></i>
+                    </button>
+                    @if (openDropdownId() === a.id) {
+                      <div class="absolute right-0 z-20 mt-1 w-36 bg-white border border-gray-200 rounded-input shadow-md py-1">
+                        <button
+                          type="button"
+                          (click)="onCopyLink(a); closeDropdown()"
+                          class="flex items-center gap-2 w-full px-3 py-1.5 text-[0.6875rem] text-gray-600 hover:bg-gray-50 transition-colors">
+                          <i [class]="'pi text-xs ' + (copiedId() === a.id ? 'pi-check text-green-500' : 'pi-copy')"></i>
+                          {{ copiedId() === a.id ? 'Copied!' : 'Copy link' }}
+                        </button>
+                        <button
+                          type="button"
+                          (click)="onRemind(a); closeDropdown()"
+                          class="flex items-center gap-2 w-full px-3 py-1.5 text-[0.6875rem] text-gray-600 hover:bg-gray-50 transition-colors">
+                          <i class="pi pi-bell text-xs"></i>
+                          Remind
+                        </button>
+                      </div>
+                    }
+                  </div>
                 }
               </div>
             </td>
