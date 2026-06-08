@@ -25,12 +25,13 @@ export interface ResponseReviewItem {
   responseId: string;
   questionId: string;
   questionBody: string;
-  questionType: 'MCQ' | 'TEXT' | 'DOC';
+  questionType: 'MCQ' | 'TEXT' | 'DOC' | 'GROUP';
   answer: McqAnswerPayload | TextAnswerPayload | DocAnswerPayload;
   correct: boolean | null;
   feedbackDraft: string;
   marks: number;
   score: number | null;
+  childItems?: ResponseReviewItem[];
 }
 
 export interface FeedbackUpdateRequest {

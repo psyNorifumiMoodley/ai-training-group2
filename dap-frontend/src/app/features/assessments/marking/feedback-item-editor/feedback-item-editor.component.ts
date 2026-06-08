@@ -26,9 +26,16 @@ export class FeedbackItemEditorComponent {
       : '';
   });
 
-  tagVariant(): 'mcq' | 'text' | 'doc' {
+  tagVariant(): 'mcq' | 'text' | 'doc' | 'default' {
     const t = this.item().questionType;
-    return t === 'MCQ' ? 'mcq' : t === 'TEXT' ? 'text' : 'doc';
+    if (t === 'MCQ') return 'mcq';
+    if (t === 'TEXT') return 'text';
+    if (t === 'DOC') return 'doc';
+    return 'default';
+  }
+
+  childAnswerText(child: ResponseReviewItem): string {
+    return (child.answer as TextAnswerPayload)?.answer ?? '';
   }
 
   mcqAnswers(): string[] {

@@ -5,6 +5,7 @@ import com.psybergate.dap.domain.AssessmentQuestion;
 import com.psybergate.dap.domain.AssessmentStatus;
 import com.psybergate.dap.domain.DocResponse;
 import com.psybergate.dap.domain.McqResponse;
+import com.psybergate.dap.domain.QuestionGroupResponse;
 import com.psybergate.dap.domain.Response;
 import com.psybergate.dap.domain.TextResponse;
 import com.psybergate.dap.domain.ValidationException;
@@ -78,7 +79,7 @@ public class MarkingService {
 
     @Transactional
     public List<ResponseReviewItem> getResponsesForReview(UUID assessmentId) {
-        List<Response> responses = responseRepository.findByAssessmentId(assessmentId);
+        List<Response> responses = responseRepository.findTopLevelByAssessmentId(assessmentId);
         return responses.stream()
                 .map(response -> mapToReviewItem(assessmentId, response))
                 .toList();
@@ -101,7 +102,8 @@ public class MarkingService {
                     mcqResponse.getCorrect(),
                     feedbackDraft,
                     1,
-                    correct ? 1 : 0
+                    correct ? 1 : 0,
+                    null
             );
         } else if (response instanceof TextResponse textResponse) {
             return new ResponseReviewItem(
@@ -113,6 +115,7 @@ public class MarkingService {
                     null,
                     feedbackDraft,
                     1,
+                    null,
                     null
             );
         } else if (response instanceof DocResponse docResponse) {
@@ -129,9 +132,29 @@ public class MarkingService {
                     null,
                     feedbackDraft,
                     1,
+                    null,
                     null
             );
         } else {
+            var groupResponse = (QuestionGroupResponse) response;
+            List<ResponseReviewItem> childItems = groupResponse.getChildResponses().stream()
+                    .map(child -> {
+                        String childBody = child.getQuestion().getQuestion();
+                        String childAnswer = child instanceof TextResponse textChild ? textChild.getAnswer() : null;
+                        return new ResponseReviewItem(
+                                child.getId(),
+                                child.getQuestion().getId(),
+                                childBody,
+                                "TEXT",
+                                new TextAnswerPayload(childAnswer),
+                                null,
+                                null,
+                                1,
+                                null,
+                                null
+                        );
+                    })
+                    .toList();
             return new ResponseReviewItem(
                     response.getId(),
                     questionId,
@@ -141,7 +164,8 @@ public class MarkingService {
                     null,
                     feedbackDraft,
                     1,
-                    null
+                    null,
+                    childItems
             );
         }
     }
