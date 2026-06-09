@@ -1,13 +1,15 @@
 ## Context
 
-v1 of the Developer Assessment Platform supports `doc_question` as a plain file-upload question type. Candidates upload a file (code, design doc, etc.) and a marker manually reviews it. There is no automated validation of code correctness. The domain model already has `TABLE_PER_CLASS` inheritance on `assessment_question`, with `doc_question` as one subtype. This design extends `doc_question` rather than introducing a new entity subtype to keep the schema change minimal and backward-compatible.
+v1 of the Developer Assessment Platform supports `doc_question` as a plain file-upload question type. Candidates upload a file (code, design doc, etc.) and a marker manually reviews it. There is no automated validation of code correctness. The domain model already has `TABLE_PER_CLASS` inheritance on `assessment_question`, with `doc_question` as one subtype.
+
+This design introduces `coding_question` as a new `TABLE_PER_CLASS` subtype and soft-deprecates `doc_question` (existing rows remain valid; new creation is blocked). Candidates submit source code as inline text rather than file uploads — the two interaction patterns are sufficiently different to warrant a dedicated entity type.
 
 The backend is a single Spring Boot 3.x application. No separate execution service is introduced — the execution engine runs as a component within the same process, communicating with Docker via the Docker Java client library.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Extend `doc_question` (nullable fields) so existing questions are unaffected
+- Introduce `coding_question` as a first-class `TABLE_PER_CLASS` subtype; soft-deprecate `doc_question` (no new creation)
 - Define test cases at question-bank time; execute them at submission time
 - Run candidate code in isolated Docker containers with enforced CPU time and memory limits
 - Auto-grade coding submissions and store per-test-case execution results
@@ -22,13 +24,13 @@ The backend is a single Spring Boot 3.x application. No separate execution servi
 
 ## Decisions
 
-### D1: Extend `doc_question` rather than adding a new entity subtype
+### D1: Introduce `coding_question` as a new TABLE_PER_CLASS subtype; soft-deprecate `doc_question`
 
-**Decision:** Add `language` (nullable enum) and `test_case` (separate child table) to `doc_question`. A doc question with `language IS NULL` is a plain file-upload question; with `language NOT NULL` it is a coding question.
+**Decision:** Create a new `coding_question` DB table as a `TABLE_PER_CLASS` subtype of `assessment_question`. The entity carries a **required** (non-null) `language` field and a `@OneToMany` to `test_case`. `doc_question` remains in the schema for existing rows but its creation is blocked at the API layer — no new `doc_question` records can be created.
 
-**Rationale:** Introducing a new `coding_question` TABLE_PER_CLASS subtype would require a new DB table, new DTOs, new repository methods, and significant updates to all assessment generation and submission logic that currently handles `doc_question`. Extending `doc_question` with nullable fields is a backward-compatible Liquibase migration — existing rows stay valid, existing code paths continue to work, and the doc question limit rule continues to apply uniformly.
+**Rationale:** A plain file-upload question and an inline-code question with automated test execution are fundamentally different interaction patterns — different submission UX, different grading logic, different result views. Encoding this as a nullable `language` column on `doc_question` produces an ambiguous domain model where the presence of one field silently changes the behaviour of another. A dedicated subtype makes the distinction explicit in the schema, in the service layer, and in API contracts. The cost (a new table and a Liquibase migration) is low.
 
-**Alternative considered:** New `coding_question` subtype. Rejected because it duplicates assessment-question handling logic and bloats the inheritance hierarchy.
+**Alternative considered:** Extend `doc_question` with a nullable `language` column. Rejected because it creates an ambiguous domain model and couples two unrelated question behaviours in one entity.
 
 ---
 
@@ -42,13 +44,13 @@ The backend is a single Spring Boot 3.x application. No separate execution servi
 
 ---
 
-### D3: `test_case` as a separate child table (not JSON on `doc_question`)
+### D3: `test_case` as a separate child table (not JSON on `coding_question`)
 
-**Decision:** `test_case` rows live in their own table with a FK to `doc_question`. Fields: `id` (UUID), `doc_question_id` (UUID FK), `input` (TEXT), `expected_output` (TEXT), `timeout_seconds` (INT, default 10), `memory_mb` (INT, default 256), `ordinal` (INT for display order).
+**Decision:** `test_case` rows live in their own table with a FK to `coding_question`. Fields: `id` (UUID), `coding_question_id` (UUID FK), `input` (TEXT), `expected_output` (TEXT), `timeout_seconds` (INT, default 10), `memory_mb` (INT, default 256), `ordinal` (INT for display order).
 
 **Rationale:** Separate rows support CRUD (add, edit, delete individual test cases) without deserializing and re-serializing a JSON blob. They also allow future per-test-case metadata (e.g., visibility flags, point weights) without a schema change.
 
-**Alternative considered:** `@JdbcTypeCode(SqlTypes.JSON) List<TestCase>` on `doc_question`. Rejected because editing individual test cases requires loading and rewriting the entire list, and future extensibility is constrained.
+**Alternative considered:** `@JdbcTypeCode(SqlTypes.JSON) List<TestCase>` on `coding_question`. Rejected because editing individual test cases requires loading and rewriting the entire list, and future extensibility is constrained.
 
 ---
 
@@ -72,7 +74,7 @@ The backend is a single Spring Boot 3.x application. No separate execution servi
 
 ### D6: `execution_result` table for per-test-case outcomes
 
-**Decision:** Each test case execution produces one `execution_result` row: `id`, `submission_id`, `test_case_id`, `doc_question_id`, `passed` (boolean), `actual_output` (TEXT), `stderr` (TEXT), `execution_time_ms` (INT), `error_type` (enum: NONE, TIMEOUT, MEMORY, COMPILE_ERROR, RUNTIME_ERROR).
+**Decision:** Each test case execution produces one `execution_result` row: `id`, `submission_id`, `test_case_id`, `coding_question_id`, `passed` (boolean), `actual_output` (TEXT), `stderr` (TEXT), `execution_time_ms` (INT), `error_type` (enum: NONE, TIMEOUT, MEMORY, COMPILE_ERROR, RUNTIME_ERROR).
 
 **Rationale:** Persisting results allows the marker review UI to load them on demand without re-executing code. Results are immutable after grading — stored once at submission time. `submission_id` + `test_case_id` is a unique pair (UNIQUE constraint).
 
@@ -80,7 +82,7 @@ The backend is a single Spring Boot 3.x application. No separate execution servi
 
 ### D7: Candidate sees pass/fail count; marker sees full detail
 
-**Decision:** `GET /api/assessments/{id}/coding-results` (candidate JWT required, role = CANDIDATE) returns `{ docQuestionId, passed, total }` per coding question. `GET /api/assessments/{id}/coding-results/detail` (marker/admin JWT required) returns the full `execution_result` rows including input, expected output, actual output, and stderr.
+**Decision:** `GET /api/assessments/{id}/coding-results` (candidate JWT required, role = CANDIDATE) returns `{ codingQuestionId, passed, total }` per coding question. `GET /api/assessments/{id}/coding-results/detail` (marker/admin JWT required) returns the full `execution_result` rows including input, expected output, actual output, and stderr.
 
 **Rationale:** Hiding test case inputs and expected outputs from candidates prevents hardcoding. Markers need full detail to understand why a test failed and to make informed marking decisions on partial credit.
 
@@ -93,15 +95,16 @@ The backend is a single Spring Boot 3.x application. No separate execution servi
 | Container image pull on first execution adds latency | Pre-pull images on application startup via `DockerExecutionEngine.warmUp()` called from `ApplicationRunner` |
 | Runaway containers if kill/timeout logic fails | Always set `HostConfig.withAutoRemove(true)` and keep a fallback `docker kill` via scheduled cleanup of containers older than N minutes |
 | Compilation errors in Java/C# leave no stdout — `actual_output` is empty | Map to `error_type = COMPILE_ERROR`; store stderr for marker review; `passed = false` |
-| `doc_question` limit rule: coding questions count toward the limit | No code change needed — the existing limit check operates on `DocQuestion` rows; extending with nullable fields does not change how the check counts |
+| `doc_question` limit rule: coding questions must count toward the limit | Assessment generation doc limit check must count both `DocQuestion` and `CodingQuestion` rows; update the check in `AssessmentService` to query both subtypes |
 
 ## Migration Plan
 
-1. Liquibase changesets (Phase 6): add `language` column to `doc_question`; create `test_case` table; create `execution_result` table (Phase 7 Slice 0)
-2. Existing `doc_question` rows get `language = NULL` automatically — no data migration needed
-3. Add `docker-java` dependency to `pom.xml` (Phase 7 Slice A)
-4. Pre-pull Docker images on startup — first boot with the new version may take 1–2 minutes per language image
-5. No rollback required for the Liquibase changes (addColumn and createTable are non-destructive); rollback blocks provided for completeness
+1. Liquibase changesets (Phase 6): create `coding_question` table (TABLE_PER_CLASS subtype); create `test_case` table (FK → `coding_question`); create `execution_result` table (Phase 7 Slice 0, FK → `coding_question`)
+2. Existing `doc_question` rows are untouched — no data migration needed; the `doc_question` table and entity remain in the codebase (read-only from this point forward)
+3. Block `doc_question` creation at the API layer: the creation endpoint returns HTTP 410 Gone; the question bank UI removes the "Doc Question" option
+4. Add `docker-java` dependency to `pom.xml` (Phase 7 Slice A)
+5. Pre-pull Docker images on startup — first boot with the new version may take 1–2 minutes per language image
+6. All Liquibase changesets are `createTable` / `addColumn` (non-destructive); rollback blocks provided for completeness
 
 ## Open Questions
 

@@ -5,7 +5,7 @@ After an assessment is marked, a candidate SHALL be able to see how many test ca
 
 #### Scenario: Candidate views coding question result summary
 - **WHEN** a candidate with role `CANDIDATE` sends `GET /api/assessments/{id}/coding-results`
-- **THEN** the response is HTTP 200 with a list of `{ docQuestionId, passed, total }` — one entry per coding question in the assessment
+- **THEN** the response is HTTP 200 with a list of `{ codingQuestionId, passed, total }` — one entry per coding question in the assessment
 
 #### Scenario: Candidate cannot access another candidate's coding results
 - **WHEN** a candidate sends `GET /api/assessments/{id}/coding-results` for an assessment not assigned to them
@@ -30,7 +30,7 @@ A Marker or Admin SHALL be able to view the complete execution result for each t
 
 #### Scenario: Marker views full coding result detail
 - **WHEN** a user with role `MARKER` or `ADMIN` sends `GET /api/assessments/{id}/coding-results/detail`
-- **THEN** the response is HTTP 200 with a list of execution results, each containing: `testCaseId`, `docQuestionId`, `passed`, `input`, `expectedOutput`, `actualOutput`, `stderr`, `executionTimeMs`, `errorType`
+- **THEN** the response is HTTP 200 with a list of execution results, each containing: `testCaseId`, `codingQuestionId`, `passed`, `input`, `expectedOutput`, `actualOutput`, `stderr`, `executionTimeMs`, `errorType`
 
 #### Scenario: Candidate role is rejected from detail endpoint
 - **WHEN** a user with role `CANDIDATE` sends `GET /api/assessments/{id}/coding-results/detail`

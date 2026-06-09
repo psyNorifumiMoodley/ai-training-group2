@@ -1,10 +1,10 @@
 ## ADDED Requirements
 
 ### Requirement: All coding questions are auto-graded on assessment submission
-When an assessment is submitted (explicitly by the candidate or by server-side auto-submit), the system SHALL automatically execute all test cases for every coding `doc_question` in that assessment and store the per-test-case results.
+When an assessment is submitted (explicitly by the candidate or by server-side auto-submit), the system SHALL automatically execute all test cases for every `coding_question` in that assessment and store the per-test-case results.
 
 #### Scenario: Submission triggers auto-grading for coding questions
-- **WHEN** a candidate submits an assessment that contains one or more coding questions
+- **WHEN** a candidate submits an assessment that contains one or more `coding_question` entries
 - **THEN** for each coding question, all of its test cases are executed via the execution engine and one `execution_result` row is stored per test case
 
 #### Scenario: Auto-grading does not block the submission response
@@ -12,7 +12,7 @@ When an assessment is submitted (explicitly by the candidate or by server-side a
 - **THEN** the submission response is returned with status `SUBMITTED`; grading runs asynchronously and does not hold the HTTP response
 
 #### Scenario: Assessments with no coding questions are unaffected
-- **WHEN** a candidate submits an assessment that contains no coding questions (only MCQ, text, or plain doc questions)
+- **WHEN** a candidate submits an assessment that contains no `coding_question` entries (only MCQ, text, or legacy doc questions)
 - **THEN** no execution engine calls are made and grading proceeds as in v1
 
 ---
@@ -31,7 +31,7 @@ The grading system SHALL compare the candidate's actual stdout to the expected o
 ---
 
 ### Requirement: Each test case execution is stored as an execution result
-The system SHALL persist one `execution_result` record per test case per submission. Each record stores: `submissionId`, `testCaseId`, `docQuestionId`, `passed`, `actualOutput`, `stderr`, `executionTimeMs`, and `errorType`.
+The system SHALL persist one `execution_result` record per test case per submission. Each record stores: `submissionId`, `testCaseId`, `codingQuestionId`, `passed`, `actualOutput`, `stderr`, `executionTimeMs`, and `errorType`.
 
 #### Scenario: Successful test case result is stored
 - **WHEN** a test case executes and the output matches the expected output
