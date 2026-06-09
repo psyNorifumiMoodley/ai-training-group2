@@ -2,7 +2,7 @@
 
 > **Epic:** Phase 7 — Execution Engine
 > **Delivery:** Slice 0 merges first; Slices A–D run in parallel (one dev each).
-> **Dependency:** Phase 6 fully merged (`CodingQuestion`, `TestCase`, `Language` must exist).
+> **Dependency:** Phase 6 fully merged (`CodingQuestion`, `TestCase`, `CodingQuestionLanguage` must exist).
 > **Jira Epic:** ATG-55
 
 ### Key Design Decisions
@@ -106,7 +106,7 @@ boolean existsBySubmissionIdAndTestCaseId(UUID submissionId, UUID testCaseId);
 **`ExecutionRequest`** — record
 ```java
 public record ExecutionRequest(
-    Language language,
+    CodingQuestionLanguage language,
     String sourceCode,
     String input,
     int timeoutSeconds,
@@ -215,7 +215,7 @@ None.
 **`LanguageRunner`** — interface
 ```java
 public interface LanguageRunner {
-    Language language();
+    CodingQuestionLanguage language();
     String image();
     List<String> compileCommand(String sourceFile);  // empty if no compilation step
     List<String> runCommand(String sourceFile);
@@ -307,8 +307,8 @@ None.
 
 **`JavaRunner implements LanguageRunner`** (`@Component`)
 ```java
-public Language language()           → Language.JAVA
-public String image()                → "eclipse-temurin:17-jdk-alpine"
+public CodingQuestionLanguage language()  → CodingQuestionLanguage.JAVA
+public String image()                     → "eclipse-temurin:17-jdk-alpine"
 public List<String> compileCommand(String sourceFile) → List.of("javac", sourceFile)
 public List<String> runCommand(String sourceFile)     → List.of("java", className)
   // className = sourceFile with ".java" stripped
@@ -371,8 +371,8 @@ None.
 
 **`PythonRunner implements LanguageRunner`** (`@Component`)
 ```java
-public Language language()           → Language.PYTHON
-public String image()                → "python:3.12-slim"
+public CodingQuestionLanguage language()  → CodingQuestionLanguage.PYTHON
+public String image()                     → "python:3.12-slim"
 public List<String> compileCommand(String sourceFile) → List.of()  // no compilation
 public List<String> runCommand(String sourceFile)     → List.of("python3", sourceFile)
 public String sourceFileExtension()  → ".py"
@@ -434,8 +434,8 @@ None.
 
 **`CsharpRunner implements LanguageRunner`** (`@Component`)
 ```java
-public Language language()           → Language.CSHARP
-public String image()                → "mcr.microsoft.com/dotnet/sdk:8.0-alpine"
+public CodingQuestionLanguage language()  → CodingQuestionLanguage.CSHARP
+public String image()                     → "mcr.microsoft.com/dotnet/sdk:8.0-alpine"
 public List<String> compileCommand(String sourceFile) → List.of()
   // dotnet run / dotnet-script handles compile + run in one step
 public List<String> runCommand(String sourceFile)     → chosen approach (see decision comment)
