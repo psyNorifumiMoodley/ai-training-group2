@@ -12,8 +12,8 @@
 - `QuestionService.create()` gets a new `instanceof CodingQuestionRequest` branch — same dispatch pattern as existing types
 - `language` is **required** (NOT NULL); candidates submit source code as inline text (no file upload)
 - `doc_question` is **soft-deprecated**: `QuestionController.createQuestion()` returns HTTP 410 when the request is a `DocQuestionRequest`
-- `CodingQuestionController` is a **new controller for test-case sub-resources only** (`/api/coding-questions/{id}/test-cases`) — it does not own question creation or retrieval
-- Test cases are created after the question is saved, via the test-case sub-resource endpoints
+- Test cases are included **inline** in `CodingQuestionRequest.testCases` and created or updated with the question via `POST /api/questions` / `PUT /api/questions/{id}` — there is **no separate test-case sub-resource**
+- `QuestionService.createCodingQuestion()` iterates inline `testCases`, assigns ordinals (1, 2, 3…), and saves via `CascadeType.ALL` on `CodingQuestion.testCases`
 - The doc/coding question limit (`assessment.doc-question-limit`, default 1) counts both `DocQuestion` (legacy) and `CodingQuestion` rows
 
 ---
@@ -23,10 +23,9 @@
 ### Agent Brief
 Define all Phase 6 contracts so Slices A–D can develop simultaneously without merge conflicts:
 - Add `CodingQuestionRequest` and `CodingQuestionResponse` to the existing `QuestionRequest` / `QuestionResponse` sealed interfaces
-- Add the `Language` enum, `TestCaseRequest`, and `TestCaseResponse` DTOs
-- Stub `CodingQuestionController` for test-case sub-resources only
+- Add the `CodingQuestionLanguage` enum, `TestCaseRequest`, and `TestCaseResponse` DTOs
 - Block `DocQuestionRequest` creation in `QuestionController` (return 410)
-- Add TypeScript types and a stub `CodingQuestionService` (test-case operations only) to the frontend
+- Add TypeScript types for `CodingQuestionLanguage`, `TestCaseRequest`, `TestCase`, and `CodingQuestionRequest`/`CodingQuestionResponse` to the frontend
 
 No business logic — hardcoded responses only.
 
@@ -36,7 +35,7 @@ No business logic — hardcoded responses only.
 ```
 src/main/java/com/psybergate/dap/
   domain/
-    Language.java                      ← new enum: JAVA, PYTHON, CSHARP
+    CodingQuestionLanguage.java        ← new enum: JAVA, PYTHON, CSHARP
   dto/
     CodingQuestionRequest.java         ← new record; implements QuestionRequest; @JsonSubTypes name = "CODING"
     CodingQuestionResponse.java        ← new record; implements QuestionResponse; @JsonSubTypes name = "CODING"
@@ -44,8 +43,6 @@ src/main/java/com/psybergate/dap/
     TestCaseResponse.java              ← new record
     QuestionRequest.java               ← update: add CodingQuestionRequest to permits + @JsonSubTypes
     QuestionResponse.java              ← update: add CodingQuestionResponse to permits + @JsonSubTypes
-  controller/
-    CodingQuestionController.java      ← new stub (test-case sub-resources only)
 ```
 
 **Frontend**
@@ -53,10 +50,8 @@ src/main/java/com/psybergate/dap/
 src/app/
   core/
     models/
-      question.model.ts                ← update: add 'CODING' to QuestionType, add CodingQuestionRequest, CodingQuestionResponse
-      coding-question.model.ts         ← new: TestCase, TestCaseRequest interfaces
+      question.model.ts                ← update: add 'CODING' to QuestionType; add CodingQuestionLanguage, TestCaseRequest, TestCase, CodingQuestionRequest, CodingQuestionResponse
     services/
-      coding-question.service.ts       ← new stub: test-case operations only
       question.service.ts              ← update: add CodingQuestionRequest to createQuestion / updateQuestion union types
 ```
 
@@ -90,20 +85,11 @@ Return body for 410:
 { "status": 410, "error": "Gone", "message": "Doc question creation is deprecated. Use POST /api/questions with type CODING instead.", "timestamp": "<now>" }
 ```
 
-**`CodingQuestionController`** — new, stubs for test-case sub-resources only
-```
-POST   /api/coding-questions/{questionId}/test-cases                → 201 (hardcoded)
-GET    /api/coding-questions/{questionId}/test-cases                → 200 [] (hardcoded)
-PUT    /api/coding-questions/{questionId}/test-cases/{testCaseId}   → 200 (hardcoded)
-DELETE /api/coding-questions/{questionId}/test-cases/{testCaseId}   → 204 (hardcoded)
-```
-All endpoints secured with `@PreAuthorize("hasAnyRole('MARKER', 'ADMIN')")`.
-
 ### DTOs
 
-**`Language`** — enum in `domain/`
+**`CodingQuestionLanguage`** — enum in `domain/`
 ```java
-public enum Language { JAVA, PYTHON, CSHARP }
+public enum CodingQuestionLanguage { JAVA, PYTHON, CSHARP }
 ```
 
 **`CodingQuestionRequest`** — record, implements `QuestionRequest`
@@ -111,8 +97,8 @@ public enum Language { JAVA, PYTHON, CSHARP }
 public record CodingQuestionRequest(
     @NotBlank String category,
     @NotBlank String question,
-    @NotNull Language language,
-    List<@Valid TestCaseRequest> testCases   // nullable — test cases added via sub-resource after creation
+    @NotNull CodingQuestionLanguage language,
+    List<@Valid TestCaseRequest> testCases   // nullable — test cases optional at creation
 ) implements QuestionRequest {}
 ```
 
@@ -122,7 +108,7 @@ public record CodingQuestionResponse(
     UUID id,
     String category,
     String question,
-    Language language,
+    CodingQuestionLanguage language,
     List<TestCaseResponse> testCases
 ) implements QuestionResponse {}
 ```
@@ -182,34 +168,8 @@ public sealed interface QuestionResponse
 // Add CODING to the union type
 export type QuestionType = 'MCQ' | 'TEXT' | 'DOC' | 'GROUP' | 'CODING';
 
-// Add request interface
-export interface CodingQuestionRequest {
-  type: 'CODING';
-  category: string;
-  question: string;
-  language: Language;
-  testCases?: TestCaseRequest[];
-}
-
-// Add response interface
-export interface CodingQuestionResponse extends BaseQuestionResponse {
-  type: 'CODING';
-  language: Language;
-  testCases: TestCase[];
-}
-
-// Update the QuestionResponse union
-export type QuestionResponse =
-  | McqQuestionResponse
-  | TextQuestionResponse
-  | DocQuestionResponse
-  | GroupQuestionResponse
-  | CodingQuestionResponse;    // ← new
-```
-
-**`coding-question.model.ts`** — new file
-```typescript
-export type Language = 'JAVA' | 'PYTHON' | 'CSHARP';
+// New type (inline — no separate file)
+export type CodingQuestionLanguage = 'JAVA' | 'PYTHON' | 'CSHARP';
 
 export interface TestCaseRequest {
   input: string;
@@ -226,6 +186,30 @@ export interface TestCase {
   memoryMb: number;
   ordinal: number;
 }
+
+// Add request interface
+export interface CodingQuestionRequest {
+  type: 'CODING';
+  category: string;
+  question: string;
+  language: CodingQuestionLanguage;
+  testCases?: TestCaseRequest[];
+}
+
+// Add response interface
+export interface CodingQuestionResponse extends BaseQuestionResponse {
+  type: 'CODING';
+  language: CodingQuestionLanguage;
+  testCases: TestCase[];
+}
+
+// Update the QuestionResponse union
+export type QuestionResponse =
+  | McqQuestionResponse
+  | TextQuestionResponse
+  | DocQuestionResponse
+  | GroupQuestionResponse
+  | CodingQuestionResponse;    // ← new
 ```
 
 ### Frontend Services
@@ -237,15 +221,6 @@ createQuestion(request: McqQuestionRequest | TextQuestionRequest | DocQuestionRe
 updateQuestion(id: string, request: McqQuestionRequest | TextQuestionRequest | DocQuestionRequest | GroupQuestionRequest | CodingQuestionRequest): Observable<QuestionResponse>
 ```
 
-**`CodingQuestionService`** — new stub; test-case operations only; returning `EMPTY`
-```typescript
-addTestCase(questionId: string, request: TestCaseRequest): Observable<TestCase>
-getTestCases(questionId: string): Observable<TestCase[]>
-updateTestCase(questionId: string, testCaseId: string, request: TestCaseRequest): Observable<TestCase>
-deleteTestCase(questionId: string, testCaseId: string): Observable<void>
-```
-Base URL: `/api/coding-questions`
-
 ### Frontend Components
 None in this slice.
 
@@ -255,16 +230,15 @@ None in this slice.
 ### Testing
 - `POST /api/questions` with `"type": "CODING"` and valid body → 201 (hardcoded)
 - `POST /api/questions` with `"type": "DOC"` → 410 with deprecation message
-- Non-MARKER/ADMIN caller → 403 on all coding-question endpoints
-- All test-case stub endpoints return correct HTTP status codes
+- Non-MARKER/ADMIN caller → 403 on `POST /api/questions`
 - `QuestionRequest` and `QuestionResponse` sealed interfaces compile with `CodingQuestionRequest`/`CodingQuestionResponse` in permits
-- Angular `question.model.ts` and `coding-question.model.ts` compile with no TypeScript errors
+- Angular `question.model.ts` compiles with no TypeScript errors; `CodingQuestionLanguage`, `TestCase`, `CodingQuestionRequest`, `CodingQuestionResponse` all accessible from the same file
 
 ### Done When
 - All backend stubs compile and return hardcoded responses
 - `POST /api/questions` with `"type": "DOC"` returns 410
 - `QuestionType` in Angular includes `'CODING'`
-- `CodingQuestionService` and model files compile with no TypeScript errors
+- Angular `question.model.ts` compiles with no TypeScript errors
 - Merged to `main` before any other Phase 6 slice begins
 
 ---
@@ -272,7 +246,7 @@ None in this slice.
 ## Slice A: Schema Migration & Test Case CRUD
 
 ### Agent Brief
-Create the `coding_question` and `test_case` DB tables via Liquibase. Implement the `CodingQuestion` and `TestCase` JPA entities, `CodingQuestionRepository`, `TestCaseRepository`, and `TestCaseService`. Wire the test-case CRUD endpoints in `CodingQuestionController`. No `QuestionService` changes yet — that is Slice B.
+Create the `coding_question` and `test_case` DB tables via Liquibase. Implement the `CodingQuestion` and `TestCase` JPA entities, `CodingQuestionRepository`, and `TestCaseRepository`. No `QuestionService` changes yet — that is Slice B. No `TestCaseService` is needed: test cases are persisted inline via `CascadeType.ALL` in Slice B.
 
 ### Package Tree Additions
 
@@ -285,13 +259,9 @@ src/main/java/com/psybergate/dap/
   repository/
     CodingQuestionRepository.java      ← new
     TestCaseRepository.java            ← new
-  service/
-    TestCaseService.java               ← new
 src/main/resources/db/changelog/changesets/
   2026-06-05-001-create-coding-question-table.xml
   2026-06-05-002-create-test-case-table.xml
-src/test/java/com/psybergate/dap/service/
-  TestCaseServiceTest.java
 ```
 
 ### Entities
@@ -309,7 +279,7 @@ public class CodingQuestion extends AssessmentQuestion {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Language language;
+    private CodingQuestionLanguage language;
 
     @OneToMany(mappedBy = "codingQuestion", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
@@ -409,39 +379,10 @@ int countByCodingQuestionId(UUID codingQuestionId);
 ```
 
 ### Services
-
-**`TestCaseService`**
-```java
-@Service
-public class TestCaseService {
-
-    // Constructor-inject CodingQuestionRepository, TestCaseRepository
-
-    @Transactional
-    public TestCaseResponse addTestCase(UUID questionId, TestCaseRequest request) {
-        // Load CodingQuestion — throw NoSuchElementException (→ 404) if not found
-        // Set ordinal = countByCodingQuestionId + 1
-        // Build and save TestCase; return TestCaseResponse
-    }
-
-    @Transactional(readOnly = true)
-    public List<TestCaseResponse> getTestCases(UUID questionId) { ... }
-
-    @Transactional
-    public TestCaseResponse updateTestCase(UUID questionId, UUID testCaseId, TestCaseRequest request) {
-        // Load TestCase; verify codingQuestion.id == questionId (throw NoSuchElementException if not)
-        // Update fields; save; return TestCaseResponse
-    }
-
-    @Transactional
-    public void deleteTestCase(UUID questionId, UUID testCaseId) { ... }
-}
-```
-
-Validation constraints on `TestCaseRequest` (`@Min`, `@Max`, `@NotBlank`) are enforced by `@Valid` in the controller.
+No new service in this slice. Test case persistence is handled inline in `QuestionService` (Slice B) via `CascadeType.ALL` on `CodingQuestion.testCases`.
 
 ### Controllers
-Wire `TestCaseService` into `CodingQuestionController` stub methods (replace hardcoded responses with real service calls).
+None.
 
 ### Frontend Type Definitions
 No changes in this slice.
@@ -457,20 +398,14 @@ None.
 
 ### Testing
 
-**`TestCaseServiceTest`** (`@SpringBootTest`, Testcontainers)
-- Add test case to existing coding question → 201, row persisted with correct ordinal
-- `timeoutSeconds = 0` → 400
-- `timeoutSeconds > 60` → 400
-- `memoryMb < 64` → 400
-- `memoryMb > 1024` → 400
-- Delete test case → 204, row removed from DB
-- Update test case → 200, fields reflect new values
-- Add test case to non-existent question → 404
+- `coding_question` table exists in Testcontainers DB and passes `ddl-auto=validate`
+- `test_case` table exists in Testcontainers DB and passes `ddl-auto=validate`
+- `CodingQuestion` and `TestCase` entities compile and Hibernate validates the schema
+- `CodingQuestionRepository` and `TestCaseRepository` can be injected without errors
 
 ### Done When
 - `coding_question` and `test_case` tables exist in Testcontainers DB and pass `ddl-auto=validate`
-- Test-case CRUD endpoints return real DB-backed data
-- All `TestCaseServiceTest` cases pass
+- Entities and repositories compile and load cleanly in the Spring context
 
 ---
 
@@ -577,7 +512,7 @@ None.
 ## Slice C: Angular Question Editor — Coding Question Form
 
 ### Agent Brief
-Add the coding question creation and edit form. Replace the "Doc Question" option in the question bank creation menu with a "Coding Question" option. The form requires a language selection before test case rows can be added. On submit, call `QuestionService.createQuestion()` with a `CodingQuestionRequest` (type `'CODING'`), then persist test case rows via `CodingQuestionService`.
+Add the coding question creation and edit form. Replace the "Doc Question" option in the question bank creation menu with a "Coding Question" option. The form requires a language selection before test case rows can be added. On submit, call `QuestionService.createQuestion()` with a `CodingQuestionRequest` (type `'CODING'`) including the inline `testCases` list — no separate service call for test case management.
 
 ### Package Tree Additions
 
@@ -601,19 +536,9 @@ None.
 None.
 
 ### Services
-Wire stub methods to real API calls:
+No new service in this slice.
 
-**`question.service.ts`** — no new methods; existing `createQuestion()` accepts `CodingQuestionRequest` (union already updated in Slice 0)
-
-**`coding-question.service.ts`** — wire stubs to real calls
-```typescript
-addTestCase(questionId: string, request: TestCaseRequest): Observable<TestCase>
-  → POST /api/coding-questions/{questionId}/test-cases
-updateTestCase(questionId: string, testCaseId: string, request: TestCaseRequest): Observable<TestCase>
-  → PUT /api/coding-questions/{questionId}/test-cases/{testCaseId}
-deleteTestCase(questionId: string, testCaseId: string): Observable<void>
-  → DELETE /api/coding-questions/{questionId}/test-cases/{testCaseId}
-```
+**`question.service.ts`** — no new methods; existing `createQuestion()` already accepts `CodingQuestionRequest` (union updated in Slice 0). Test cases are sent inline in the request body.
 
 ### Controllers
 None.
@@ -623,13 +548,11 @@ None.
 **`CodingQuestionFormComponent`**
 - Standalone, `OnPush` change detection
 - Inputs via `input()` signal API: `existingQuestion?: CodingQuestionResponse`
-- Language dropdown: required; options Java, Python, C# (mapped from `Language` type)
+- Language dropdown: required; options Java, Python, C# (mapped from `CodingQuestionLanguage` type)
 - Test case editor panel: visible only when a language is selected
   - Each row: input textarea, expected output textarea (required), timeout number input (1–60), memory MB number input (64–1024)
   - "Add row" button appends a blank row; "Remove" button on each row deletes that row
-- On submit:
-  1. Call `questionService.createQuestion({ type: 'CODING', category, question, language })` → get question ID
-  2. For each test case row, call `codingQuestionService.addTestCase(id, row)` sequentially
+- On submit: call `questionService.createQuestion({ type: 'CODING', category, question, language, testCases: [...] })` — test cases are sent inline in the request body
 - Reactive forms only
 
 **Question bank creation menu**
@@ -660,7 +583,7 @@ Unit tests (`TestBed`):
 ## Slice D: Angular Question Bank — Language Badge & Test Case Count
 
 ### Agent Brief
-Update the question bank question list and card components to display a language badge and test case count on every coding question (`type === 'CODING'`). Update the question detail view to show test cases in read-only mode. Wire `CodingQuestionService.getTestCases()` to the real API.
+Update the question bank question list and card components to display a language badge and test case count on every coding question (`type === 'CODING'`). Update the question detail view to show test cases in read-only mode. Test cases are already present in `CodingQuestionResponse.testCases` — no separate API call needed.
 
 ### Package Tree Additions
 
@@ -687,12 +610,7 @@ None.
 None.
 
 ### Services
-
-**`coding-question.service.ts`** — wire remaining stub
-```typescript
-getTestCases(questionId: string): Observable<TestCase[]>
-  → GET /api/coding-questions/{questionId}/test-cases
-```
+No service changes. Test cases are already present in `CodingQuestionResponse.testCases` — no separate API call needed.
 
 ### Controllers
 None.
@@ -700,11 +618,11 @@ None.
 ### Frontend Components
 
 **`QuestionCardComponent`** — updates
-- For questions with `type === 'CODING'`: display a language badge (`"Java"` / `"Python"` / `"C#"`) and test case count (`"Java · 3 test cases"` / `"Java · 0 test cases"`)
+- For questions with `type === 'CODING'`: display a language badge (`"Java"` / `"Python"` / `"C#"`) and test case count from `question.testCases.length` (`"Java · 3 test cases"` / `"Java · 0 test cases"`)
 - Badge and count absent for all other question types
 
 **`QuestionDetailComponent`** — updates
-- For coding questions: call `codingQuestionService.getTestCases(question.id)` on load
+- For coding questions: read `question.testCases` directly from the already-loaded `CodingQuestionResponse`
 - Render a read-only test case list (input, expected output, timeout, memory)
 
 ### Route Additions
@@ -716,7 +634,7 @@ Unit tests (`TestBed`):
 - Badge renders `"Java"` for `type === 'CODING'` with `language === 'JAVA'`
 - Badge absent for MCQ, TEXT, GROUP questions
 - Count displays correct number; zero shows `"0 test cases"`
-- Detail view renders one row per test case from mocked `getTestCases()` response
+- Detail view renders one row per test case from `question.testCases` (inline in response)
 
 ### Done When
 - Language badge and test case count visible on all coding question cards

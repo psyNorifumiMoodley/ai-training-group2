@@ -24,24 +24,20 @@ A Marker or Admin SHALL be able to create a `coding_question` by providing a cat
 ### Requirement: Marker manages test cases on a coding question
 A Marker or Admin SHALL be able to manage test cases on a coding question. Each test case defines an input string, an expected output string, a timeout (seconds), and a memory limit (MB). Test cases are included in the `testCases` list on `CodingQuestionRequest` and are created or updated together with the question via `POST /api/questions` (create) or `PUT /api/questions/{id}` (update) — there is no separate test-case sub-resource.
 
-#### Scenario: Add a test case to a coding question
-- **WHEN** a Marker submits a valid `POST /api/coding-questions/{questionId}/test-cases` request with `input`, `expectedOutput`, `timeoutSeconds` (≥ 1, ≤ 60), and `memoryMb` (≥ 64, ≤ 1024)
-- **THEN** the response is HTTP 201 and the test case is associated with the question
+#### Scenario: Create a coding question with inline test cases
+- **WHEN** a Marker submits a valid `POST /api/questions` request with `"type": "CODING"` and a `testCases` array containing entries with `expectedOutput`, `timeoutSeconds` (≥ 1, ≤ 60), and `memoryMb` (≥ 64, ≤ 1024)
+- **THEN** the response is HTTP 201 and the returned question includes the test cases with assigned ordinals
 
-#### Scenario: Edit an existing test case
-- **WHEN** a Marker submits a valid `PUT /api/coding-questions/{questionId}/test-cases/{testCaseId}` request with updated fields
-- **THEN** the response is HTTP 200 and the test case reflects the new values
-
-#### Scenario: Delete a test case
-- **WHEN** a Marker submits `DELETE /api/coding-questions/{questionId}/test-cases/{testCaseId}`
-- **THEN** the response is HTTP 204 and the test case is removed
+#### Scenario: Update a coding question with revised test cases
+- **WHEN** a Marker submits a valid `PUT /api/questions/{id}` request with an updated `testCases` array
+- **THEN** the response is HTTP 200 and the question reflects the new test case list
 
 #### Scenario: Timeout out of range is rejected
-- **WHEN** a Marker submits a test case with `timeoutSeconds = 0` or `timeoutSeconds > 60`
+- **WHEN** a Marker submits a coding question with a test case where `timeoutSeconds = 0` or `timeoutSeconds > 60`
 - **THEN** the response is HTTP 400
 
 #### Scenario: Memory limit out of range is rejected
-- **WHEN** a Marker submits a test case with `memoryMb < 64` or `memoryMb > 1024`
+- **WHEN** a Marker submits a coding question with a test case where `memoryMb < 64` or `memoryMb > 1024`
 - **THEN** the response is HTTP 400
 
 ---
