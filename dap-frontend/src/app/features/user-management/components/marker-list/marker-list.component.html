@@ -62,7 +62,7 @@
               }
             </button>
           </th>
-          <th class="pb-2 w-28"></th>
+          <th class="pb-2 w-px"></th>
         </tr>
       </thead>
       <tbody>
@@ -78,7 +78,7 @@
             </td>
             <td class="py-2.5 pr-4 text-gray-500">{{ marker.email }}</td>
             <td class="py-2.5 pr-4 text-gray-400 text-[0.6875rem]">{{ formatDate(marker.createdAt) }}</td>
-            <td class="py-2.5 text-right">
+            <td class="py-2.5 whitespace-nowrap text-right">
               @if (confirmDeleteId() === marker.id) {
                 <span class="text-caption text-gray-600 mr-1">Sure?</span>
                 <button (click)="confirmDelete()" [disabled]="deleting()"
@@ -90,14 +90,24 @@
                   No
                 </button>
               } @else {
-                <button (click)="openEditForm(marker)"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 text-[0.6875rem] font-medium text-gray-600 border border-gray-200 rounded-input hover:bg-gray-50 transition-colors mr-1">
-                  <i class="pi pi-pencil text-[0.6875rem]"></i> Edit
-                </button>
-                <button (click)="requestDelete(marker.id)"
-                        class="inline-flex items-center gap-1 px-2.5 py-1 text-[0.6875rem] font-medium text-red-600 border border-red-200 rounded-input hover:bg-red-50 transition-colors">
-                  <i class="pi pi-trash text-[0.6875rem]"></i> Delete
-                </button>
+                <div class="relative inline-block">
+                  <button (click)="toggleMenu(marker.id, $event)"
+                          class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-input transition-colors">
+                    <i class="pi pi-ellipsis-v text-xs"></i>
+                  </button>
+                  @if (openMenuId() === marker.id) {
+                    <div class="absolute right-0 z-20 mt-1 w-32 bg-white border border-gray-200 rounded-input shadow-md py-1">
+                      <button (click)="openEditForm(marker); openMenuId.set(null)"
+                              class="flex items-center gap-2 w-full px-3 py-1.5 text-[0.6875rem] text-gray-600 hover:bg-gray-50 transition-colors">
+                        <i class="pi pi-pencil text-xs"></i>Edit
+                      </button>
+                      <button (click)="requestDelete(marker.id); openMenuId.set(null)"
+                              class="flex items-center gap-2 w-full px-3 py-1.5 text-[0.6875rem] text-red-600 hover:bg-red-50 transition-colors">
+                        <i class="pi pi-trash text-xs"></i>Delete
+                      </button>
+                    </div>
+                  }
+                </div>
               }
             </td>
           </tr>

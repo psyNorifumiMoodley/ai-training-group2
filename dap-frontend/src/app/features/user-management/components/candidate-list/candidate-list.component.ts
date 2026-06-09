@@ -38,6 +38,7 @@ export class CandidateListComponent implements OnInit {
     { value: 'IN_PROGRESS', label: 'In Progress' },
     { value: 'SUBMITTED', label: 'Submitted' },
     { value: 'MARKED', label: 'Marked' },
+    { value: 'CLOSED', label: 'Closed' },
   ];
 
   ngOnInit(): void {
