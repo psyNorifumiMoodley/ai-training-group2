@@ -1,8 +1,22 @@
-import type { Language, TestCase, TestCaseRequest } from './coding-question.model';
-
-export type { Language, TestCase, TestCaseRequest };
-
 export type QuestionType = 'MCQ' | 'TEXT' | 'DOC' | 'GROUP' | 'CODING';
+
+export type CodingQuestionLanguage = 'JAVA' | 'PYTHON' | 'CSHARP';
+
+export interface TestCaseRequest {
+  input: string;
+  expectedOutput: string;
+  timeoutSeconds: number;
+  memoryMb: number;
+}
+
+export interface TestCase {
+  id: string;
+  input: string;
+  expectedOutput: string;
+  timeoutSeconds: number;
+  memoryMb: number;
+  ordinal: number;
+}
 
 export interface McqQuestionRequest {
   type: 'MCQ';
@@ -37,7 +51,7 @@ export interface CodingQuestionRequest {
   type: 'CODING';
   category: string;
   question: string;
-  language: Language;
+  language: CodingQuestionLanguage;
   testCases?: TestCaseRequest[];
 }
 
@@ -72,7 +86,7 @@ export interface GroupQuestionResponse extends BaseQuestionResponse {
 
 export interface CodingQuestionResponse extends BaseQuestionResponse {
   type: 'CODING';
-  language: Language;
+  language: CodingQuestionLanguage;
   testCases: TestCase[];
 }
 

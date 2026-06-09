@@ -1,6 +1,6 @@
 package com.psybergate.dap.dto;
 
-import com.psybergate.dap.domain.Language;
+import com.psybergate.dap.domain.CodingQuestionLanguage;
 
 import java.util.List;
 import java.util.UUID;
@@ -9,6 +9,6 @@ public record CodingQuestionResponse(
         UUID id,
         String category,
         String question,
-        Language language,
+        CodingQuestionLanguage language,
         List<TestCaseResponse> testCases
 ) implements QuestionResponse {}

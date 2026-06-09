@@ -1,5 +1,5 @@
 package com.psybergate.dap.domain;
 
-public enum Language {
+public enum CodingQuestionLanguage {
     JAVA, PYTHON, CSHARP
 }

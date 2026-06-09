@@ -122,9 +122,9 @@ export class QuestionListComponent {
     if (this.page() < this.totalPages() - 1) { this.page.update(p => p + 1); this.loadQuestions(); }
   }
 
-  typeTagVariant(type: QuestionType): 'mcq' | 'text' | 'doc' | 'info' {
-    const map: Record<QuestionType, 'mcq' | 'text' | 'doc' | 'info'> = {
-      MCQ: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info', CODING: 'doc',
+  typeTagVariant(type: QuestionType): 'mcq' | 'text' | 'doc' | 'info' | 'coding' {
+    const map: Record<QuestionType, 'mcq' | 'text' | 'doc' | 'info' | 'coding'> = {
+      MCQ: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info', CODING: 'coding',
     };
     return map[type];
   }
