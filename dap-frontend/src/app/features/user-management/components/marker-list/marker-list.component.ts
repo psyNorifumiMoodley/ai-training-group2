@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, inject, OnInit, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
@@ -27,8 +27,19 @@ export class MarkerListComponent implements OnInit {
   readonly showForm = signal(false);
   readonly editingMarker = signal<MarkerResponse | null>(null);
   readonly confirmDeleteId = signal<string | null>(null);
-  readonly deleteError = signal<string | null>(null);
-  readonly deleting = signal(false);
+  readonly deleteError     = signal<string | null>(null);
+  readonly deleting        = signal(false);
+  readonly openMenuId      = signal<string | null>(null);
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.openMenuId.set(null);
+  }
+
+  toggleMenu(id: string, e: MouseEvent): void {
+    e.stopPropagation();
+    this.openMenuId.update(current => current === id ? null : id);
+  }
 
   readonly searchControl = new FormControl('', { nonNullable: true });
   readonly sortBy = signal<string>('name');

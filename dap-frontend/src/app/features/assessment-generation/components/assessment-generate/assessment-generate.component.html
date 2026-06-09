@@ -107,20 +107,8 @@
         </div>
       </div>
 
-      <!-- Time limit + manual toggle -->
+      <!-- Manual toggle -->
       <div class="space-y-3">
-        <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1" for="modal-time-limit">
-            Time limit (minutes)
-          </label>
-          <input id="modal-time-limit" type="number" [formControl]="timeLimitControl" min="5"
-                 class="w-32 border border-gray-200 rounded-input px-3 py-2 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
-                 [class.border-red-400]="timeLimitControl.invalid && timeLimitControl.touched">
-          @if (timeLimitControl.invalid && timeLimitControl.touched) {
-            <p class="text-[0.6875rem] text-red-500 mt-1">Minimum 5 minutes.</p>
-          }
-        </div>
-
         <label class="flex items-start gap-2.5 cursor-pointer select-none">
           <input type="checkbox"
                  [checked]="manualQuestions()"
