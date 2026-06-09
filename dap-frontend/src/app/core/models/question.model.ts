@@ -1,4 +1,8 @@
-export type QuestionType = 'MCQ' | 'TEXT' | 'DOC' | 'GROUP';
+import type { Language, TestCase, TestCaseRequest } from './coding-question.model';
+
+export type { Language, TestCase, TestCaseRequest };
+
+export type QuestionType = 'MCQ' | 'TEXT' | 'DOC' | 'GROUP' | 'CODING';
 
 export interface McqQuestionRequest {
   type: 'MCQ';
@@ -27,6 +31,14 @@ export interface GroupQuestionRequest {
   question: string;
   ordered: boolean;
   followUpQuestionIds: string[];
+}
+
+export interface CodingQuestionRequest {
+  type: 'CODING';
+  category: string;
+  question: string;
+  language: Language;
+  testCases?: TestCaseRequest[];
 }
 
 export interface BaseQuestionResponse {
@@ -58,8 +70,15 @@ export interface GroupQuestionResponse extends BaseQuestionResponse {
   followUpQuestions: TextQuestionResponse[];
 }
 
+export interface CodingQuestionResponse extends BaseQuestionResponse {
+  type: 'CODING';
+  language: Language;
+  testCases: TestCase[];
+}
+
 export type QuestionResponse =
   | McqQuestionResponse
   | TextQuestionResponse
   | DocQuestionResponse
-  | GroupQuestionResponse;
+  | GroupQuestionResponse
+  | CodingQuestionResponse;

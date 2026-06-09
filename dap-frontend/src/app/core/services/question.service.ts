@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
+  CodingQuestionRequest,
   DocQuestionRequest,
   GroupQuestionRequest,
   McqQuestionRequest,
@@ -16,7 +17,7 @@ export class QuestionService {
   private readonly http = inject(HttpClient);
 
   createQuestion(
-    request: McqQuestionRequest | TextQuestionRequest | DocQuestionRequest | GroupQuestionRequest
+    request: McqQuestionRequest | TextQuestionRequest | DocQuestionRequest | GroupQuestionRequest | CodingQuestionRequest
   ): Observable<QuestionResponse> {
     return this.http.post<QuestionResponse>(`${environment.apiBaseUrl}/questions`, request);
   }
@@ -29,7 +30,7 @@ export class QuestionService {
 
   updateQuestion(
     id: string,
-    request: McqQuestionRequest | TextQuestionRequest | DocQuestionRequest | GroupQuestionRequest
+    request: McqQuestionRequest | TextQuestionRequest | DocQuestionRequest | GroupQuestionRequest | CodingQuestionRequest
   ): Observable<QuestionResponse> {
     return this.http.put<QuestionResponse>(`${environment.apiBaseUrl}/questions/${id}`, request);
   }

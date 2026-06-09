@@ -124,7 +124,7 @@ export class QuestionListComponent {
 
   typeTagVariant(type: QuestionType): 'mcq' | 'text' | 'doc' | 'info' {
     const map: Record<QuestionType, 'mcq' | 'text' | 'doc' | 'info'> = {
-      MCQ: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info',
+      MCQ: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info', CODING: 'doc',
     };
     return map[type];
   }
