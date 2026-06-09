@@ -8,8 +8,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = McqQuestionResponse.class, name = "MCQ"),
         @JsonSubTypes.Type(value = TextQuestionResponse.class, name = "TEXT"),
         @JsonSubTypes.Type(value = DocQuestionResponse.class, name = "DOC"),
-        @JsonSubTypes.Type(value = GroupQuestionResponse.class, name = "GROUP")
+        @JsonSubTypes.Type(value = GroupQuestionResponse.class, name = "GROUP"),
+        @JsonSubTypes.Type(value = CodingQuestionResponse.class, name = "CODING")
 })
 public sealed interface QuestionResponse
-        permits McqQuestionResponse, TextQuestionResponse, DocQuestionResponse, GroupQuestionResponse {
+        permits McqQuestionResponse, TextQuestionResponse, DocQuestionResponse, GroupQuestionResponse, CodingQuestionResponse {
 }

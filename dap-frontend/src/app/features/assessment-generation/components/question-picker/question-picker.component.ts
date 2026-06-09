@@ -83,9 +83,9 @@ export class QuestionPickerComponent {
   isChecked(id: string): boolean { return this.checkedIds().has(id); }
   isSeen(id: string): boolean    { return this.seenSet().has(id); }
 
-  typeVariant(type: QuestionType): 'mcq' | 'text' | 'doc' | 'info' {
-    const map: Record<QuestionType, 'mcq' | 'text' | 'doc' | 'info'> = {
-      MCQ: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info',
+  typeVariant(type: QuestionType): 'mcq' | 'text' | 'doc' | 'info' | 'coding' {
+    const map: Record<QuestionType, 'mcq' | 'text' | 'doc' | 'info' | 'coding'> = {
+      MCQ: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info', CODING: 'coding',
     };
     return map[type];
   }

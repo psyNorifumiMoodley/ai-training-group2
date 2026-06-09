@@ -1,5 +1,7 @@
 package com.psybergate.dap.controller;
 
+import com.psybergate.dap.dto.DocQuestionRequest;
+import com.psybergate.dap.dto.ErrorResponse;
 import com.psybergate.dap.dto.PageResponse;
 import com.psybergate.dap.dto.QuestionRequest;
 import com.psybergate.dap.dto.QuestionResponse;
@@ -9,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.Instant;
 
 import java.util.UUID;
 
@@ -24,7 +28,13 @@ public class QuestionController {
     }
 
     @PostMapping
-    public ResponseEntity<QuestionResponse> createQuestion(@Valid @RequestBody QuestionRequest request) {
+    public ResponseEntity<?> createQuestion(@Valid @RequestBody QuestionRequest request) {
+        if (request instanceof DocQuestionRequest) {
+            return ResponseEntity.status(HttpStatus.GONE)
+                    .body(new ErrorResponse(410, "Gone",
+                            "Doc question creation is deprecated. Use POST /api/questions with type CODING instead.",
+                            Instant.now()));
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(questionService.create(request));
     }
 

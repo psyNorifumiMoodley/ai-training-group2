@@ -330,7 +330,7 @@ No changes.
 ### Frontend Components
 
 **`CandidateResultComponent`** — updates
-- For each question with `type === 'CODING_QUESTION'`: look up the `CodingResultResponse` by `codingQuestionId` and display a badge: `"X / Y passed"`
+- For each question with `type === 'CODING'`: look up the `CodingResultResponse` by `codingQuestionId` and display a badge: `"X / Y passed"`
 - Badge colours:
   - `passed === total` → green
   - `passed > 0 && passed < total` → amber

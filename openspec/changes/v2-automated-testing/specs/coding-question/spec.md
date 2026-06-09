@@ -1,28 +1,28 @@
 ## ADDED Requirements
 
 ### Requirement: Marker creates a coding question in the question bank
-A Marker or Admin SHALL be able to create a `coding_question` in a question bank by providing a prompt and a required programming language (Java, Python, or C#). Candidates submit their answer as inline source code — there is no file upload on a coding question.
+A Marker or Admin SHALL be able to create a `coding_question` by providing a category, prompt, and a required programming language (Java, Python, or C#). Candidates submit their answer as inline multiline source code — there is no file upload on a coding question. Question creation uses the existing `POST /api/questions` endpoint with `"type": "CODING"` as the discriminator — `CodingQuestionRequest` implements the existing `QuestionRequest` sealed interface.
 
 #### Scenario: Create a coding question with a valid language
-- **WHEN** a Marker submits a valid `POST /api/question-banks/{bankId}/coding-questions` request with a non-null `language` field (one of `JAVA`, `PYTHON`, `CSHARP`)
-- **THEN** the response is HTTP 201 and the returned question has `type = CODING_QUESTION` and the specified language
+- **WHEN** a Marker submits a valid `POST /api/questions` request with `"type": "CODING"` and a non-null `language` field (one of `JAVA`, `PYTHON`, `CSHARP`)
+- **THEN** the response is HTTP 201 and the returned question has `type = "CODING"` and the specified language
 
 #### Scenario: Create a coding question without a language is rejected
-- **WHEN** a Marker submits a `POST /api/question-banks/{bankId}/coding-questions` request with no `language` field (or `language = null`)
+- **WHEN** a Marker submits a `POST /api/questions` request with `"type": "CODING"` and no `language` field (or `language = null`)
 - **THEN** the response is HTTP 400
 
 #### Scenario: Invalid language value is rejected
-- **WHEN** a Marker submits a `POST /api/question-banks/{bankId}/coding-questions` request with `language = "RUBY"`
+- **WHEN** a Marker submits a `POST /api/questions` request with `"type": "CODING"` and `language = "RUBY"`
 - **THEN** the response is HTTP 400
 
 #### Scenario: Attempting to create a doc question is blocked
-- **WHEN** a Marker submits a `POST /api/question-banks/{bankId}/questions` request with `type = DOC_QUESTION`
+- **WHEN** a Marker submits a `POST /api/questions` request with `"type": "DOC"`
 - **THEN** the response is HTTP 410 (Gone — doc question creation is deprecated)
 
 ---
 
 ### Requirement: Marker manages test cases on a coding question
-A Marker or Admin SHALL be able to add, edit, and delete test cases on a coding question. Each test case defines an input string, an expected output string, a timeout (seconds), and a memory limit (MB).
+A Marker or Admin SHALL be able to manage test cases on a coding question. Each test case defines an input string, an expected output string, a timeout (seconds), and a memory limit (MB). Test cases are included in the `testCases` list on `CodingQuestionRequest` and are created or updated together with the question via `POST /api/questions` (create) or `PUT /api/questions/{id}` (update) — there is no separate test-case sub-resource.
 
 #### Scenario: Add a test case to a coding question
 - **WHEN** a Marker submits a valid `POST /api/coding-questions/{questionId}/test-cases` request with `input`, `expectedOutput`, `timeoutSeconds` (≥ 1, ≤ 60), and `memoryMb` (≥ 64, ≤ 1024)

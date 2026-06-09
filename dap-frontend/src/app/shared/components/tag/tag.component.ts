@@ -6,6 +6,7 @@ const VARIANT_CLASSES: Record<string, string> = {
   text:    'bg-primary-fill text-primary-text',
   doc:     'bg-amber-100 text-amber-800',
   info:    'bg-blue-100 text-blue-700',
+  coding:  'bg-purple-100 text-purple-700',
 };
 
 @Component({
@@ -20,7 +21,7 @@ const VARIANT_CLASSES: Record<string, string> = {
 })
 export class TagComponent {
   readonly label   = input.required<string>();
-  readonly variant = input<'default' | 'mcq' | 'text' | 'doc' | 'info'>('default');
+  readonly variant = input<'default' | 'mcq' | 'text' | 'doc' | 'info' | 'coding'>('default');
 
   variantClass(): string { return VARIANT_CLASSES[this.variant()]; }
 }
