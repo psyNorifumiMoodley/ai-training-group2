@@ -4,13 +4,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserService } from '../../../../core/services/user.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { CandidateResponse } from '../../../../core/models/user.model';
-import { AssessmentResponse, AssessmentStatus } from '../../../../core/models/assessment.model';
+import { AssessmentResponse } from '../../../../core/models/assessment.model';
 import { CandidateFormComponent } from '../candidate-form/candidate-form.component';
+import { BadgeComponent } from '../../../../shared/components/badge/badge.component';
 
 @Component({
   selector: 'app-candidate-detail',
   standalone: true,
-  imports: [RouterLink, CandidateFormComponent],
+  imports: [RouterLink, CandidateFormComponent, BadgeComponent],
   templateUrl: './candidate-detail.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -103,26 +104,6 @@ export class CandidateDetailComponent implements OnInit {
           this.error.set('Could not delete this candidate. They may have existing assessments.');
         }
       });
-  }
-
-  statusLabel(status: AssessmentStatus): string {
-    const labels: Record<AssessmentStatus, string> = {
-      PENDING: 'Pending',
-      IN_PROGRESS: 'In Progress',
-      SUBMITTED: 'Submitted',
-      MARKED: 'Marked',
-    };
-    return labels[status] ?? status;
-  }
-
-  statusClass(status: AssessmentStatus): string {
-    const classes: Record<AssessmentStatus, string> = {
-      PENDING: 'bg-gray-100 text-gray-600',
-      IN_PROGRESS: 'bg-blue-50 text-blue-700',
-      SUBMITTED: 'bg-amber-50 text-amber-700',
-      MARKED: 'bg-green-50 text-green-700',
-    };
-    return classes[status] ?? 'bg-gray-100 text-gray-600';
   }
 
   formatDate(iso: string): string {
