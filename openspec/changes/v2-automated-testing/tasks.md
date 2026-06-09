@@ -1,14 +1,14 @@
 ## 1. Phase 6 — Slice 0: API Contracts *(merge first)*
 
-- [ ] 1.1 Add `CodingQuestionRequest` record: fields `language` (**required**, non-null `Language` enum), `prompt` (String), `testCases` (nullable list of `TestCaseRequest`)
-- [ ] 1.2 Add `TestCaseRequest` record: fields `input` (String), `expectedOutput` (String), `timeoutSeconds` (int), `memoryMb` (int) with `@Valid` constraints
+- [ ] 1.1 Add `CodingQuestionRequest` record implementing the existing `QuestionRequest` sealed interface: fields `category` (String, `@NotBlank`), `question` (String, `@NotBlank`), `language` (**required**, `@NotNull Language` enum), `testCases` (nullable list of `TestCaseRequest`); register in `QuestionRequest` `@JsonSubTypes` with name `"CODING"` and in the `permits` clause
+- [ ] 1.2 Add `TestCaseRequest` record: fields `input` (String), `expectedOutput` (String, `@NotBlank`), `timeoutSeconds` (int, `@Min(1) @Max(60)`), `memoryMb` (int, `@Min(64) @Max(1024)`) with `@Valid` constraints
 - [ ] 1.3 Add `TestCaseResponse` record: fields `id` (UUID), `input`, `expectedOutput`, `timeoutSeconds`, `memoryMb`, `ordinal`
-- [ ] 1.4 Add `CodingQuestionResponse` record: fields `id` (UUID), `prompt` (String), `language` (**required** `Language`), `testCases` (list of `TestCaseResponse`)
-- [ ] 1.5 Add stub endpoints to a new `CodingQuestionController`: `POST /api/question-banks/{bankId}/coding-questions` → 201; `GET /api/question-banks/{bankId}/coding-questions/{id}` → 200; `POST /api/coding-questions/{questionId}/test-cases` → 201; `PUT /api/coding-questions/{questionId}/test-cases/{testCaseId}` → 200; `DELETE /api/coding-questions/{questionId}/test-cases/{testCaseId}` → 204; `GET /api/coding-questions/{questionId}/test-cases` → 200 empty array
-- [ ] 1.6 Block doc question creation: update the existing `POST /api/question-banks/{bankId}/questions` handler — if `type = DOC_QUESTION`, return HTTP 410 with message "Doc question creation is deprecated; use coding-questions instead"
+- [ ] 1.4 Add `CodingQuestionResponse` record implementing the existing `QuestionResponse` sealed interface: fields `id` (UUID), `category` (String), `question` (String), `language` (`Language`), `testCases` (list of `TestCaseResponse`); register in `QuestionResponse` `@JsonSubTypes` with name `"CODING"` and in the `permits` clause
+- [ ] 1.5 Add stub `CodingQuestionController` for **test-case sub-resources only** — no question creation endpoint: `POST /api/coding-questions/{questionId}/test-cases` → 201; `GET /api/coding-questions/{questionId}/test-cases` → 200 empty array; `PUT /api/coding-questions/{questionId}/test-cases/{testCaseId}` → 200; `DELETE /api/coding-questions/{questionId}/test-cases/{testCaseId}` → 204; all endpoints secured with `@PreAuthorize("hasAnyRole('MARKER', 'ADMIN')")`
+- [ ] 1.6 Block doc question creation: in the existing `QuestionController.createQuestion()`, add a guard — if `request instanceof DocQuestionRequest`, return HTTP 410 with message "Doc question creation is deprecated. Use POST /api/questions with type CODING instead." (the existing endpoint is `POST /api/questions`, type discriminator is `"DOC"`, not `"DOC_QUESTION"`)
 - [ ] 1.7 Add `Language` enum (`JAVA`, `PYTHON`, `CSHARP`) to the domain package
-- [ ] 1.8 Define frontend TypeScript models: `Language`, `TestCase`, `TestCaseRequest`, `CodingQuestion` (with required `language: Language` and `testCases: TestCase[]`)
-- [ ] 1.9 Add stub Angular service methods in a new `CodingQuestionService`: `createCodingQuestion()`, `getCodingQuestion()`, `addTestCase()`, `updateTestCase()`, `deleteTestCase()`, `getTestCases()` — all return `EMPTY`
+- [ ] 1.8 Update frontend TypeScript types: add `'CODING'` to the `QuestionType` union in `question.model.ts`; add `CodingQuestionRequest` interface (with `type: 'CODING'`, `language: Language`), `CodingQuestionResponse` interface; update `QuestionResponse` union to include `CodingQuestionResponse`; create `coding-question.model.ts` for `Language`, `TestCase`, `TestCaseRequest` types
+- [ ] 1.9 Update `question.service.ts` union types to include `CodingQuestionRequest`; add stub Angular `CodingQuestionService` for **test-case operations only**: `addTestCase()`, `updateTestCase()`, `deleteTestCase()`, `getTestCases()` — all return `EMPTY`; base URL `/api/coding-questions`
 - [ ] 1.10 Verify stubs compile (backend and frontend) with no errors; merge Slice 0 to main
 
 ## 2. Phase 6 — Slice A: Schema Migration & Test Case CRUD (Backend)
@@ -22,21 +22,21 @@
 - [ ] 2.7 Wire `TestCaseService` into `CodingQuestionController` stub endpoints (replace hardcoded responses)
 - [ ] 2.8 Write `TestCaseServiceTest` (`@SpringBootTest`, Testcontainers): add test case → 201; timeoutSeconds = 0 → 400; timeoutSeconds > 60 → 400; memoryMb < 64 → 400; memoryMb > 1024 → 400; delete → 204 and row removed; update → 200 and fields reflect new values
 
-## 3. Phase 6 — Slice B: Coding Question Service & Language Validation (Backend)
+## 3. Phase 6 — Slice B: Coding Question in QuestionService & Language Validation (Backend)
 
-- [ ] 3.1 Create `CodingQuestionService`: implement `createCodingQuestion(UUID bankId, CodingQuestionRequest request)` — validates language is non-null and a known `Language` enum value (400 if invalid), persists new `CodingQuestion` entity
-- [ ] 3.2 Implement `getCodingQuestion(UUID questionId)`: eagerly loads `testCases` (use `@EntityGraph` or `JOIN FETCH`) and maps to `CodingQuestionResponse`
-- [ ] 3.3 Wire `CodingQuestionService` into `CodingQuestionController` create/get stubs (replace hardcoded responses)
+- [ ] 3.1 Extend `QuestionService.create()` with a new `instanceof CodingQuestionRequest` branch: add a private `createCodingQuestion(CodingQuestionRequest)` method that persists a `CodingQuestion` entity; `language` validation is handled by `@NotNull` bean validation at the controller level — no manual check needed; constructor-inject `CodingQuestionRepository` into `QuestionService`
+- [ ] 3.2 Extend `QuestionService.toResponse()` with a new `instanceof CodingQuestion` branch: add a private `toCodingQuestionResponse(CodingQuestion)` method that maps entity fields (including `testCases` list) to `CodingQuestionResponse`; use `@Transactional(readOnly = true)` on `toResponse()` to support lazy association traversal
+- [ ] 3.3 No new controller changes — `POST /api/questions` in `QuestionController` already routes to `QuestionService.create()`; creation of coding questions flows through the existing endpoint automatically once the service branch is added
 - [ ] 3.4 Update assessment generation doc limit check (`AssessmentService`): count both `DocQuestion` and `CodingQuestion` rows toward the limit — add a comment explaining the multi-subtype count if the query is non-obvious
-- [ ] 3.5 Write `CodingQuestionServiceTest` (`@SpringBootTest`, Testcontainers): create with `language=JAVA` → 201 and language persisted; create with null language → 400; create with invalid language string → 400; doc+coding limit: one legacy doc question + one coding question in one assessment → 409; two coding questions in one assessment → 409
+- [ ] 3.5 Write `CodingQuestionServiceTest` (`@SpringBootTest`, Testcontainers): `POST /api/questions` with `"type": "CODING"` and `language=JAVA` → 201 and language persisted; `POST /api/questions` with `"type": "CODING"` and missing `language` → 400; `GET /api/questions/{id}` for a coding question returns `CodingQuestionResponse` with `testCases: []`; doc+coding limit: one legacy doc question + one coding question in one assessment → 409; two coding questions in one assessment → 409
 
 ## 4. Phase 6 — Slice C: Angular Question Editor — Coding Question Form
 
 - [ ] 4.1 Add a new "Coding Question" creation/edit form component: language dropdown (required, options: Java, Python, C#); use `input()` signal API; `OnPush` change detection
 - [ ] 4.2 Add a test case editor panel below the language dropdown: rows with input textarea, expected output textarea, timeout (number input, 1–60), memory MB (number input, 64–1024); add/remove row buttons
 - [ ] 4.3 Remove the "Doc Question" option from the question bank question creation menu
-- [ ] 4.4 Wire `createCodingQuestion()`, `addTestCase()`, `updateTestCase()`, `deleteTestCase()` service stubs to real API calls in `CodingQuestionService`
-- [ ] 4.5 On form submit, call `POST /api/question-banks/{bankId}/coding-questions` with `language` and `prompt`; after question is saved, persist any test case rows via the test case API
+- [ ] 4.4 Wire `addTestCase()`, `updateTestCase()`, `deleteTestCase()` service stubs to real API calls in `CodingQuestionService`
+- [ ] 4.5 On form submit, call `QuestionService.createQuestion()` with `{ type: 'CODING', category, question, language }` (routes to the existing `POST /api/questions` endpoint); after question is saved, persist any test case rows via `CodingQuestionService`
 - [ ] 4.6 Write unit tests: language dropdown renders Java/Python/C# options; language is required (form invalid without it); test case panel visible when language is selected; add row appends a blank row; remove row deletes that row; submit calls service with correct payload
 
 ## 5. Phase 6 — Slice D: Angular Question Bank — Language Badge & Test Case Count
@@ -113,7 +113,7 @@
 ## 14. Phase 8 — Slice C: Angular Candidate Result View
 
 - [ ] 14.1 Update `getCodingResults()` in `CodingResultService` with the real `GET /api/assessments/{id}/coding-results` API call
-- [ ] 14.2 In the candidate assessment result component, for each question that is a coding question (detected by `type === 'CODING_QUESTION'`), display a pass/fail badge: "X / Y passed"
+- [ ] 14.2 In the candidate assessment result component, for each question that is a coding question (detected by `type === 'CODING'`), display a pass/fail badge: "X / Y passed"
 - [ ] 14.3 Apply colour coding: all passed = green badge; some passed = amber badge; none passed = red badge; no test cases = grey badge
 - [ ] 14.4 Write unit tests: badge renders "3 / 5 passed" given mocked `CodingResultResponse`; badge colour is green when `passed === total`; badge absent for non-coding questions
 
