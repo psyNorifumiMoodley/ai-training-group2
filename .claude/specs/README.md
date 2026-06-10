@@ -37,9 +37,9 @@ OpenSpec change: `openspec/changes/v2-automated-testing/`
 
 | File                                                                                            | Phase   | Key Capabilities                                                                            |
 |-------------------------------------------------------------------------------------------------|---------|---------------------------------------------------------------------------------------------|
-| [phase-6-coding-question.md](v2-automated-testing/phase-6-coding-question.md)                  | Phase 6 | New `coding_question` subtype, test case management, doc_question soft deprecation, UI      |
-| [phase-7-execution-engine.md](v2-automated-testing/phase-7-execution-engine.md)                | Phase 7 | Docker execution engine, Java / Python / C# language runners, container lifecycle           |
-| [phase-8-grading-and-results.md](v2-automated-testing/phase-8-grading-and-results.md)          | Phase 8 | Async auto-grading on submission, result query endpoints, candidate and marker result views |
+| [phase-6-coding-question.md](v2-automated-testing/phase-1-coding-question.md)                  | Phase 6 | New `coding_question` subtype, test case management, doc_question soft deprecation, UI      |
+| [phase-7-execution-engine.md](v2-automated-testing/phase-2-execution-engine.md)                | Phase 7 | Docker execution engine, Java / Python / C# language runners, container lifecycle           |
+| [phase-8-grading-and-results.md](v2-automated-testing/phase-3-grading-and-results.md)          | Phase 8 | Async auto-grading on submission, result query endpoints, candidate and marker result views |
 
 ---
 
