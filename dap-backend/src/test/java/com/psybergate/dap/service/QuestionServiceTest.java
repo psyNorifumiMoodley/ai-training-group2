@@ -8,7 +8,9 @@ import com.psybergate.dap.dto.*;
 import com.psybergate.dap.repository.*;
 import com.psybergate.dap.repository.AssessmentQuestionRepository;
 import com.psybergate.dap.repository.GroupQuestionRepository;
+import com.psybergate.dap.repository.QuestionBankRepository;
 import com.psybergate.dap.repository.TextQuestionRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -18,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,8 +45,21 @@ class QuestionServiceTest {
     @Mock
     private GroupQuestionRepository groupQuestionRepository;
 
+    @Mock
+    private QuestionBankRepository questionBankRepository;
+
+    @Mock
+    private McqPlusQuestionRepository mcqPlusQuestionRepository;
+
     @InjectMocks
     private QuestionService questionService;
+
+    @BeforeEach
+    void setUpBankMock() {
+        QuestionBank bank = new QuestionBank("Test Bank");
+        bank.setId(UUID.randomUUID());
+        when(questionBankRepository.findById(any(UUID.class))).thenReturn(Optional.of(bank));
+    }
 
     @Test
     void createMcq_persistsMcqQuestion() {
@@ -56,7 +72,6 @@ class QuestionServiceTest {
 
         McqQuestion saved = new McqQuestion();
         saved.setId(UUID.randomUUID());
-        saved.setCategory("Java");
         saved.setQuestion("Which keyword declares a variable?");
         saved.setOptions(List.of("int", "for", "class"));
         saved.setCorrectAnswers(List.of("int"));
@@ -80,7 +95,6 @@ class QuestionServiceTest {
 
         DocQuestion saved = new DocQuestion();
         saved.setId(UUID.randomUUID());
-        saved.setCategory("Java");
         saved.setQuestion("Upload your design document");
         when(docQuestionRepository.save(any(DocQuestion.class))).thenReturn(saved);
 
@@ -101,7 +115,6 @@ class QuestionServiceTest {
 
         TextQuestion saved = new TextQuestion();
         saved.setId(UUID.randomUUID());
-        saved.setCategory("Java");
         saved.setQuestion("Describe OOP");
         saved.setKeywords(List.of("encapsulation", "polymorphism"));
         when(textQuestionRepository.save(any(TextQuestion.class))).thenReturn(saved);
@@ -126,7 +139,6 @@ class QuestionServiceTest {
         ArgumentCaptor<TextQuestion> captor = ArgumentCaptor.forClass(TextQuestion.class);
         TextQuestion saved = new TextQuestion();
         saved.setId(UUID.randomUUID());
-        saved.setCategory("Java");
         saved.setQuestion("Describe OOP");
         saved.setKeywords(List.of());
         when(textQuestionRepository.save(captor.capture())).thenReturn(saved);
@@ -149,7 +161,7 @@ class QuestionServiceTest {
         saved.setId(UUID.randomUUID());
         saved.setQuestion("OOP concepts");
         saved.setOrdered(true);
-        saved.setFollowUpQuestions(new ArrayList<>());
+        saved.setChildren(new ArrayList<>());
         when(groupQuestionRepository.save(any(GroupQuestion.class))).thenReturn(saved);
 
         QuestionResponse response = questionService.create(request);

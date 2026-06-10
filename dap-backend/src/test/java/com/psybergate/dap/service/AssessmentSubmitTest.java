@@ -68,7 +68,6 @@ class AssessmentSubmitTest {
     private Assessment inProgressAssessment(Instant startTime, int timeLimitMinutes) {
         return txTemplate.execute(status -> {
             McqQuestion q = new McqQuestion(List.of("A", "B"), List.of("A"));
-            q.setCategory("Java");
             q.setQuestion("What is Java?");
             mcqQuestionRepository.save(q);
 
