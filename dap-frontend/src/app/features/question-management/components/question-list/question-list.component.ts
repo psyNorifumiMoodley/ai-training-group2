@@ -124,7 +124,7 @@ export class QuestionListComponent {
 
   typeTagVariant(type: QuestionType): 'mcq' | 'text' | 'doc' | 'info' | 'coding' {
     const map: Record<QuestionType, 'mcq' | 'text' | 'doc' | 'info' | 'coding'> = {
-      MCQ: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info', CODING: 'coding',
+      MCQ: 'mcq', MCQ_PLUS: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info', CODING: 'coding',
     };
     return map[type];
   }
@@ -132,15 +132,14 @@ export class QuestionListComponent {
   resolveType(q: QuestionResponse): QuestionType {
     if (q.type) return q.type;
     if ('correctAnswers' in q) return 'MCQ';
-    if ('followUpQuestions' in q) return 'GROUP';
+    if ('children' in q) return 'GROUP';
     if ('keywords' in q) return 'TEXT';
     return 'DOC';
   }
 
   private loadQuestions(): void {
     this.loading.set(true);
-    const cat = this.selectedCategory() || undefined;
-    this.questionService.getQuestions(this.page(), this.PAGE_SIZE, cat)
+    this.questionService.getQuestions(this.page(), this.PAGE_SIZE)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: page => {

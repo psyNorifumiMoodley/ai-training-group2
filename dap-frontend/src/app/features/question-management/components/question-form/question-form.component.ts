@@ -84,12 +84,12 @@ export class QuestionFormComponent implements OnInit {
 
     const type = this.resolveType(q);
     this.selectedType.set(type);
-    this.form.patchValue({ category: q.category, questionText: q.question });
+    this.form.patchValue({ questionText: q.question });
 
     if (type === 'GROUP') {
       const gq = q as GroupQuestionResponse;
       this.orderedGroup.set(gq.ordered);
-      this.selectedFollowUpIds.set(gq.followUpQuestions.map(fq => fq.id));
+      this.selectedFollowUpIds.set(gq.children.map(c => c.id));
       this.loadTextQuestions();
     }
   }
@@ -115,34 +115,34 @@ export class QuestionFormComponent implements OnInit {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const type = this.selectedType();
     if (!type) { this.errorMsg.set('Please select a question type.'); return; }
-    const { category, questionText } = this.form.getRawValue();
+    const { questionText } = this.form.getRawValue();
     this.errorMsg.set('');
 
     if (type === 'MCQ') {
       const builder = this.mcqBuilder();
       const mcqVal = builder ? builder.getValue() : this.currentMcqValue;
       if (!mcqVal.isValid) { this.errorMsg.set('Add at least one option and mark a correct answer.'); return; }
-      this.save({ type: 'MCQ', category, question: questionText, options: mcqVal.options, correctAnswers: mcqVal.correctAnswers });
+      this.save({ type: 'MCQ', questionBankIds: [], question: questionText, options: mcqVal.options, correctAnswers: mcqVal.correctAnswers });
       return;
     }
     if (type === 'TEXT') {
       const keywords = this.keywordList()?.keywords() ?? this.currentKeywords;
-      this.save({ type: 'TEXT', category, question: questionText, keywords: [...keywords] });
+      this.save({ type: 'TEXT', questionBankIds: [], question: questionText, keywords: [...keywords], marks: 1 });
       return;
     }
     if (type === 'DOC') {
-      this.save({ type: 'DOC', category, question: questionText });
+      this.save({ type: 'DOC', questionBankIds: [], question: questionText, marks: 1 });
       return;
     }
     if (type === 'GROUP') {
-      this.save({ type: 'GROUP', category, question: questionText, ordered: this.orderedGroup(), followUpQuestionIds: this.selectedFollowUpIds() });
+      this.save({ type: 'GROUP', questionBankIds: [], question: questionText, ordered: this.orderedGroup(), children: [] });
     }
   }
 
   resolveType(q: QuestionResponse): QuestionType {
     if (q.type) return q.type;
     if ('correctAnswers' in q) return 'MCQ';
-    if ('followUpQuestions' in q) return 'GROUP';
+    if ('children' in q) return 'GROUP';
     if ('keywords' in q) return 'TEXT';
     return 'DOC';
   }

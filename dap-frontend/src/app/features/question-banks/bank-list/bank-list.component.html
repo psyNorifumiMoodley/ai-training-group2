@@ -134,7 +134,7 @@
 
             <div class="flex items-center gap-1.5 mt-2">
               <dap-tag [label]="resolveType(q)" [variant]="typeVariant(resolveType(q))" />
-              <span class="text-[0.6875rem] text-gray-400">{{ q.category }}</span>
+              <span class="text-[0.6875rem] text-gray-400">{{ q.questionBanks?.[0]?.name }}</span>
             </div>
           </div>
         }

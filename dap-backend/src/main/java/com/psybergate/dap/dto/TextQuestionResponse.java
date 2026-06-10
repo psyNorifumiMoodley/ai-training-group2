@@ -5,8 +5,9 @@ import java.util.UUID;
 
 public record TextQuestionResponse(
         UUID id,
-        String category,
+        List<QuestionBankResponse> questionBanks,
         String question,
-        List<String> keywords
+        List<String> keywords,
+        int marks
 ) implements QuestionResponse {
 }

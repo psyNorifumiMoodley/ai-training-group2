@@ -1,6 +1,11 @@
-export type QuestionType = 'MCQ' | 'TEXT' | 'DOC' | 'GROUP' | 'CODING';
+export type QuestionType = 'MCQ' | 'MCQ_PLUS' | 'TEXT' | 'DOC' | 'GROUP' | 'CODING';
 
 export type CodingQuestionLanguage = 'JAVA' | 'PYTHON' | 'CSHARP';
+
+export interface QuestionBankResponse {
+  id: string;
+  name: string;
+}
 
 export interface TestCaseRequest {
   input: string;
@@ -18,38 +23,64 @@ export interface TestCase {
   ordinal: number;
 }
 
+export interface GroupChildRequest {
+  questionText: string;
+  keywords?: string[];
+  marks: number;
+}
+
+export interface GroupChildResponse {
+  id: string;
+  questionText: string;
+  keywords: string[];
+  marks: number;
+}
+
 export interface McqQuestionRequest {
   type: 'MCQ';
-  category: string;
+  questionBankIds: string[];
   question: string;
   options: string[];
   correctAnswers: string[];
 }
 
+export interface McqPlusQuestionRequest {
+  type: 'MCQ_PLUS';
+  questionBankIds: string[];
+  question: string;
+  options: string[];
+  correctAnswers: string[];
+  followUpQuestion: string;
+  followUpKeywords?: string[];
+  followUpMarks: number;
+}
+
 export interface TextQuestionRequest {
   type: 'TEXT';
-  category: string;
+  questionBankIds: string[];
   question: string;
   keywords: string[];
+  marks: number;
 }
 
 export interface DocQuestionRequest {
   type: 'DOC';
-  category: string;
+  questionBankIds: string[];
   question: string;
+  marks: number;
 }
 
 export interface GroupQuestionRequest {
   type: 'GROUP';
-  category: string;
+  questionBankIds: string[];
   question: string;
   ordered: boolean;
-  followUpQuestionIds: string[];
+  children: GroupChildRequest[];
 }
 
 export interface CodingQuestionRequest {
   type: 'CODING';
-  category: string;
+  questionBankIds: string[];
   question: string;
   language: CodingQuestionLanguage;
   testCases?: TestCaseRequest[];
@@ -58,7 +89,7 @@ export interface CodingQuestionRequest {
 export interface BaseQuestionResponse {
   type: QuestionType;
   id: string;
-  category: string;
+  questionBanks: QuestionBankResponse[];
   question: string;
 }
 
@@ -69,19 +100,33 @@ export interface McqQuestionResponse extends BaseQuestionResponse {
   multiCorrect: boolean;
 }
 
+export interface McqPlusQuestionResponse extends BaseQuestionResponse {
+  type: 'MCQ_PLUS';
+  options: string[];
+  correctAnswers: string[];
+  multiCorrect: boolean;
+  followUpQuestion: string;
+  followUpKeywords: string[];
+  followUpMarks: number;
+  totalMarks: number;
+}
+
 export interface TextQuestionResponse extends BaseQuestionResponse {
   type: 'TEXT';
   keywords: string[];
+  marks: number;
 }
 
 export interface DocQuestionResponse extends BaseQuestionResponse {
   type: 'DOC';
+  marks: number;
 }
 
 export interface GroupQuestionResponse extends BaseQuestionResponse {
   type: 'GROUP';
   ordered: boolean;
-  followUpQuestions: TextQuestionResponse[];
+  children: GroupChildResponse[];
+  totalMarks: number;
 }
 
 export interface CodingQuestionResponse extends BaseQuestionResponse {
@@ -92,7 +137,16 @@ export interface CodingQuestionResponse extends BaseQuestionResponse {
 
 export type QuestionResponse =
   | McqQuestionResponse
+  | McqPlusQuestionResponse
   | TextQuestionResponse
   | DocQuestionResponse
   | GroupQuestionResponse
   | CodingQuestionResponse;
+
+export type QuestionRequest =
+  | McqQuestionRequest
+  | McqPlusQuestionRequest
+  | TextQuestionRequest
+  | DocQuestionRequest
+  | GroupQuestionRequest
+  | CodingQuestionRequest;

@@ -40,7 +40,8 @@ export class QuestionPickerComponent {
   readonly banks = computed<Bank[]>(() => {
     const counts = new Map<string, number>();
     for (const q of this.allQuestions()) {
-      counts.set(q.category, (counts.get(q.category) ?? 0) + 1);
+      const bankName = q.questionBanks?.[0]?.name ?? '';
+      counts.set(bankName, (counts.get(bankName) ?? 0) + 1);
     }
     return Array.from(counts.entries()).map(([name, questionCount]) => ({ name, questionCount }));
   });
@@ -48,7 +49,7 @@ export class QuestionPickerComponent {
   readonly filteredQuestions = computed(() => {
     const cat = this.selectedCategory();
     return cat
-      ? this.allQuestions().filter(q => q.category === cat)
+      ? this.allQuestions().filter(q => (q.questionBanks?.[0]?.name ?? '') === cat)
       : this.allQuestions();
   });
 
@@ -62,7 +63,7 @@ export class QuestionPickerComponent {
         next: page => {
           this.allQuestions.set(page.content);
           if (!this.selectedCategory() && page.content.length > 0) {
-            this.selectedCategory.set(page.content[0].category);
+            this.selectedCategory.set(page.content[0].questionBanks?.[0]?.name ?? '');
           }
           this.loading.set(false);
         },
@@ -85,7 +86,7 @@ export class QuestionPickerComponent {
 
   typeVariant(type: QuestionType): 'mcq' | 'text' | 'doc' | 'info' | 'coding' {
     const map: Record<QuestionType, 'mcq' | 'text' | 'doc' | 'info' | 'coding'> = {
-      MCQ: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info', CODING: 'coding',
+      MCQ: 'mcq', MCQ_PLUS: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info', CODING: 'coding',
     };
     return map[type];
   }

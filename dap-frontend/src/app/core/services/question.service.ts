@@ -6,6 +6,7 @@ import {
   CodingQuestionRequest,
   DocQuestionRequest,
   GroupQuestionRequest,
+  McqPlusQuestionRequest,
   McqQuestionRequest,
   QuestionResponse,
   TextQuestionRequest,
@@ -17,29 +18,25 @@ export class QuestionService {
   private readonly http = inject(HttpClient);
 
   createQuestion(
-    request: McqQuestionRequest | TextQuestionRequest | DocQuestionRequest | GroupQuestionRequest | CodingQuestionRequest
+    request: McqQuestionRequest | McqPlusQuestionRequest | TextQuestionRequest | DocQuestionRequest | GroupQuestionRequest | CodingQuestionRequest
   ): Observable<QuestionResponse> {
     return this.http.post<QuestionResponse>(`${environment.apiBaseUrl}/questions`, request);
   }
 
-  getQuestions(page: number, size: number, category?: string): Observable<PageResponse<QuestionResponse>> {
+  getQuestions(page: number, size: number, questionBankId?: string): Observable<PageResponse<QuestionResponse>> {
     let params = new HttpParams().set('page', page).set('size', size);
-    if (category) params = params.set('category', category);
+    if (questionBankId) params = params.set('questionBankId', questionBankId);
     return this.http.get<PageResponse<QuestionResponse>>(`${environment.apiBaseUrl}/questions`, { params });
   }
 
   updateQuestion(
     id: string,
-    request: McqQuestionRequest | TextQuestionRequest | DocQuestionRequest | GroupQuestionRequest | CodingQuestionRequest
+    request: McqQuestionRequest | McqPlusQuestionRequest | TextQuestionRequest | DocQuestionRequest | GroupQuestionRequest | CodingQuestionRequest
   ): Observable<QuestionResponse> {
     return this.http.put<QuestionResponse>(`${environment.apiBaseUrl}/questions/${id}`, request);
   }
 
   deleteQuestion(id: string): Observable<void> {
     return this.http.delete<void>(`${environment.apiBaseUrl}/questions/${id}`);
-  }
-
-  getCategories(): Observable<string[]> {
-    return this.http.get<string[]>(`${environment.apiBaseUrl}/questions/categories`);
   }
 }
