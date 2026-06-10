@@ -84,7 +84,7 @@ class QuestionBankControllerTest {
     void createQuestionBank_asMarker_returns201WithRealUuidAndName() throws Exception {
         UUID id = UUID.randomUUID();
         when(questionBankService.create(any(QuestionBankRequest.class)))
-                .thenReturn(new QuestionBankResponse(id, "Java Core"));
+                .thenReturn(new QuestionBankResponse(id, "Java Core", 0L));
 
         Map<String, Object> body = Map.of("name", "Java Core");
 
@@ -115,7 +115,7 @@ class QuestionBankControllerTest {
     void listQuestionBanks_asMarker_returnsPaginatedResults() throws Exception {
         UUID id = UUID.randomUUID();
         PageResponse<QuestionBankResponse> page = new PageResponse<>(
-                List.of(new QuestionBankResponse(id, "Java Core")), 1, 1, 20, 0);
+                List.of(new QuestionBankResponse(id, "Java Core", 0L)), 1, 1, 20, 0);
         when(questionBankService.list(0, 20)).thenReturn(page);
 
         mockMvc.perform(get("/api/question-banks")
@@ -130,7 +130,7 @@ class QuestionBankControllerTest {
     void renameQuestionBank_asMarker_returns200() throws Exception {
         UUID id = UUID.randomUUID();
         when(questionBankService.rename(eq(id), any(QuestionBankRequest.class)))
-                .thenReturn(new QuestionBankResponse(id, "Java Advanced"));
+                .thenReturn(new QuestionBankResponse(id, "Java Advanced", 0L));
 
         Map<String, Object> body = Map.of("name", "Java Advanced");
 

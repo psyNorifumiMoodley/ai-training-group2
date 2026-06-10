@@ -70,6 +70,7 @@ public class QuestionBankService {
     }
 
     private QuestionBankResponse toResponse(QuestionBank bank) {
-        return new QuestionBankResponse(bank.getId(), bank.getName());
+        long count = questionBankRepository.countQuestionsByBankId(bank.getId());
+        return new QuestionBankResponse(bank.getId(), bank.getName(), count);
     }
 }

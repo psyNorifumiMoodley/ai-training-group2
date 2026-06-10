@@ -43,29 +43,29 @@
           }
         </div>
 
-        @if (selectedType()) {
+        <!-- Question banks multi-select -->
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Question banks
+            <span class="text-red-400">*</span>
+          </label>
+          @if (availableBanks().length === 0) {
+            <p class="text-caption text-gray-400 italic">No question banks found. Create a bank first.</p>
+          } @else {
+            <div class="space-y-1 max-h-28 overflow-y-auto border border-gray-100 rounded-input p-2">
+              @for (bank of availableBanks(); track bank.id) {
+                <label class="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded p-1 transition-colors">
+                  <input type="checkbox"
+                         [checked]="isBankSelected(bank.id)"
+                         (change)="toggleBank(bank.id)"
+                         class="accent-primary flex-shrink-0" />
+                  <span class="text-caption text-gray-700">{{ bank.name }}</span>
+                </label>
+              }
+            </div>
+          }
+        </div>
 
-          <!-- Question banks multi-select -->
-          <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">Question banks
-              <span class="text-red-400">*</span>
-            </label>
-            @if (availableBanks().length === 0) {
-              <p class="text-caption text-gray-400 italic">No question banks found. Create a bank first.</p>
-            } @else {
-              <div class="space-y-1 max-h-28 overflow-y-auto border border-gray-100 rounded-input p-2">
-                @for (bank of availableBanks(); track bank.id) {
-                  <label class="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded p-1 transition-colors">
-                    <input type="checkbox"
-                           [checked]="isBankSelected(bank.id)"
-                           (change)="toggleBank(bank.id)"
-                           class="accent-primary flex-shrink-0" />
-                    <span class="text-caption text-gray-700">{{ bank.name }}</span>
-                  </label>
-                }
-              </div>
-            }
-          </div>
+        @if (selectedType()) {
 
           <!-- Question text -->
           <div>

@@ -375,7 +375,7 @@ class QuestionControllerTest {
     void listQuestions_withQuestionBankIdFilter_returns200() throws Exception {
         UUID bankId = UUID.randomUUID();
         UUID qId = UUID.randomUUID();
-        QuestionBankResponse bank = new QuestionBankResponse(bankId, "Java Core");
+        QuestionBankResponse bank = new QuestionBankResponse(bankId, "Java Core", 0L);
         McqQuestionResponse q = new McqQuestionResponse(qId, List.of(bank), "What is Java?", List.of("A", "B"), List.of("A"), false);
         PageResponse<QuestionResponse> page = new PageResponse<>(List.of(q), 1, 1, 20, 0);
         when(questionService.list(0, 20, bankId)).thenReturn(page);

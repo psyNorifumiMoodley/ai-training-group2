@@ -35,6 +35,7 @@ export class BankListComponent {
   readonly selectedBankId = signal<string>('');
   readonly typeFilter = signal<QuestionType | 'ALL'>('ALL');
   readonly openMenuId = signal<string | null>(null);
+  readonly openBankMenuId = signal<string | null>(null);
   readonly loading = signal(false);
   readonly banksLoading = signal(false);
 
@@ -104,6 +105,14 @@ export class BankListComponent {
     this.openMenuId.set(null);
   }
 
+  toggleBankMenu(id: string): void {
+    this.openBankMenuId.update(current => (current === id ? null : id));
+  }
+
+  closeBankMenu(): void {
+    this.openBankMenuId.set(null);
+  }
+
   openAdd(): void {
     this.editingQuestion.set(null);
     this.openMenuId.set(null);
@@ -131,6 +140,7 @@ export class BankListComponent {
         next: () => {
           this.deleting.set(false);
           this.deletingQuestion.set(null);
+          this.loadBanks();
           this.loadQuestions();
         },
         error: () => {
@@ -143,6 +153,7 @@ export class BankListComponent {
   onQuestionSaved(): void {
     this.showForm.set(false);
     this.editingQuestion.set(null);
+    this.loadBanks();
     this.loadQuestions();
   }
 
@@ -175,6 +186,7 @@ export class BankListComponent {
   }
 
   startRename(bank: QuestionBankResponse): void {
+    this.openBankMenuId.set(null);
     this.renamingBankId.set(bank.id);
     this.renameDraft.set(bank.name);
     this.renameBankError.set('');
@@ -212,6 +224,7 @@ export class BankListComponent {
   }
 
   requestDeleteBank(bank: QuestionBankResponse): void {
+    this.openBankMenuId.set(null);
     this.deletingBank.set(bank);
   }
 
