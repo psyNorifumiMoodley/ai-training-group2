@@ -10,40 +10,113 @@
 
 <div class="flex gap-4 min-h-0">
 
-  <!-- Bank list sidebar — scrollable -->
-  <div class="w-[12.5rem] flex-shrink-0 flex flex-col min-h-0">
+  <!-- Bank list sidebar -->
+  <div class="w-[13.5rem] flex-shrink-0 flex flex-col min-h-0">
     <div class="overflow-y-auto flex-1 space-y-2 pr-0.5" style="max-height: calc(100vh - 14rem)">
-      @if (loading()) {
+
+      <!-- All questions pill -->
+      <button
+        (click)="selectBank('')"
+        [class]="'w-full text-left bg-white border rounded-card py-[0.6875rem] px-3 cursor-pointer transition-colors ' +
+          (selectedBankId() === '' ? 'border-primary' : 'border-gray-200 hover:border-gray-300')">
+        <div class="flex items-center justify-between">
+          <span class="text-caption font-medium text-gray-800 truncate">All</span>
+          <span class="inline-block rounded-badge px-[0.4375rem] py-0.5 text-[0.6875rem] font-medium bg-primary-fill text-primary-text flex-shrink-0 ml-1">
+            {{ allQuestions().length }}
+          </span>
+        </div>
+      </button>
+
+      @if (banksLoading()) {
         <p class="text-caption text-gray-400 text-center py-4">Loading...</p>
       } @else if (banks().length === 0) {
         <p class="text-caption text-gray-400 text-center py-4">No banks yet.</p>
       } @else {
-        <!-- All categories pill -->
-        <button
-          (click)="selectBank('')"
-          [class]="'w-full text-left bg-white border rounded-card py-[0.6875rem] px-3 cursor-pointer transition-colors ' +
-            (selectedCategory() === '' ? 'border-primary' : 'border-gray-200 hover:border-gray-300')">
-          <div class="flex items-center justify-between mb-[0.1875rem]">
-            <span class="text-caption font-medium text-gray-800 truncate">All</span>
-            <span class="inline-block rounded-badge px-[0.4375rem] py-0.5 text-[0.6875rem] font-medium bg-primary-fill text-primary-text flex-shrink-0 ml-1">
-              {{ allQuestions().length }}
-            </span>
-          </div>
-        </button>
+        @for (bank of banks(); track bank.id) {
+          <div [class]="'bg-white border rounded-card py-[0.6875rem] px-3 transition-colors ' +
+            (selectedBankId() === bank.id ? 'border-primary' : 'border-gray-200')">
 
-        @for (bank of banks(); track bank.name) {
-          <button
-            (click)="selectBank(bank.name)"
-            [class]="'w-full text-left bg-white border rounded-card py-[0.6875rem] px-3 cursor-pointer transition-colors ' +
-              (selectedCategory() === bank.name ? 'border-primary' : 'border-gray-200 hover:border-gray-300')">
-            <div class="flex items-center justify-between mb-[0.1875rem]">
-              <span class="text-caption font-medium text-gray-800 truncate">{{ bank.name }}</span>
-              <span class="inline-block rounded-badge px-[0.4375rem] py-0.5 text-[0.6875rem] font-medium bg-primary-fill text-primary-text flex-shrink-0 ml-1">
-                {{ bank.questionCount }}
-              </span>
-            </div>
-          </button>
+            @if (renamingBankId() === bank.id) {
+              <!-- Inline rename input -->
+              <div class="space-y-1">
+                <input
+                  type="text"
+                  [ngModel]="renameDraft()"
+                  (ngModelChange)="renameDraft.set($event)"
+                  class="w-full border border-gray-200 rounded px-2 py-1 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  (keydown.enter)="submitRenameBank(bank)"
+                  (keydown.escape)="cancelRename()" />
+                @if (renameBankError()) {
+                  <p class="text-[0.6875rem] text-red-500">{{ renameBankError() }}</p>
+                }
+                <div class="flex gap-1">
+                  <button type="button" (click)="submitRenameBank(bank)"
+                          class="px-2 py-0.5 text-[0.6875rem] bg-primary text-white rounded hover:bg-primary-hover transition-colors">
+                    Save
+                  </button>
+                  <button type="button" (click)="cancelRename()"
+                          class="px-2 py-0.5 text-[0.6875rem] border border-gray-200 text-gray-500 rounded hover:bg-gray-50 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <!-- Bank row -->
+              <button (click)="selectBank(bank.id)" class="w-full text-left">
+                <div class="flex items-center justify-between">
+                  <span class="text-caption font-medium text-gray-800 truncate">{{ bank.name }}</span>
+                </div>
+              </button>
+              <div class="flex items-center gap-1 mt-1.5">
+                <button type="button" (click)="startRename(bank)"
+                        class="w-5 h-5 flex items-center justify-center rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                        title="Rename">
+                  <i class="pi pi-pencil text-[0.6rem]"></i>
+                </button>
+                <button type="button" (click)="requestDeleteBank(bank)"
+                        class="w-5 h-5 flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        title="Delete">
+                  <i class="pi pi-trash text-[0.6rem]"></i>
+                </button>
+              </div>
+            }
+          </div>
         }
+      }
+
+      <!-- Create bank -->
+      @if (showCreateBankForm()) {
+        <div class="border border-dashed border-gray-300 rounded-card py-[0.6875rem] px-3 space-y-1">
+          <input
+            type="text"
+            [ngModel]="newBankName()"
+            (ngModelChange)="newBankName.set($event)"
+            placeholder="Bank name..."
+            class="w-full border border-gray-200 rounded px-2 py-1 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30"
+            (keydown.enter)="submitCreateBank()"
+            (keydown.escape)="showCreateBankForm.set(false)" />
+          @if (createBankError()) {
+            <p class="text-[0.6875rem] text-red-500">{{ createBankError() }}</p>
+          }
+          <div class="flex gap-1">
+            <button type="button" (click)="submitCreateBank()" [disabled]="creatingBank()"
+                    class="px-2 py-0.5 text-[0.6875rem] bg-primary text-white rounded hover:bg-primary-hover transition-colors disabled:opacity-50">
+              Save
+            </button>
+            <button type="button" (click)="showCreateBankForm.set(false)"
+                    class="px-2 py-0.5 text-[0.6875rem] border border-gray-200 text-gray-500 rounded hover:bg-gray-50 transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      } @else {
+        <button
+          type="button"
+          (click)="showCreateBankForm.set(true)"
+          class="w-full flex items-center gap-1.5 text-caption text-primary hover:text-primary-hover px-1 py-1 transition-colors">
+          <i class="pi pi-plus text-[0.6875rem]"></i>
+          New bank
+        </button>
       }
     </div>
   </div>
@@ -55,8 +128,8 @@
     <div class="mb-3">
       @if (!loading()) {
         <h2 class="text-sm font-medium text-gray-800 mb-2">
-          @if (activeBank()) { {{ activeBank()!.name }} } @else { All categories }
-          · {{ categoryQuestions().length }} question{{ categoryQuestions().length !== 1 ? 's' : '' }}
+          @if (activeBank()) { {{ activeBank()!.name }} } @else { All banks }
+          · {{ allQuestions().length }} question{{ allQuestions().length !== 1 ? 's' : '' }}
         </h2>
       }
 
@@ -87,8 +160,7 @@
       } @else if (filteredQuestions().length === 0) {
         <p class="text-caption text-gray-400 text-center py-8">
           No questions
-          @if (typeFilter() !== 'ALL') { matching this filter }
-          in this bank.
+          @if (typeFilter() !== 'ALL') { matching this filter. }
           @if (typeFilter() !== 'ALL') {
             <button class="text-primary hover:underline ml-1 text-caption"
                     (click)="setTypeFilter('ALL')">Clear filter</button>
@@ -109,11 +181,8 @@
                   <i class="pi pi-ellipsis-v text-caption"></i>
                 </button>
 
-                <!-- Dropdown menu -->
                 @if (openMenuId() === q.id) {
-                  <!-- Backdrop to close menu on outside click -->
                   <div class="fixed inset-0 z-10" (click)="closeMenu()"></div>
-
                   <div class="absolute right-0 top-8 z-20 bg-white border border-gray-200 rounded-card shadow-md w-32 py-1">
                     <button
                       (click)="openEdit(q)"
@@ -134,7 +203,9 @@
 
             <div class="flex items-center gap-1.5 mt-2">
               <dap-tag [label]="resolveType(q)" [variant]="typeVariant(resolveType(q))" />
-              <span class="text-[0.6875rem] text-gray-400">{{ q.questionBanks?.[0]?.name }}</span>
+              @for (bank of q.questionBanks; track bank.id) {
+                <span class="text-[0.6875rem] text-gray-400">{{ bank.name }}</span>
+              }
             </div>
           </div>
         }
@@ -158,7 +229,7 @@
     (cancelled)="editingQuestion.set(null)" />
 }
 
-<!-- Delete confirmation -->
+<!-- Delete question confirmation -->
 @if (deletingQuestion()) {
   <dap-confirm-modal
     title="Delete question?"
@@ -166,4 +237,14 @@
     confirmLabel="Delete"
     (confirmed)="confirmDelete()"
     (cancelled)="deletingQuestion.set(null)" />
+}
+
+<!-- Delete bank confirmation -->
+@if (deletingBank()) {
+  <dap-confirm-modal
+    [title]="'Delete \'' + deletingBank()!.name + '\'?'"
+    message="This will permanently remove the question bank. Questions in this bank must be removed first."
+    confirmLabel="Delete"
+    (confirmed)="confirmDeleteBank()"
+    (cancelled)="deletingBank.set(null)" />
 }

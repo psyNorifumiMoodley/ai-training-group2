@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, EMPTY } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { QuestionBankResponse } from '../models/question.model';
 
@@ -13,14 +13,14 @@ export class QuestionBankService {
   }
 
   createQuestionBank(name: string): Observable<QuestionBankResponse> {
-    return EMPTY;
+    return this.http.post<QuestionBankResponse>(`${environment.apiBaseUrl}/question-banks`, { name });
   }
 
   renameQuestionBank(id: string, name: string): Observable<QuestionBankResponse> {
-    return EMPTY;
+    return this.http.put<QuestionBankResponse>(`${environment.apiBaseUrl}/question-banks/${id}`, { name });
   }
 
   deleteQuestionBank(id: string): Observable<void> {
-    return EMPTY;
+    return this.http.delete<void>(`${environment.apiBaseUrl}/question-banks/${id}`);
   }
 }

@@ -13,10 +13,15 @@ import {
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuestionService } from '../../../../core/services/question.service';
+import { QuestionBankService } from '../../../../core/services/question-bank.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import {
+  DocQuestionResponse,
+  GroupChildRequest,
   GroupQuestionResponse,
+  McqPlusQuestionResponse,
   McqQuestionResponse,
+  QuestionBankResponse,
   QuestionResponse,
   QuestionType,
   TextQuestionResponse,
@@ -24,17 +29,19 @@ import {
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { McqOptionBuilderComponent, McqBuilderValue } from '../mcq-option-builder/mcq-option-builder.component';
 import { KeywordListComponent } from '../keyword-list/keyword-list.component';
+import { GroupChildrenBuilderComponent } from '../group-children-builder/group-children-builder.component';
 
 @Component({
   selector: 'dap-question-form',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonComponent, McqOptionBuilderComponent, KeywordListComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, McqOptionBuilderComponent, KeywordListComponent, GroupChildrenBuilderComponent],
   templateUrl: './question-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuestionFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly questionService = inject(QuestionService);
+  private readonly questionBankService = inject(QuestionBankService);
   private readonly toastService = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -46,9 +53,13 @@ export class QuestionFormComponent implements OnInit {
   readonly selectedType = signal<QuestionType | ''>('');
   readonly saving = signal(false);
   readonly errorMsg = signal('');
-  readonly textQuestions = signal<TextQuestionResponse[]>([]);
-  readonly selectedFollowUpIds = signal<string[]>([]);
+  readonly availableBanks = signal<QuestionBankResponse[]>([]);
+  readonly selectedBankIds = signal<Set<string>>(new Set());
+
+  readonly groupChildren = signal<GroupChildRequest[]>([]);
   readonly orderedGroup = signal(false);
+
+  readonly followUpKeywords = signal<string[]>([]);
 
   private currentKeywords: string[] = [];
   private currentMcqValue: McqBuilderValue = { options: [], correctAnswers: [], isValid: false };
@@ -57,18 +68,20 @@ export class QuestionFormComponent implements OnInit {
   readonly keywordList = viewChild<KeywordListComponent>('keywordList');
 
   readonly form = this.fb.nonNullable.group({
-    category: ['', Validators.required],
     questionText: ['', [Validators.required, Validators.minLength(10)]],
+    marks: [1, [Validators.required, Validators.min(1)]],
+    followUpQuestion: [''],
+    followUpMarks: [1, [Validators.required, Validators.min(1)]],
   });
 
-  readonly questionTypes: QuestionType[] = ['MCQ', 'TEXT', 'DOC', 'GROUP'];
+  readonly questionTypes: QuestionType[] = ['MCQ', 'MCQ_PLUS', 'TEXT', 'DOC', 'GROUP'];
 
   readonly isEditMode = computed(() => !!this.existingQuestion());
 
   readonly mcqInitialOptions = computed(() => {
     const q = this.existingQuestion();
-    if (!q || this.resolveType(q) !== 'MCQ') return [];
-    const mq = q as McqQuestionResponse;
+    if (!q || (this.resolveType(q) !== 'MCQ' && this.resolveType(q) !== 'MCQ_PLUS')) return [];
+    const mq = q as McqQuestionResponse | McqPlusQuestionResponse;
     return mq.options.map(opt => ({ text: opt, correct: mq.correctAnswers.includes(opt) }));
   });
 
@@ -78,7 +91,17 @@ export class QuestionFormComponent implements OnInit {
     return (q as TextQuestionResponse).keywords ?? [];
   });
 
+  readonly groupInitialChildren = computed(() => {
+    const q = this.existingQuestion();
+    if (!q || this.resolveType(q) !== 'GROUP') return [];
+    return (q as GroupQuestionResponse).children ?? [];
+  });
+
   ngOnInit(): void {
+    this.questionBankService.getQuestionBanks()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: banks => this.availableBanks.set(banks) });
+
     const q = this.existingQuestion();
     if (!q) return;
 
@@ -86,28 +109,51 @@ export class QuestionFormComponent implements OnInit {
     this.selectedType.set(type);
     this.form.patchValue({ questionText: q.question });
 
+    const bankIds = new Set(q.questionBanks?.map(b => b.id) ?? []);
+    this.selectedBankIds.set(bankIds);
+
+    if (type === 'TEXT') {
+      this.form.patchValue({ marks: (q as TextQuestionResponse).marks });
+    }
+    if (type === 'DOC') {
+      this.form.patchValue({ marks: (q as DocQuestionResponse).marks });
+    }
     if (type === 'GROUP') {
-      const gq = q as GroupQuestionResponse;
-      this.orderedGroup.set(gq.ordered);
-      this.selectedFollowUpIds.set(gq.children.map(c => c.id));
-      this.loadTextQuestions();
+      this.orderedGroup.set((q as GroupQuestionResponse).ordered);
+      this.groupChildren.set((q as GroupQuestionResponse).children.map(c => ({
+        questionText: c.questionText,
+        keywords: [...c.keywords],
+        marks: c.marks,
+      })));
+    }
+    if (type === 'MCQ_PLUS') {
+      const mq = q as McqPlusQuestionResponse;
+      this.form.patchValue({ followUpQuestion: mq.followUpQuestion, followUpMarks: mq.followUpMarks });
+      this.followUpKeywords.set([...(mq.followUpKeywords ?? [])]);
     }
   }
 
   onTypeChange(type: QuestionType | ''): void {
     this.selectedType.set(type);
     this.errorMsg.set('');
-    if (type === 'GROUP') this.loadTextQuestions();
+  }
+
+  isBankSelected(id: string): boolean {
+    return this.selectedBankIds().has(id);
+  }
+
+  toggleBank(id: string): void {
+    this.selectedBankIds.update(ids => {
+      const next = new Set(ids);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   }
 
   onKeywordsChange(keywords: string[]): void { this.currentKeywords = keywords; }
   onMcqValueChange(value: McqBuilderValue): void { this.currentMcqValue = value; }
-
-  toggleFollowUp(id: string): void {
-    this.selectedFollowUpIds.update(ids =>
-      ids.includes(id) ? ids.filter(i => i !== id) : [...ids, id]
-    );
-  }
+  onGroupChildrenChange(children: GroupChildRequest[]): void { this.groupChildren.set(children); }
+  onFollowUpKeywordsChange(keywords: string[]): void { this.followUpKeywords.set(keywords); }
 
   cancel(): void { this.cancelled.emit(); }
 
@@ -115,27 +161,50 @@ export class QuestionFormComponent implements OnInit {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const type = this.selectedType();
     if (!type) { this.errorMsg.set('Please select a question type.'); return; }
-    const { questionText } = this.form.getRawValue();
+    if (this.selectedBankIds().size === 0) { this.errorMsg.set('Select at least one question bank.'); return; }
+
+    const { questionText, marks, followUpQuestion, followUpMarks } = this.form.getRawValue();
+    const questionBankIds = Array.from(this.selectedBankIds());
     this.errorMsg.set('');
 
     if (type === 'MCQ') {
       const builder = this.mcqBuilder();
       const mcqVal = builder ? builder.getValue() : this.currentMcqValue;
       if (!mcqVal.isValid) { this.errorMsg.set('Add at least one option and mark a correct answer.'); return; }
-      this.save({ type: 'MCQ', questionBankIds: [], question: questionText, options: mcqVal.options, correctAnswers: mcqVal.correctAnswers });
+      this.save({ type: 'MCQ', questionBankIds, question: questionText, options: mcqVal.options, correctAnswers: mcqVal.correctAnswers });
       return;
     }
+
+    if (type === 'MCQ_PLUS') {
+      const builder = this.mcqBuilder();
+      const mcqVal = builder ? builder.getValue() : this.currentMcqValue;
+      if (!mcqVal.isValid) { this.errorMsg.set('Add at least one option and mark a correct answer.'); return; }
+      if (!followUpQuestion.trim()) { this.errorMsg.set('Follow-up question is required.'); return; }
+      this.save({
+        type: 'MCQ_PLUS', questionBankIds, question: questionText,
+        options: mcqVal.options, correctAnswers: mcqVal.correctAnswers,
+        followUpQuestion: followUpQuestion.trim(),
+        followUpKeywords: this.followUpKeywords(),
+        followUpMarks,
+      });
+      return;
+    }
+
     if (type === 'TEXT') {
       const keywords = this.keywordList()?.keywords() ?? this.currentKeywords;
-      this.save({ type: 'TEXT', questionBankIds: [], question: questionText, keywords: [...keywords], marks: 1 });
+      this.save({ type: 'TEXT', questionBankIds, question: questionText, keywords: [...keywords], marks });
       return;
     }
+
     if (type === 'DOC') {
-      this.save({ type: 'DOC', questionBankIds: [], question: questionText, marks: 1 });
+      this.save({ type: 'DOC', questionBankIds, question: questionText, marks });
       return;
     }
+
     if (type === 'GROUP') {
-      this.save({ type: 'GROUP', questionBankIds: [], question: questionText, ordered: this.orderedGroup(), children: [] });
+      const children = this.groupChildren();
+      if (children.length === 0) { this.errorMsg.set('Add at least one child question.'); return; }
+      this.save({ type: 'GROUP', questionBankIds, question: questionText, ordered: this.orderedGroup(), children });
     }
   }
 
@@ -168,18 +237,5 @@ export class QuestionFormComponent implements OnInit {
         this.toastService.error('Failed to save question. Please try again.');
       },
     });
-  }
-
-  private loadTextQuestions(): void {
-    this.questionService.getQuestions(0, 100)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: page => {
-          this.textQuestions.set(
-            page.content.filter((q): q is TextQuestionResponse => this.resolveType(q) === 'TEXT')
-          );
-        },
-        error: () => {},
-      });
   }
 }
