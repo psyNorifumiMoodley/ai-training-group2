@@ -42,8 +42,13 @@ public class QuestionController {
     public ResponseEntity<PageResponse<QuestionResponse>> listQuestions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String category) {
-        return ResponseEntity.ok(questionService.list(page, size, category));
+            @RequestParam(required = false) UUID questionBankId) {
+        return ResponseEntity.ok(questionService.list(page, size, questionBankId));
+    }
+
+    @GetMapping("/categories")
+    public ResponseEntity<Void> categoriesRemoved() {
+        return ResponseEntity.notFound().build();
     }
 
     @GetMapping("/{id}")

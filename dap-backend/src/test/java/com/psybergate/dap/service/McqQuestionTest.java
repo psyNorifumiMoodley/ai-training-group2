@@ -44,7 +44,7 @@ class McqQuestionTest {
 
     @Test
     void createMcq_withEmptyOptions_throwsValidationException() {
-        McqQuestionRequest request = new McqQuestionRequest("Java", "Which is correct?", List.of(), List.of("A"));
+        McqQuestionRequest request = new McqQuestionRequest(List.of(), "Which is correct?", List.of(), List.of("A"));
 
         assertThatThrownBy(() -> questionService.createMcq(request))
                 .isInstanceOf(ValidationException.class)
@@ -53,7 +53,7 @@ class McqQuestionTest {
 
     @Test
     void createMcq_withEmptyCorrectAnswers_throwsValidationException() {
-        McqQuestionRequest request = new McqQuestionRequest("Java", "Which is correct?", List.of("A", "B"), List.of());
+        McqQuestionRequest request = new McqQuestionRequest(List.of(), "Which is correct?", List.of("A", "B"), List.of());
 
         assertThatThrownBy(() -> questionService.createMcq(request))
                 .isInstanceOf(ValidationException.class)
@@ -62,7 +62,7 @@ class McqQuestionTest {
 
     @Test
     void createMcq_withCorrectAnswerNotInOptions_throwsValidationException() {
-        McqQuestionRequest request = new McqQuestionRequest("Java", "Which is correct?", List.of("A", "B"), List.of("C"));
+        McqQuestionRequest request = new McqQuestionRequest(List.of(), "Which is correct?", List.of("A", "B"), List.of("C"));
 
         assertThatThrownBy(() -> questionService.createMcq(request))
                 .isInstanceOf(ValidationException.class)
@@ -71,7 +71,7 @@ class McqQuestionTest {
 
     @Test
     void createMcq_withValidMultiCorrectRequest_persistsQuestion() {
-        McqQuestionRequest request = new McqQuestionRequest("Java", "Which is correct?", List.of("A", "B", "C"), List.of("A", "C"));
+        McqQuestionRequest request = new McqQuestionRequest(List.of(), "Which is correct?", List.of("A", "B", "C"), List.of("A", "C"));
 
         McqQuestion saved = new McqQuestion();
         saved.setId(UUID.randomUUID());

@@ -55,14 +55,15 @@ export class QuestionSelectionComponent {
 
   // Derived
   readonly subjects = computed<string[]>(() => {
-    const cats = new Set(this.allQuestions().map(q => q.category));
-    return ['ALL', ...Array.from(cats).sort()];
+    const names = new Set(this.allQuestions().map(q => q.questionBanks?.[0]?.name ?? ''));
+    return ['ALL', ...Array.from(names).sort()];
   });
 
   readonly filteredQuestions = computed(() =>
     this.allQuestions().filter(q => {
       const typeOk    = this.selectedType() === 'ALL' || this.resolveType(q) === this.selectedType();
-      const subjectOk = this.selectedSubject() === 'ALL' || q.category === this.selectedSubject();
+      const bankName  = q.questionBanks?.[0]?.name ?? '';
+      const subjectOk = this.selectedSubject() === 'ALL' || bankName === this.selectedSubject();
       return typeOk && subjectOk;
     })
   );
@@ -114,14 +115,14 @@ export class QuestionSelectionComponent {
   resolveType(q: QuestionResponse): QuestionType {
     if (q.type) return q.type;
     if ('correctAnswers' in q) return 'MCQ';
-    if ('followUpQuestions' in q) return 'GROUP';
+    if ('children' in q) return 'GROUP';
     if ('keywords' in q) return 'TEXT';
     return 'DOC';
   }
 
   typeVariant(type: QuestionType): 'mcq' | 'text' | 'doc' | 'info' | 'coding' {
     const map: Record<QuestionType, 'mcq' | 'text' | 'doc' | 'info' | 'coding'> = {
-      MCQ: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info', CODING: 'coding',
+      MCQ: 'mcq', MCQ_PLUS: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info', CODING: 'coding',
     };
     return map[type];
   }
