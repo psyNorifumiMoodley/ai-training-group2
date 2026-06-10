@@ -99,14 +99,15 @@ The backend is a single Spring Boot 3.x application. No separate execution servi
 
 ## Migration Plan
 
-1. Liquibase changesets (Phase 6): create `coding_question` table (TABLE_PER_CLASS subtype); create `test_case` table (FK → `coding_question`); create `execution_result` table (Phase 7 Slice 0, FK → `coding_question`)
+0. Prerequisite: the Question Model Refactor (`.claude/specs/v1-assessment-platform/phase-6-question-model-refactor.md`) is merged first. `coding_question` therefore has no `category` column from day one — scoping is via the `question_question_bank` join table, identical to every other question subtype.
+1. Liquibase changesets (Phase 1): create `coding_question` table (TABLE_PER_CLASS subtype); create `test_case` table (FK → `coding_question`); create `execution_result` table (Phase 2 Slice 0, FK → `coding_question`)
 2. Existing `doc_question` rows are untouched — no data migration needed; the `doc_question` table and entity remain in the codebase (read-only from this point forward)
 3. Block `doc_question` creation at the API layer: the creation endpoint returns HTTP 410 Gone; the question bank UI removes the "Doc Question" option
-4. Add `docker-java` dependency to `pom.xml` (Phase 7 Slice A)
+4. Add `docker-java` dependency to `pom.xml` (Phase 2 Slice A)
 5. Pre-pull Docker images on startup — first boot with the new version may take 1–2 minutes per language image
 6. All Liquibase changesets are `createTable` / `addColumn` (non-destructive); rollback blocks provided for completeness
 
 ## Open Questions
 
-- Should partial credit be awarded for coding questions (e.g., 3/5 test cases passed = 60%)? Decision deferred to Phase 8 — the score field on `submission` can store a float; the grading service records the ratio.
+- Should partial credit be awarded for coding questions (e.g., 3/5 test cases passed = 60%)? Decision deferred to Phase 3 — the score field on `submission` can store a float; the grading service records the ratio.
 - Should Docker image pre-pulling be mandatory on startup or lazy (pull on first use)? Recommended: eager pre-pull via `ApplicationRunner` to avoid first-submission latency spikes.

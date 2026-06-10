@@ -1,8 +1,8 @@
-# Phase 6 — Coding Question
+# Phase 1 — Coding Question
 
-> **Epic:** Phase 6 — Coding Question
+> **Epic:** Phase 1 — Coding Question
 > **Delivery:** Slice 0 merges first; Slices A–D run in parallel (one dev each).
-> **Dependency:** Phases 0–5 fully merged.
+> **Dependency:** Phases 0–5 fully merged. **Question Model Refactor** (`.claude/specs/v1-assessment-platform/phase-6-question-model-refactor.md`) fully merged — `category` has been removed from all question DTOs/tables in favour of `questionBankIds`/`questionBanks` (`Set<QuestionBank>`).
 > **Jira Epic:** ATG-58 | **Slice 0:** ATG-59 | **Slice A:** ATG-60 | **Slice B:** ATG-61 | **Slice C:** ATG-62 | **Slice D:** ATG-63
 
 ### Key Design Decisions
@@ -15,13 +15,14 @@
 - Test cases are included **inline** in `CodingQuestionRequest.testCases` and created or updated with the question via `POST /api/questions` / `PUT /api/questions/{id}` — there is **no separate test-case sub-resource**
 - `QuestionService.createCodingQuestion()` iterates inline `testCases`, assigns ordinals (1, 2, 3…), and saves via `CascadeType.ALL` on `CodingQuestion.testCases`
 - The doc/coding question limit (`assessment.doc-question-limit`, default 1) counts both `DocQuestion` (legacy) and `CodingQuestion` rows
+- Like every other question type, `CodingQuestion` is scoped by `Set<QuestionBank>` (min 1 required) via the `question_question_bank` join table — there is no `category` column on `coding_question`
 
 ---
 
 ## Slice 0: API Contracts *(merge first)*
 
 ### Agent Brief
-Define all Phase 6 contracts so Slices A–D can develop simultaneously without merge conflicts:
+Define all Phase 1 contracts so Slices A–D can develop simultaneously without merge conflicts:
 - Add `CodingQuestionRequest` and `CodingQuestionResponse` to the existing `QuestionRequest` / `QuestionResponse` sealed interfaces
 - Add the `CodingQuestionLanguage` enum, `TestCaseRequest`, and `TestCaseResponse` DTOs
 - Block `DocQuestionRequest` creation in `QuestionController` (return 410)
@@ -95,7 +96,7 @@ public enum CodingQuestionLanguage { JAVA, PYTHON, CSHARP }
 **`CodingQuestionRequest`** — record, implements `QuestionRequest`
 ```java
 public record CodingQuestionRequest(
-    @NotBlank String category,
+    @NotEmpty List<UUID> questionBankIds,
     @NotBlank String question,
     @NotNull CodingQuestionLanguage language,
     List<@Valid TestCaseRequest> testCases   // nullable — test cases optional at creation
@@ -106,7 +107,7 @@ public record CodingQuestionRequest(
 ```java
 public record CodingQuestionResponse(
     UUID id,
-    String category,
+    List<QuestionBankResponse> questionBanks,
     String question,
     CodingQuestionLanguage language,
     List<TestCaseResponse> testCases
@@ -136,37 +137,48 @@ public record TestCaseResponse(
 ```
 
 **`QuestionRequest`** sealed interface — updated
+> By the time this slice merges, the Question Model Refactor will already have added `McqPlusQuestionRequest` (`"MCQ_PLUS"`). This slice adds `CodingQuestionRequest` (`"CODING"`) alongside it.
 ```java
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = McqQuestionRequest.class,    name = "MCQ"),
-    @JsonSubTypes.Type(value = DocQuestionRequest.class,    name = "DOC"),
-    @JsonSubTypes.Type(value = TextQuestionRequest.class,   name = "TEXT"),
-    @JsonSubTypes.Type(value = GroupQuestionRequest.class,  name = "GROUP"),
-    @JsonSubTypes.Type(value = CodingQuestionRequest.class, name = "CODING")   // ← new
+    @JsonSubTypes.Type(value = McqQuestionRequest.class,     name = "MCQ"),
+    @JsonSubTypes.Type(value = McqPlusQuestionRequest.class, name = "MCQ_PLUS"),
+    @JsonSubTypes.Type(value = DocQuestionRequest.class,     name = "DOC"),
+    @JsonSubTypes.Type(value = TextQuestionRequest.class,    name = "TEXT"),
+    @JsonSubTypes.Type(value = GroupQuestionRequest.class,   name = "GROUP"),
+    @JsonSubTypes.Type(value = CodingQuestionRequest.class,  name = "CODING")   // ← new
 })
 public sealed interface QuestionRequest
-    permits McqQuestionRequest, DocQuestionRequest, TextQuestionRequest, GroupQuestionRequest, CodingQuestionRequest {}
+    permits McqQuestionRequest, McqPlusQuestionRequest, DocQuestionRequest,
+            TextQuestionRequest, GroupQuestionRequest, CodingQuestionRequest {}
 ```
 
 **`QuestionResponse`** sealed interface — updated
+> Same note as above — `McqPlusQuestionResponse` (`"MCQ_PLUS"`) arrives via the Question Model Refactor; this slice adds `CodingQuestionResponse` (`"CODING"`).
 ```java
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = McqQuestionResponse.class,    name = "MCQ"),
-    @JsonSubTypes.Type(value = TextQuestionResponse.class,   name = "TEXT"),
-    @JsonSubTypes.Type(value = DocQuestionResponse.class,    name = "DOC"),
-    @JsonSubTypes.Type(value = GroupQuestionResponse.class,  name = "GROUP"),
-    @JsonSubTypes.Type(value = CodingQuestionResponse.class, name = "CODING")  // ← new
+    @JsonSubTypes.Type(value = McqQuestionResponse.class,     name = "MCQ"),
+    @JsonSubTypes.Type(value = McqPlusQuestionResponse.class, name = "MCQ_PLUS"),
+    @JsonSubTypes.Type(value = DocQuestionResponse.class,     name = "DOC"),
+    @JsonSubTypes.Type(value = TextQuestionResponse.class,    name = "TEXT"),
+    @JsonSubTypes.Type(value = GroupQuestionResponse.class,   name = "GROUP"),
+    @JsonSubTypes.Type(value = CodingQuestionResponse.class,  name = "CODING")  // ← new
 })
 public sealed interface QuestionResponse
-    permits McqQuestionResponse, TextQuestionResponse, DocQuestionResponse, GroupQuestionResponse, CodingQuestionResponse {}
+    permits McqQuestionResponse, McqPlusQuestionResponse, DocQuestionResponse,
+            TextQuestionResponse, GroupQuestionResponse, CodingQuestionResponse {}
 ```
 
 ### Frontend Type Definitions
 
 **`question.model.ts`** — updated (additions only)
+
+> By the time this slice merges, `BaseQuestionRequest { type, questionBankIds, question }`, `BaseQuestionResponse { id, type, questionBanks, question }`, `QuestionBankResponse { id, name }`, and `'MCQ_PLUS'` will already exist via the Question Model Refactor. `CodingQuestionRequest`/`CodingQuestionResponse` extend those base types — no `category` field.
+
 ```typescript
 // Add CODING to the union type
-export type QuestionType = 'MCQ' | 'TEXT' | 'DOC' | 'GROUP' | 'CODING';
+export type QuestionType = 'MCQ' | 'MCQ_PLUS' | 'TEXT' | 'DOC' | 'GROUP' | 'CODING';
 
 // New type (inline — no separate file)
 export type CodingQuestionLanguage = 'JAVA' | 'PYTHON' | 'CSHARP';
@@ -188,10 +200,8 @@ export interface TestCase {
 }
 
 // Add request interface
-export interface CodingQuestionRequest {
+export interface CodingQuestionRequest extends BaseQuestionRequest {
   type: 'CODING';
-  category: string;
-  question: string;
   language: CodingQuestionLanguage;
   testCases?: TestCaseRequest[];
 }
@@ -206,6 +216,7 @@ export interface CodingQuestionResponse extends BaseQuestionResponse {
 // Update the QuestionResponse union
 export type QuestionResponse =
   | McqQuestionResponse
+  | McqPlusQuestionResponse
   | TextQuestionResponse
   | DocQuestionResponse
   | GroupQuestionResponse
@@ -239,7 +250,7 @@ None in this slice.
 - `POST /api/questions` with `"type": "DOC"` returns 410
 - `QuestionType` in Angular includes `'CODING'`
 - Angular `question.model.ts` compiles with no TypeScript errors
-- Merged to `main` before any other Phase 6 slice begins
+- Merged to `main` before any other Phase 1 slice begins
 
 ---
 
@@ -327,7 +338,6 @@ public class TestCase extends BaseEntity {
 <changeSet id="2026-06-05-001-create-coding-question-table" author="developer">
   <createTable tableName="coding_question">
     <column name="id" type="UUID"><constraints primaryKey="true" nullable="false"/></column>
-    <column name="category" type="VARCHAR(255)"><constraints nullable="false"/></column>
     <column name="question" type="TEXT"><constraints nullable="false"/></column>
     <column name="language" type="VARCHAR(20)"><constraints nullable="false"/></column>
     <column name="created_at" type="TIMESTAMP WITH TIME ZONE"><constraints nullable="false"/></column>
@@ -341,7 +351,9 @@ public class TestCase extends BaseEntity {
 </changeSet>
 ```
 
-> **Note on columns:** `category`, `question`, `created_at`, `updated_at` are inherited from `BaseEntity`/`AssessmentQuestion` but must be declared here because `TABLE_PER_CLASS` creates a fully independent table. Match the column definitions used in existing subtypes (`mcq_question`, `doc_question`, etc.) in the baseline changeset.
+> **Note on columns:** `question`, `created_at`, `updated_at` are inherited from `BaseEntity`/`AssessmentQuestion` but must be declared here because `TABLE_PER_CLASS` creates a fully independent table. Match the column definitions used in existing subtypes (`mcq_question`, `doc_question`, etc.) in the baseline changeset.
+>
+> **No `category` column:** the Question Model Refactor removed `category` from every concrete question table. `CodingQuestion` is scoped to one or more `QuestionBank`s exclusively via the `question_question_bank` join table (created in that refactor's Slice A) — `coding_question_id` values appear there with no FK, following the same `TABLE_PER_CLASS` pattern as `assessment_question_link`. No additional join-table changeset is needed in this slice.
 
 **`2026-06-05-002-create-test-case-table.xml`**
 ```xml
@@ -412,7 +424,7 @@ None.
 ## Slice B: Coding Question in QuestionService & Language Validation
 
 ### Agent Brief
-Extend `QuestionService` to handle `CodingQuestion` — following the exact same pattern used for `McqQuestion`, `DocQuestion`, etc. Add a `createCodingQuestion()` private method and a `toCodingQuestionResponse()` private method. Constructor-inject `CodingQuestionRepository`. Fix the assessment doc limit check to count both `DocQuestion` and `CodingQuestion` rows.
+Extend `QuestionService` to handle `CodingQuestion` — following the exact same pattern used for `McqQuestion`, `DocQuestion`, etc. Add a `createCodingQuestion()` private method and a `toCodingQuestionResponse()` private method. Constructor-inject `CodingQuestionRepository`. Fix the assessment doc limit check to count both `DocQuestion` and `CodingQuestion` rows. Reuse the `resolveQuestionBanks(List<UUID>)` and `toQbResponses(Set<QuestionBank>)` helpers added to `QuestionService` by the Question Model Refactor — `CodingQuestion` is scoped by `questionBanks` like every other question type, with no `category`.
 
 ### Package Tree Additions
 
@@ -448,8 +460,9 @@ if (request instanceof CodingQuestionRequest r) {
 // New private method:
 private CodingQuestion createCodingQuestion(CodingQuestionRequest request) {
     // language is @NotNull — validated by @Valid at controller level; no extra check needed
+    // resolveQuestionBanks() throws ValidationException if any questionBankId is not found
     CodingQuestion q = new CodingQuestion();
-    q.setCategory(request.category());
+    q.setQuestionBanks(resolveQuestionBanks(request.questionBankIds()));
     q.setQuestion(request.question());
     q.setLanguage(request.language());
     return codingQuestionRepository.save(q);
@@ -466,7 +479,7 @@ private CodingQuestionResponse toCodingQuestionResponse(CodingQuestion q) {
         .map(tc -> new TestCaseResponse(tc.getId(), tc.getInput(), tc.getExpectedOutput(),
                                         tc.getTimeoutSeconds(), tc.getMemoryMb(), tc.getOrdinal()))
         .toList();
-    return new CodingQuestionResponse(q.getId(), q.getCategory(), q.getQuestion(), q.getLanguage(), testCases);
+    return new CodingQuestionResponse(q.getId(), toQbResponses(q.getQuestionBanks()), q.getQuestion(), q.getLanguage(), testCases);
 }
 ```
 
@@ -495,15 +508,18 @@ None.
 ### Testing
 
 **`CodingQuestionServiceTest`** (`@SpringBootTest`, Testcontainers)
-- `POST /api/questions` with `"type": "CODING"` and `language: "JAVA"` → 201, language persisted
+- `POST /api/questions` with `"type": "CODING"`, `language: "JAVA"`, and a valid `questionBankIds` → 201, language and question banks persisted
 - `POST /api/questions` with `"type": "CODING"` and missing `language` → 400 (bean validation)
-- `GET /api/questions/{id}` for a coding question → response includes `language` and `testCases: []`
+- `POST /api/questions` with `"type": "CODING"` and an unknown `questionBankIds` entry → 400 (`ValidationException`, same as other question types)
+- `POST /api/questions` with `"type": "CODING"` and empty `questionBankIds` → 400 (`@NotEmpty`)
+- `GET /api/questions/{id}` for a coding question → response includes `language`, `questionBanks`, and `testCases: []`
 - Doc limit: assessment already has one legacy `DocQuestion` + attempt to add one `CodingQuestion` → 409
 - Doc limit: assessment has one `CodingQuestion` + attempt to add another → 409
 
 ### Done When
 - `POST /api/questions` with `"type": "CODING"` creates a `CodingQuestion` and returns `CodingQuestionResponse`
 - Missing `language` field returns 400
+- Unknown or empty `questionBankIds` returns 400
 - Doc limit check blocks second doc-or-coding question in an assessment (409)
 - All `CodingQuestionServiceTest` cases pass
 
@@ -548,11 +564,12 @@ None.
 **`CodingQuestionFormComponent`**
 - Standalone, `OnPush` change detection
 - Inputs via `input()` signal API: `existingQuestion?: CodingQuestionResponse`
+- `QuestionBankSelectorComponent` (from the Question Model Refactor) replaces any category input — at least one question bank must be selected; supports inline QB creation
 - Language dropdown: required; options Java, Python, C# (mapped from `CodingQuestionLanguage` type)
 - Test case editor panel: visible only when a language is selected
   - Each row: input textarea, expected output textarea (required), timeout number input (1–60), memory MB number input (64–1024)
   - "Add row" button appends a blank row; "Remove" button on each row deletes that row
-- On submit: call `questionService.createQuestion({ type: 'CODING', category, question, language, testCases: [...] })` — test cases are sent inline in the request body
+- On submit: call `questionService.createQuestion({ type: 'CODING', questionBankIds, question, language, testCases: [...] })` — test cases are sent inline in the request body
 - Reactive forms only
 
 **Question bank creation menu**
@@ -567,14 +584,15 @@ None.
 Unit tests (`TestBed`):
 - Language dropdown renders exactly Java, Python, C#
 - Language is required — form invalid when not selected
+- `QuestionBankSelectorComponent` is rendered; form invalid until at least one question bank is selected
 - Test case panel hidden when no language; visible once language selected
 - "Add row" appends a new blank test case row
 - "Remove" on a row deletes only that row
-- Submit with valid data calls `QuestionService.createQuestion()` with `type: 'CODING'` and correct payload
+- Submit with valid data calls `QuestionService.createQuestion()` with `type: 'CODING'`, `questionBankIds`, and correct payload
 - Submit with missing language does not call the service
 
 ### Done When
-- Marker can open "Coding Question" form, select a language, add test cases, and submit
+- Marker can open "Coding Question" form, select a language and at least one question bank, add test cases, and submit
 - "Doc Question" option is absent from the creation menu
 - All unit tests pass with no TypeScript errors
 

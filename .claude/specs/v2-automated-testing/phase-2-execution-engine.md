@@ -1,8 +1,8 @@
-# Phase 7 — Execution Engine
+# Phase 2 — Execution Engine
 
-> **Epic:** Phase 7 — Execution Engine
+> **Epic:** Phase 2 — Execution Engine
 > **Delivery:** Slice 0 merges first; Slices A–D run in parallel (one dev each).
-> **Dependency:** Phase 6 fully merged (`CodingQuestion`, `TestCase`, `CodingQuestionLanguage` must exist).
+> **Dependency:** Phase 1 fully merged (`CodingQuestion`, `TestCase`, `CodingQuestionLanguage` must exist).
 > **Jira Epic:** ATG-55
 
 ### Key Design Decisions
