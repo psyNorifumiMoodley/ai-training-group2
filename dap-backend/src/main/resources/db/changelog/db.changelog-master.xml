@@ -20,5 +20,16 @@
     <include file="db/changelog/changesets/2026-06-05-001-app-user-theme-preference.xml"/>
     <include file="db/changelog/changesets/2026-06-05-002-drop-app-user-surname.xml"/>
     <include file="db/changelog/changesets/2026-06-08-001-add-score-to-response.xml"/>
+    <include file="db/changelog/changesets/2026-06-10-001-ensure-question-bank-table.xml"/>
+    <include file="db/changelog/changesets/2026-06-10-002-create-question-question-bank-join.xml"/>
+    <include file="db/changelog/changesets/2026-06-10-003-drop-category-from-mcq-question.xml"/>
+    <include file="db/changelog/changesets/2026-06-10-004-drop-category-from-text-question.xml"/>
+    <include file="db/changelog/changesets/2026-06-10-005-drop-category-from-doc-question.xml"/>
+    <include file="db/changelog/changesets/2026-06-10-006-drop-category-and-keywords-from-group-question.xml"/>
+    <include file="db/changelog/changesets/2026-06-10-007-add-marks-to-text-question.xml"/>
+    <include file="db/changelog/changesets/2026-06-10-008-add-marks-to-doc-question.xml"/>
+    <include file="db/changelog/changesets/2026-06-10-009-replace-group-follow-up-with-children.xml"/>
+    <include file="db/changelog/changesets/2026-06-10-010-create-mcq-plus-question-table.xml"/>
+    <include file="db/changelog/changesets/2026-06-10-011-create-mcq-plus-response-table.xml"/>
 
 </databaseChangeLog>

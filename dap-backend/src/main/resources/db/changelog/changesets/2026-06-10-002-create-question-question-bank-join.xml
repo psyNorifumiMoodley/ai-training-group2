@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Creates the many-to-many join table between questions and question banks.
+        question_id has no FK — the question hierarchy uses TABLE_PER_CLASS with no
+        shared base table, matching the existing assessment_question_link pattern.
+    -->
+    <changeSet id="2026-06-10-002-create-question-question-bank-join" author="norifumi.moodley">
+
+        <createTable tableName="question_question_bank">
+            <column name="question_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="question_bank_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_qqb_question_bank"
+                             references="question_bank(id)"/>
+            </column>
+        </createTable>
+
+        <addPrimaryKey tableName="question_question_bank"
+                       columnNames="question_id,question_bank_id"
+                       constraintName="pk_question_question_bank"/>
+
+        <rollback>
+            <dropTable tableName="question_question_bank"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>
