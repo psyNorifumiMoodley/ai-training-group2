@@ -6,7 +6,9 @@ import com.psybergate.dap.dto.McqQuestionRequest;
 import com.psybergate.dap.repository.AssessmentQuestionRepository;
 import com.psybergate.dap.repository.DocQuestionRepository;
 import com.psybergate.dap.repository.GroupQuestionRepository;
+import com.psybergate.dap.repository.McqPlusQuestionRepository;
 import com.psybergate.dap.repository.McqQuestionRepository;
+import com.psybergate.dap.repository.QuestionBankRepository;
 import com.psybergate.dap.repository.TextQuestionRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +40,12 @@ class McqQuestionTest {
 
     @Mock
     private GroupQuestionRepository groupQuestionRepository;
+
+    @Mock
+    private QuestionBankRepository questionBankRepository;
+
+    @Mock
+    private McqPlusQuestionRepository mcqPlusQuestionRepository;
 
     @InjectMocks
     private QuestionService questionService;
@@ -75,7 +83,6 @@ class McqQuestionTest {
 
         McqQuestion saved = new McqQuestion();
         saved.setId(UUID.randomUUID());
-        saved.setCategory("Java");
         saved.setQuestion("Which is correct?");
         saved.setOptions(List.of("A", "B", "C"));
         saved.setCorrectAnswers(List.of("A", "C"));

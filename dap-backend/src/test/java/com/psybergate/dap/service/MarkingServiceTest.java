@@ -93,15 +93,13 @@ class MarkingServiceTest {
     private McqQuestion mcqQuestion() {
         McqQuestion q = new McqQuestion(List.of("A", "B"), List.of("A"));
         q.setId(UUID.randomUUID());
-        q.setCategory("Java");
         q.setQuestion("What is Java?");
         return q;
     }
 
     private TextQuestion textQuestion() {
-        TextQuestion q = new TextQuestion(null);
+        TextQuestion q = new TextQuestion();
         q.setId(UUID.randomUUID());
-        q.setCategory("Java");
         q.setQuestion("Explain OOP.");
         return q;
     }
@@ -302,14 +300,13 @@ class MarkingServiceTest {
 
         GroupQuestion groupQuestion = new GroupQuestion();
         groupQuestion.setId(UUID.randomUUID());
-        groupQuestion.setCategory("Java");
         groupQuestion.setQuestion("Describe software design.");
 
-        TextQuestion followUp1 = new TextQuestion(null);
+        TextQuestion followUp1 = new TextQuestion();
         followUp1.setId(UUID.randomUUID());
         followUp1.setQuestion("What is MVC?");
 
-        TextQuestion followUp2 = new TextQuestion(null);
+        TextQuestion followUp2 = new TextQuestion();
         followUp2.setId(UUID.randomUUID());
         followUp2.setQuestion("What is MVVM?");
 
@@ -420,14 +417,13 @@ class MarkingServiceTest {
 
         GroupQuestion groupQuestion = new GroupQuestion();
         groupQuestion.setId(UUID.randomUUID());
-        groupQuestion.setCategory("Design");
         groupQuestion.setQuestion("Describe patterns.");
 
-        TextQuestion followUp1 = new TextQuestion(null);
+        TextQuestion followUp1 = new TextQuestion();
         followUp1.setId(UUID.randomUUID());
         followUp1.setQuestion("What is Singleton?");
 
-        TextQuestion followUp2 = new TextQuestion(null);
+        TextQuestion followUp2 = new TextQuestion();
         followUp2.setId(UUID.randomUUID());
         followUp2.setQuestion("What is Factory?");
 

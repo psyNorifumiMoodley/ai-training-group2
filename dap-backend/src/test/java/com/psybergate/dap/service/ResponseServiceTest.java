@@ -69,15 +69,13 @@ class ResponseServiceTest {
     private McqQuestion mcqQuestion(UUID id) {
         McqQuestion q = new McqQuestion(List.of("A", "B", "C"), List.of("A"));
         q.setId(id);
-        q.setCategory("Java");
         q.setQuestion("Which is correct?");
         return q;
     }
 
     private TextQuestion textQuestion(UUID id) {
-        TextQuestion q = new TextQuestion(null);
+        TextQuestion q = new TextQuestion();
         q.setId(id);
-        q.setCategory("Java");
         q.setQuestion("Explain this.");
         return q;
     }

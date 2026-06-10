@@ -261,7 +261,6 @@ class AssessmentServiceAccessTest {
 
         McqQuestion mcq = new McqQuestion(List.of("A", "B"), List.of("A"));
         mcq.setId(UUID.randomUUID());
-        mcq.setCategory("Java");
         mcq.setQuestion("What is Java?");
 
         Assessment inProgress = Assessment.builder()

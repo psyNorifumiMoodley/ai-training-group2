@@ -44,7 +44,6 @@ class McqAutoMarkTest {
     private McqQuestion questionWithCorrectAnswers(List<String> correctAnswers) {
         McqQuestion q = new McqQuestion(List.of("A", "B", "C"), correctAnswers);
         q.setId(UUID.randomUUID());
-        q.setCategory("Java");
         q.setQuestion("Pick the correct answer(s).");
         return q;
     }

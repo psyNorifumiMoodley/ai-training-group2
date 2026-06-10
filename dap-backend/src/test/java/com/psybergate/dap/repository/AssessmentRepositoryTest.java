@@ -60,7 +60,6 @@ class AssessmentRepositoryTest {
 
     private McqQuestion persistMcq() {
         McqQuestion q = new McqQuestion(List.of("A", "B"), List.of("A"));
-        q.setCategory("Java");
         q.setQuestion("What is Java?");
         return mcqQuestionRepository.save(q);
     }
