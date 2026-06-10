@@ -23,4 +23,7 @@ public class TextQuestion extends AssessmentQuestion {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private List<String> keywords;
+
+    @Column(name = "marks", nullable = false)
+    private int marks;
 }

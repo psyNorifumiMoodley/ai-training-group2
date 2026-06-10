@@ -289,7 +289,7 @@ public class AssessmentService {
 
     private List<TextQuestion> availablePureText(Set<UUID> seenIds) {
         return textQuestionRepository.findAll().stream()
-                .filter(q -> !(q instanceof GroupQuestion) && !seenIds.contains(q.getId()))
+                .filter(q -> !seenIds.contains(q.getId()))
                 .collect(Collectors.toList());
     }
 

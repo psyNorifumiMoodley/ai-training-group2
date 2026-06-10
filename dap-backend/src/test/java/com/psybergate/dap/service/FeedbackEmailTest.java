@@ -85,9 +85,8 @@ class FeedbackEmailTest {
     }
 
     private Feedback feedbackFor(Assessment assessment, String questionBody, String draft) {
-        TextQuestion question = new TextQuestion(null);
+        TextQuestion question = new TextQuestion();
         question.setId(UUID.randomUUID());
-        question.setCategory("Java");
         question.setQuestion(questionBody);
 
         return Feedback.builder()

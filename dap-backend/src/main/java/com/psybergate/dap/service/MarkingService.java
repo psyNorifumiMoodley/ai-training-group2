@@ -61,7 +61,8 @@ public class MarkingService {
     private AssessmentSummaryResponse toSummaryResponse(Assessment assessment) {
         String bankName = assessment.getQuestions().stream()
                 .findFirst()
-                .map(AssessmentQuestion::getCategory)
+                .flatMap(q -> q.getQuestionBanks().stream().findFirst())
+                .map(bank -> bank.getName())
                 .orElse(null);
         String submittedAt = assessment.getUpdatedAt() != null ? assessment.getUpdatedAt().toString() : null;
         String assignedDate = assessment.getCreatedAt() != null ? assessment.getCreatedAt().toString() : null;

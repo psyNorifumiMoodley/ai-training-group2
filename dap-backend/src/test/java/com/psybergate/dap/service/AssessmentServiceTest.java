@@ -87,15 +87,13 @@ class AssessmentServiceTest {
     private McqQuestion mcqWithId(UUID id) {
         McqQuestion q = new McqQuestion(List.of("A", "B"), List.of("A"));
         q.setId(id);
-        q.setCategory("Java");
         q.setQuestion("What is Java?");
         return q;
     }
 
     private TextQuestion textWithId(UUID id) {
-        TextQuestion q = new TextQuestion(null);
+        TextQuestion q = new TextQuestion();
         q.setId(id);
-        q.setCategory("Java");
         q.setQuestion("Explain OOP.");
         return q;
     }
@@ -103,7 +101,6 @@ class AssessmentServiceTest {
     private DocQuestion docWithId(UUID id) {
         DocQuestion q = new DocQuestion();
         q.setId(id);
-        q.setCategory("Java");
         q.setQuestion("Submit your code.");
         return q;
     }
@@ -111,7 +108,6 @@ class AssessmentServiceTest {
     private GroupQuestion groupWithId(UUID id) {
         GroupQuestion q = new GroupQuestion(false, new ArrayList<>());
         q.setId(id);
-        q.setCategory("Java");
         q.setQuestion("Group scenario.");
         return q;
     }

@@ -95,7 +95,6 @@ class AssessmentAccessIntegrationTest {
             candidateRepository.save(candidate);
 
             McqQuestion mcq = new McqQuestion(List.of("A", "B"), List.of("A"));
-            mcq.setCategory("Java");
             mcq.setQuestion("What is Java?");
             mcqQuestionRepository.save(mcq);
 

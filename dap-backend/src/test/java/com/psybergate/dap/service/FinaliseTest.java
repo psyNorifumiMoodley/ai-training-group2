@@ -108,8 +108,7 @@ class FinaliseTest {
     @Test
     void finalise_allTextFeedbackFilled_statusBecomesMarked() {
         TextQuestion question = txTemplate.execute(status -> {
-            TextQuestion q = new TextQuestion(List.of("jvm"));
-            q.setCategory("Java");
+            TextQuestion q = new TextQuestion(List.of("jvm"), 1);
             q.setQuestion("What is a JVM?");
             return textQuestionRepository.save(q);
         });
@@ -142,8 +141,7 @@ class FinaliseTest {
     @Test
     void finalise_textFeedbackEmpty_returns400WithQuestionId() {
         TextQuestion question = txTemplate.execute(status -> {
-            TextQuestion q = new TextQuestion(List.of("jvm"));
-            q.setCategory("Java");
+            TextQuestion q = new TextQuestion(List.of("jvm"), 1);
             q.setQuestion("What is a JVM?");
             return textQuestionRepository.save(q);
         });
@@ -225,7 +223,6 @@ class FinaliseTest {
     void finalise_mcqOnlyAssessment_finalisesWithoutError() {
         McqQuestion question = txTemplate.execute(status -> {
             McqQuestion q = new McqQuestion(List.of("A", "B"), List.of("A"));
-            q.setCategory("Java");
             q.setQuestion("Which is correct?");
             return mcqQuestionRepository.save(q);
         });
@@ -243,14 +240,12 @@ class FinaliseTest {
     void finalise_mcqWithNoFeedbackRecord_andTextWithFeedback_succeeds() {
         McqQuestion mcq = txTemplate.execute(status -> {
             McqQuestion q = new McqQuestion(List.of("A", "B"), List.of("A"));
-            q.setCategory("Java");
             q.setQuestion("Which is correct?");
             return mcqQuestionRepository.save(q);
         });
 
         TextQuestion text = txTemplate.execute(status -> {
-            TextQuestion q = new TextQuestion(List.of("jvm"));
-            q.setCategory("Java");
+            TextQuestion q = new TextQuestion(List.of("jvm"), 1);
             q.setQuestion("What is a JVM?");
             return textQuestionRepository.save(q);
         });
@@ -279,8 +274,7 @@ class FinaliseTest {
     @Test
     void finalise_withOverallFeedbackBody_returns200() {
         TextQuestion question = txTemplate.execute(status -> {
-            TextQuestion q = new TextQuestion(List.of("jvm"));
-            q.setCategory("Java");
+            TextQuestion q = new TextQuestion(List.of("jvm"), 1);
             q.setQuestion("What is a JVM?");
             return textQuestionRepository.save(q);
         });

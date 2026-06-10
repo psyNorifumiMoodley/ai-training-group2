@@ -368,4 +368,95 @@ class QuestionControllerTest {
                         .header("Authorization", "Bearer " + markerToken))
                 .andExpect(status().isNotFound());
     }
+
+    // --- Task 7.4: questionBankId filter ---
+
+    @Test
+    void listQuestions_withQuestionBankIdFilter_returns200() throws Exception {
+        UUID bankId = UUID.randomUUID();
+        UUID qId = UUID.randomUUID();
+        QuestionBankResponse bank = new QuestionBankResponse(bankId, "Java Core");
+        McqQuestionResponse q = new McqQuestionResponse(qId, List.of(bank), "What is Java?", List.of("A", "B"), List.of("A"), false);
+        PageResponse<QuestionResponse> page = new PageResponse<>(List.of(q), 1, 1, 20, 0);
+        when(questionService.list(0, 20, bankId)).thenReturn(page);
+
+        mockMvc.perform(get("/api/questions")
+                        .param("questionBankId", bankId.toString())
+                        .header("Authorization", "Bearer " + markerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].questionBanks[0].id").value(bankId.toString()));
+    }
+
+    // --- Task 7.5: MCQ_PLUS validation ---
+
+    @Test
+    void createMcqPlusQuestion_followUpMarksZero_returns400() throws Exception {
+        Map<String, Object> body = Map.of(
+                "type", "MCQ_PLUS",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
+                "question", "Which is a keyword?",
+                "options", List.of("int", "for"),
+                "correctAnswers", List.of("int"),
+                "followUpQuestion", "Explain why.",
+                "followUpMarks", 0
+        );
+
+        mockMvc.perform(post("/api/questions")
+                        .header("Authorization", "Bearer " + markerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createMcqPlusQuestion_missingFollowUpQuestion_returns400() throws Exception {
+        Map<String, Object> body = Map.of(
+                "type", "MCQ_PLUS",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
+                "question", "Which is a keyword?",
+                "options", List.of("int", "for"),
+                "correctAnswers", List.of("int"),
+                "followUpMarks", 2
+        );
+
+        mockMvc.perform(post("/api/questions")
+                        .header("Authorization", "Bearer " + markerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // --- Task 7.7: marks validation for TEXT and DOC ---
+
+    @Test
+    void createTextQuestion_marksLessThanOne_returns400() throws Exception {
+        Map<String, Object> body = Map.of(
+                "type", "TEXT",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
+                "question", "Describe OOP",
+                "marks", 0
+        );
+
+        mockMvc.perform(post("/api/questions")
+                        .header("Authorization", "Bearer " + markerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createDocQuestion_marksLessThanOne_returns400() throws Exception {
+        Map<String, Object> body = Map.of(
+                "type", "DOC",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
+                "question", "Upload your design",
+                "marks", 0
+        );
+
+        mockMvc.perform(post("/api/questions")
+                        .header("Authorization", "Bearer " + markerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
+    }
 }
