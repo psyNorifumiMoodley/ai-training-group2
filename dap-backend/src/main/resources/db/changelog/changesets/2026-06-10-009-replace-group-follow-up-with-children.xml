@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Replaces the ManyToMany group_question_follow_up join table (which linked to
+        standalone text_question rows) with group_question_child — an owned entity table
+        whose rows exist exclusively within their parent GroupQuestion.
+    -->
+    <changeSet id="2026-06-10-009-replace-group-follow-up-with-children" author="norifumi.moodley">
+
+        <dropTable tableName="group_question_follow_up"/>
+
+        <createTable tableName="group_question_child">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="group_id" type="UUID">
+                <constraints nullable="false"
+                             foreignKeyName="fk_gqc_group"
+                             references="group_question(id)"/>
+            </column>
+            <column name="question_text" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="keywords" type="JSONB"/>
+            <column name="marks" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="display_order" type="INTEGER" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ"/>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <createIndex tableName="group_question_child" indexName="idx_gqc_group_id">
+            <column name="group_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="group_question_child"/>
+            <createTable tableName="group_question_follow_up">
+                <column name="group_id" type="UUID">
+                    <constraints nullable="false"
+                                 foreignKeyName="fk_gqfu_group"
+                                 references="group_question(id)"/>
+                </column>
+                <column name="question_id" type="UUID">
+                    <constraints nullable="false"
+                                 foreignKeyName="fk_gqfu_question"
+                                 references="text_question(id)"/>
+                </column>
+                <column name="display_order" type="INTEGER" defaultValueNumeric="0">
+                    <constraints nullable="false"/>
+                </column>
+            </createTable>
+            <addPrimaryKey tableName="group_question_follow_up"
+                           columnNames="group_id,question_id"
+                           constraintName="pk_group_question_follow_up"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

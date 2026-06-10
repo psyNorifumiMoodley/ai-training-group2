@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Creates the mcq_plus_question table for TABLE_PER_CLASS inheritance.
+        McqPlusQuestion extends McqQuestion — this table owns ALL inherited columns
+        (id, question, options, correct_answers, created_at, updated_at) plus
+        its own follow-up fields. No FK to mcq_question (TABLE_PER_CLASS pattern).
+    -->
+    <changeSet id="2026-06-10-010-create-mcq-plus-question-table" author="norifumi.moodley">
+
+        <createTable tableName="mcq_plus_question">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="question" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="options" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+            <column name="correct_answers" type="JSONB">
+                <constraints nullable="false"/>
+            </column>
+            <column name="follow_up_question" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="follow_up_keywords" type="JSONB"/>
+            <column name="follow_up_marks" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ"/>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="mcq_plus_question"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>
