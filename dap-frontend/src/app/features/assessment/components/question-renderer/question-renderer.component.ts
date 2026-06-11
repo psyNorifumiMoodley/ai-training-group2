@@ -23,7 +23,7 @@ export class QuestionRendererComponent {
   readonly selectedOption = signal<string | null>(null);
   readonly selectedOptions = signal<Set<string>>(new Set());
   readonly textAnswer = signal('');
-  readonly childAnswers = signal<string[]>([]);
+  readonly childAnswers = signal<(string | undefined)[]>([]);
   readonly followUpAnswer = signal('');
 
   constructor() {
@@ -140,7 +140,7 @@ export class QuestionRendererComponent {
     const updated = [...this.childAnswers()];
     updated[childIndex] = value;
     this.childAnswers.set(updated);
-    const req: GroupResponseRequest = { childAnswers: updated };
+    const req: GroupResponseRequest = { childAnswers: updated.map(a => a ?? '') };
     this.answerChanged.emit({ questionId: this.question().id, request: req });
   }
 }

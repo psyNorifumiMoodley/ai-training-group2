@@ -12,8 +12,6 @@ import com.psybergate.dap.domain.TextQuestion;
 import com.psybergate.dap.domain.TextResponse;
 import com.psybergate.dap.dto.GroupResponseRequest;
 import com.psybergate.dap.dto.McqResponseRequest;
-import com.psybergate.dap.dto.ResponseRequest;
-import com.psybergate.dap.dto.TextResponseRequest;
 import com.psybergate.dap.repository.AssessmentQuestionRepository;
 import com.psybergate.dap.repository.AssessmentRepository;
 import com.psybergate.dap.repository.McqQuestionRepository;
@@ -26,7 +24,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
@@ -196,23 +193,17 @@ class ResponseServiceTest {
     void saveResponse_groupResponse_persistsChildResponses() {
         UUID assessmentId = UUID.randomUUID();
         UUID groupQuestionId = UUID.randomUUID();
-        UUID childQuestionId = UUID.randomUUID();
 
         Assessment assessment = assessmentWithStatus(assessmentId, AssessmentStatus.IN_PROGRESS);
         McqQuestion groupQuestion = mcqQuestion(groupQuestionId);
-        TextQuestion childQuestion = textQuestion(childQuestionId);
 
         when(assessmentRepository.findById(assessmentId)).thenReturn(Optional.of(assessment));
         when(assessmentQuestionRepository.findById(groupQuestionId)).thenReturn(Optional.of(groupQuestion));
-        when(assessmentQuestionRepository.findById(childQuestionId)).thenReturn(Optional.of(childQuestion));
         when(responseRepository.findByAssessmentIdAndQuestionId(assessmentId, groupQuestionId))
                 .thenReturn(Optional.empty());
         when(responseRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        Map<UUID, ResponseRequest> children = Map.of(
-                childQuestionId, new TextResponseRequest("My answer")
-        );
-        GroupResponseRequest request = new GroupResponseRequest(children);
+        GroupResponseRequest request = new GroupResponseRequest(List.of("My answer"));
         responseService.saveResponse(assessmentId, groupQuestionId, request);
 
         ArgumentCaptor<Response> captor = ArgumentCaptor.forClass(Response.class);
