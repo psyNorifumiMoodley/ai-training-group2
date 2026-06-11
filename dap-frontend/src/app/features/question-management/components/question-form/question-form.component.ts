@@ -16,6 +16,8 @@ import { QuestionService } from '../../../../core/services/question.service';
 import { QuestionBankService } from '../../../../core/services/question-bank.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import {
+  CodingQuestionLanguage,
+  CodingQuestionResponse,
   DocQuestionResponse,
   GroupChildRequest,
   GroupQuestionResponse,
@@ -24,17 +26,19 @@ import {
   QuestionBankResponse,
   QuestionResponse,
   QuestionType,
+  TestCaseRequest,
   TextQuestionResponse,
 } from '../../../../core/models/question.model';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { McqOptionBuilderComponent, McqBuilderValue } from '../mcq-option-builder/mcq-option-builder.component';
 import { KeywordListComponent } from '../keyword-list/keyword-list.component';
 import { GroupChildrenBuilderComponent } from '../group-children-builder/group-children-builder.component';
+import { TestCaseBuilderComponent } from '../test-case-builder/test-case-builder.component';
 
 @Component({
   selector: 'dap-question-form',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonComponent, McqOptionBuilderComponent, KeywordListComponent, GroupChildrenBuilderComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, McqOptionBuilderComponent, KeywordListComponent, GroupChildrenBuilderComponent, TestCaseBuilderComponent],
   templateUrl: './question-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -63,18 +67,27 @@ export class QuestionFormComponent implements OnInit {
 
   private currentKeywords: string[] = [];
   private currentMcqValue: McqBuilderValue = { options: [], correctAnswers: [], isValid: false };
+  private currentTestCases: TestCaseRequest[] = [];
 
   readonly mcqBuilder = viewChild<McqOptionBuilderComponent>('mcqBuilder');
   readonly keywordList = viewChild<KeywordListComponent>('keywordList');
+  readonly testCaseBuilder = viewChild<TestCaseBuilderComponent>('testCaseBuilder');
 
   readonly form = this.fb.nonNullable.group({
     questionText: ['', [Validators.required, Validators.minLength(10)]],
     marks: [1, [Validators.required, Validators.min(1)]],
     followUpQuestion: [''],
     followUpMarks: [1, [Validators.required, Validators.min(1)]],
+    language: ['' as CodingQuestionLanguage | ''],
   });
 
-  readonly questionTypes: QuestionType[] = ['MCQ', 'MCQ_PLUS', 'TEXT', 'DOC', 'GROUP'];
+  readonly questionTypes: QuestionType[] = ['MCQ', 'MCQ_PLUS', 'TEXT', 'GROUP', 'CODING'];
+
+  readonly codingLanguages: { value: CodingQuestionLanguage; label: string }[] = [
+    { value: 'JAVA', label: 'Java' },
+    { value: 'PYTHON', label: 'Python' },
+    { value: 'CSHARP', label: 'C#' },
+  ];
 
   readonly isEditMode = computed(() => !!this.existingQuestion());
 
@@ -95,6 +108,12 @@ export class QuestionFormComponent implements OnInit {
     const q = this.existingQuestion();
     if (!q || this.resolveType(q) !== 'GROUP') return [];
     return (q as GroupQuestionResponse).children ?? [];
+  });
+
+  readonly codingInitialTestCases = computed(() => {
+    const q = this.existingQuestion();
+    if (!q || this.resolveType(q) !== 'CODING') return [];
+    return (q as CodingQuestionResponse).testCases ?? [];
   });
 
   ngOnInit(): void {
@@ -131,6 +150,9 @@ export class QuestionFormComponent implements OnInit {
       this.form.patchValue({ followUpQuestion: mq.followUpQuestion, followUpMarks: mq.followUpMarks });
       this.followUpKeywords.set([...(mq.followUpKeywords ?? [])]);
     }
+    if (type === 'CODING') {
+      this.form.patchValue({ language: (q as CodingQuestionResponse).language });
+    }
   }
 
   onTypeChange(type: QuestionType | ''): void {
@@ -154,6 +176,7 @@ export class QuestionFormComponent implements OnInit {
   onMcqValueChange(value: McqBuilderValue): void { this.currentMcqValue = value; }
   onGroupChildrenChange(children: GroupChildRequest[]): void { this.groupChildren.set(children); }
   onFollowUpKeywordsChange(keywords: string[]): void { this.followUpKeywords.set(keywords); }
+  onTestCasesChange(testCases: TestCaseRequest[]): void { this.currentTestCases = testCases; }
 
   cancel(): void { this.cancelled.emit(); }
 
@@ -163,7 +186,7 @@ export class QuestionFormComponent implements OnInit {
     if (!type) { this.errorMsg.set('Please select a question type.'); return; }
     if (this.selectedBankIds().size === 0) { this.errorMsg.set('Select at least one question bank.'); return; }
 
-    const { questionText, marks, followUpQuestion, followUpMarks } = this.form.getRawValue();
+    const { questionText, marks, followUpQuestion, followUpMarks, language } = this.form.getRawValue();
     const questionBankIds = Array.from(this.selectedBankIds());
     this.errorMsg.set('');
 
@@ -205,6 +228,18 @@ export class QuestionFormComponent implements OnInit {
       const children = this.groupChildren();
       if (children.length === 0) { this.errorMsg.set('Add at least one child question.'); return; }
       this.save({ type: 'GROUP', questionBankIds, question: questionText, ordered: this.orderedGroup(), children });
+      return;
+    }
+
+    if (type === 'CODING') {
+      if (!language) { this.errorMsg.set('Select a language for the coding question.'); return; }
+      const builder = this.testCaseBuilder();
+      if (builder) {
+        builder.markTouched();
+        if (!builder.isValid) { this.errorMsg.set('Fix the test case errors before submitting.'); return; }
+      }
+      const testCases = builder ? builder.rows() : this.currentTestCases;
+      this.save({ type: 'CODING', questionBankIds, question: questionText, language, testCases: [...testCases] });
     }
   }
 

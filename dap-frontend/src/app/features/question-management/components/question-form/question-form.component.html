@@ -186,6 +186,37 @@
               </div>
             </div>
           }
+
+          <!-- CODING: language selector + inline test case builder -->
+          @if (selectedType() === 'CODING') {
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Language
+                  <span class="text-red-400">*</span>
+                </label>
+                <select
+                  formControlName="language"
+                  class="w-full border border-gray-200 rounded-input px-3 py-[0.4375rem] text-caption focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white">
+                  <option value="">Select a language...</option>
+                  @for (lang of codingLanguages; track lang.value) {
+                    <option [value]="lang.value">{{ lang.label }}</option>
+                  }
+                </select>
+              </div>
+
+              @if (form.controls.language.value) {
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 mb-2">Test cases
+                    <span class="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <dap-test-case-builder
+                    #testCaseBuilder
+                    [initialTestCases]="codingInitialTestCases()"
+                    (testCasesChange)="onTestCasesChange($event)" />
+                </div>
+              }
+            </div>
+          }
         }
 
         @if (errorMsg()) {
