@@ -16,6 +16,7 @@ import com.psybergate.dap.repository.CandidateRepository;
 import com.psybergate.dap.repository.DocQuestionRepository;
 import com.psybergate.dap.repository.FeedbackRepository;
 import com.psybergate.dap.repository.GroupQuestionRepository;
+import com.psybergate.dap.repository.McqPlusQuestionRepository;
 import com.psybergate.dap.repository.McqQuestionRepository;
 import com.psybergate.dap.repository.TextQuestionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +44,7 @@ class FeedbackEmailTest {
     @Mock private AssessmentRepository assessmentRepository;
     @Mock private AssessmentQuestionRepository assessmentQuestionRepository;
     @Mock private McqQuestionRepository mcqQuestionRepository;
+    @Mock private McqPlusQuestionRepository mcqPlusQuestionRepository;
     @Mock private TextQuestionRepository textQuestionRepository;
     @Mock private DocQuestionRepository docQuestionRepository;
     @Mock private GroupQuestionRepository groupQuestionRepository;
@@ -61,7 +63,7 @@ class FeedbackEmailTest {
     void setUp() {
         assessmentService = new AssessmentService(
                 candidateRepository, assessmentRepository, assessmentQuestionRepository,
-                mcqQuestionRepository, textQuestionRepository, docQuestionRepository,
+                mcqQuestionRepository, mcqPlusQuestionRepository, textQuestionRepository, docQuestionRepository,
                 groupQuestionRepository, invitationTokenUtil, jwtUtil, emailService,
                 responseService, feedbackRepository);
     }
