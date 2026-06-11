@@ -19,7 +19,7 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 import { AssessmentConfirmationComponent } from '../assessment-confirmation/assessment-confirmation.component';
 
 type TypeFilter = 'ALL' | QuestionType;
-const TYPE_FILTERS: TypeFilter[] = ['ALL', 'MCQ', 'TEXT', 'DOC', 'GROUP'];
+const TYPE_FILTERS: TypeFilter[] = ['ALL', 'MCQ', 'MCQ_PLUS', 'TEXT', 'DOC', 'GROUP'];
 
 @Component({
   selector: 'dap-question-selection',
@@ -114,6 +114,7 @@ export class QuestionSelectionComponent {
 
   resolveType(q: QuestionResponse): QuestionType {
     if (q.type) return q.type;
+    if ('followUpQuestion' in q) return 'MCQ_PLUS';
     if ('correctAnswers' in q) return 'MCQ';
     if ('children' in q) return 'GROUP';
     if ('keywords' in q) return 'TEXT';

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { QuestionResponse, McqQuestionResponse, GroupQuestionResponse } from '../../../../core/models/question.model';
-import { ResponseRequest, McqResponseRequest, TextResponseRequest, DocResponseRequest, GroupResponseRequest } from '../../../../core/models/assessment-session.model';
+import { QuestionResponse, McqQuestionResponse, McqPlusQuestionResponse, GroupQuestionResponse, QuestionType } from '../../../../core/models/question.model';
+import { ResponseRequest, McqResponseRequest, McqPlusResponseRequest, TextResponseRequest, DocResponseRequest, GroupResponseRequest } from '../../../../core/models/assessment-session.model';
 
 export interface AnswerChangedEvent {
   questionId: string;
@@ -24,6 +24,7 @@ export class QuestionRendererComponent {
   readonly selectedOptions = signal<Set<string>>(new Set());
   readonly textAnswer = signal('');
   readonly childAnswers = signal<Record<string, string | undefined>>({});
+  readonly followUpAnswer = signal('');
 
   constructor() {
     effect(() => {
@@ -34,19 +35,25 @@ export class QuestionRendererComponent {
       this.selectedOptions.set(new Set());
       this.textAnswer.set('');
       this.childAnswers.set({});
+      this.followUpAnswer.set('');
 
       if (!saved) return;
 
-      if (q.type === 'MCQ') {
-        const mcqSaved = saved as McqResponseRequest;
+      const resolvedType = this.resolveQuestionType(q);
+
+      if (resolvedType === 'MCQ' || resolvedType === 'MCQ_PLUS') {
+        const mcqSaved = saved as McqResponseRequest | McqPlusResponseRequest;
         if ((q as McqQuestionResponse).multiCorrect) {
           this.selectedOptions.set(new Set(mcqSaved.selectedAnswers ?? []));
         } else {
           this.selectedOption.set(mcqSaved.selectedAnswers?.[0] ?? null);
         }
-      } else if (q.type === 'TEXT') {
+        if (resolvedType === 'MCQ_PLUS') {
+          this.followUpAnswer.set((saved as McqPlusResponseRequest).followUpAnswer ?? '');
+        }
+      } else if (resolvedType === 'TEXT') {
         this.textAnswer.set((saved as TextResponseRequest).answer ?? '');
-      } else if (q.type === 'GROUP') {
+      } else if (resolvedType === 'GROUP') {
         const groupSaved = saved as GroupResponseRequest;
         const answers: Record<string, string | undefined> = {};
         for (const [id, resp] of Object.entries(groupSaved.childResponses ?? {})) {
@@ -57,33 +64,61 @@ export class QuestionRendererComponent {
     }, { allowSignalWrites: true });
   }
 
-  isMcq(): boolean { return this.question().type === 'MCQ'; }
-  isText(): boolean { return this.question().type === 'TEXT'; }
-  isDoc(): boolean { return this.question().type === 'DOC'; }
-  isGroup(): boolean { return this.question().type === 'GROUP'; }
+  private resolveQuestionType(q: QuestionResponse): QuestionType {
+    if (q.type) return q.type;
+    if ('followUpQuestion' in q) return 'MCQ_PLUS';
+    if ('correctAnswers' in q) return 'MCQ';
+    if ('children' in q) return 'GROUP';
+    if ('keywords' in q) return 'TEXT';
+    return 'DOC';
+  }
+
+  resolveType(): QuestionType {
+    return this.resolveQuestionType(this.question());
+  }
+
+  isMcq(): boolean     { return this.resolveType() === 'MCQ'; }
+  isMcqPlus(): boolean { return this.resolveType() === 'MCQ_PLUS'; }
+  isText(): boolean    { return this.resolveType() === 'TEXT'; }
+  isDoc(): boolean     { return this.resolveType() === 'DOC'; }
+  isGroup(): boolean   { return this.resolveType() === 'GROUP'; }
 
   isMultiCorrect(): boolean {
     return (this.question() as McqQuestionResponse).multiCorrect;
   }
 
-  asMcq(): McqQuestionResponse { return this.question() as McqQuestionResponse; }
-  asGroup(): GroupQuestionResponse { return this.question() as GroupQuestionResponse; }
+  asMcq(): McqQuestionResponse         { return this.question() as McqQuestionResponse; }
+  asMcqPlus(): McqPlusQuestionResponse { return this.question() as McqPlusQuestionResponse; }
+  asGroup(): GroupQuestionResponse     { return this.question() as GroupQuestionResponse; }
 
   onRadioSelect(option: string): void {
     this.selectedOption.set(option);
-    const req: McqResponseRequest = { selectedAnswers: [option] };
-    this.answerChanged.emit({ questionId: this.question().id, request: req });
+    this.emitMcqResponse([option]);
   }
 
   onCheckboxToggle(option: string): void {
     const current = new Set(this.selectedOptions());
-    if (current.has(option)) {
-      current.delete(option);
-    } else {
-      current.add(option);
-    }
+    current.has(option) ? current.delete(option) : current.add(option);
     this.selectedOptions.set(current);
-    const req: McqResponseRequest = { selectedAnswers: Array.from(current) };
+    this.emitMcqResponse(Array.from(current));
+  }
+
+  private emitMcqResponse(answers: string[]): void {
+    if (this.isMcqPlus()) {
+      const req: McqPlusResponseRequest = { selectedAnswers: answers, followUpAnswer: this.followUpAnswer() };
+      this.answerChanged.emit({ questionId: this.question().id, request: req });
+    } else {
+      const req: McqResponseRequest = { selectedAnswers: answers };
+      this.answerChanged.emit({ questionId: this.question().id, request: req });
+    }
+  }
+
+  onMcqPlusFollowUpChange(value: string): void {
+    this.followUpAnswer.set(value);
+    const answers = this.isMultiCorrect()
+      ? Array.from(this.selectedOptions())
+      : (this.selectedOption() ? [this.selectedOption()!] : []);
+    const req: McqPlusResponseRequest = { selectedAnswers: answers, followUpAnswer: value };
     this.answerChanged.emit({ questionId: this.question().id, request: req });
   }
 

@@ -5,11 +5,12 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)
 @JsonSubTypes({
+        @JsonSubTypes.Type(McqPlusResponseRequest.class),
         @JsonSubTypes.Type(McqResponseRequest.class),
         @JsonSubTypes.Type(TextResponseRequest.class),
         @JsonSubTypes.Type(DocResponseRequest.class),
         @JsonSubTypes.Type(GroupResponseRequest.class)
 })
 public sealed interface ResponseRequest
-        permits McqResponseRequest, TextResponseRequest, DocResponseRequest, GroupResponseRequest {
+        permits McqPlusResponseRequest, McqResponseRequest, TextResponseRequest, DocResponseRequest, GroupResponseRequest {
 }
