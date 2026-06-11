@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
-import { Subject } from 'rxjs';
+import { forkJoin, of, Subject } from 'rxjs';
 import { debounceTime, switchMap } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CandidateAssessmentService } from '../../../../core/services/candidate-assessment.service';
@@ -142,9 +142,20 @@ export class AssessmentTakingComponent implements OnInit {
     const s = this.session();
     const id = s?.assessmentId;
     if (!s || !id || this.submitting()) return;
-    this.auth.storeToken(s!.candidateToken);
+    this.auth.storeToken(s.candidateToken);
     this.submitting.set(true);
-    this.service.submitAssessment(id).subscribe({
+
+    const answers = this.savedAnswers();
+    const entries = Object.entries(answers);
+    const flush$ = entries.length > 0
+      ? forkJoin(entries.map(([questionId, request]) =>
+          this.service.saveResponse(id, questionId, request)
+        ))
+      : of(null);
+
+    flush$.pipe(
+      switchMap(() => this.service.submitAssessment(id)),
+    ).subscribe({
       next: () => this.router.navigate(['/assessment', id, 'confirmation']),
       error: () => this.submitting.set(false),
     });

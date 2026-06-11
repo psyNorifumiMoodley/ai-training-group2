@@ -23,7 +23,7 @@ export class QuestionRendererComponent {
   readonly selectedOption = signal<string | null>(null);
   readonly selectedOptions = signal<Set<string>>(new Set());
   readonly textAnswer = signal('');
-  readonly childAnswers = signal<Record<string, string | undefined>>({});
+  readonly childAnswers = signal<string[]>([]);
   readonly followUpAnswer = signal('');
 
   constructor() {
@@ -34,7 +34,7 @@ export class QuestionRendererComponent {
       this.selectedOption.set(null);
       this.selectedOptions.set(new Set());
       this.textAnswer.set('');
-      this.childAnswers.set({});
+      this.childAnswers.set([]);
       this.followUpAnswer.set('');
 
       if (!saved) return;
@@ -55,11 +55,7 @@ export class QuestionRendererComponent {
         this.textAnswer.set((saved as TextResponseRequest).answer ?? '');
       } else if (resolvedType === 'GROUP') {
         const groupSaved = saved as GroupResponseRequest;
-        const answers: Record<string, string | undefined> = {};
-        for (const [id, resp] of Object.entries(groupSaved.childResponses ?? {})) {
-          answers[id] = (resp as TextResponseRequest).answer;
-        }
-        this.childAnswers.set(answers);
+        this.childAnswers.set(groupSaved.childAnswers ?? []);
       }
     }, { allowSignalWrites: true });
   }
@@ -140,14 +136,11 @@ export class QuestionRendererComponent {
     this.answerChanged.emit({ questionId: this.question().id, request: req });
   }
 
-  onChildTextChange(childId: string, value: string): void {
-    this.childAnswers.update(m => ({ ...m, [childId]: value }));
-    const childResponses: Record<string, ResponseRequest> = {};
-    const updated = { ...this.childAnswers(), [childId]: value };
-    for (const [id, ans] of Object.entries(updated)) {
-      childResponses[id] = { answer: ans ?? '' } as TextResponseRequest;
-    }
-    const req: GroupResponseRequest = { childResponses };
+  onChildTextChange(childIndex: number, value: string): void {
+    const updated = [...this.childAnswers()];
+    updated[childIndex] = value;
+    this.childAnswers.set(updated);
+    const req: GroupResponseRequest = { childAnswers: updated };
     this.answerChanged.emit({ questionId: this.question().id, request: req });
   }
 }

@@ -112,14 +112,14 @@
 <!-- Group -->
 @if (isGroup()) {
   <div class="space-y-4">
-    @for (child of asGroup().children; track child.id) {
+    @for (child of asGroup().children; track child.id; let i = $index) {
       <div class="border border-gray-100 rounded-input p-3">
         <p class="text-caption text-gray-600 mb-2">{{ child.questionText }}</p>
         <textarea
           rows="4"
           placeholder="Type your answer here..."
-          [value]="childAnswers()[child.id] ?? ''"
-          (input)="onChildTextChange(child.id, $any($event.target).value)"
+          [value]="childAnswers()[i] ?? ''"
+          (input)="onChildTextChange(i, $any($event.target).value)"
           class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-gray-400">
         </textarea>
       </div>

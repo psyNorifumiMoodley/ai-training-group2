@@ -24,7 +24,10 @@ import com.psybergate.dap.repository.ResponseRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class ResponseService {
@@ -104,13 +107,13 @@ public class ResponseService {
                     ? g : new QuestionGroupResponse();
             groupResponse.setAssessment(assessment);
             groupResponse.setQuestion(question);
-            if (groupReq.childResponses() != null) {
+            if (groupReq.childAnswers() != null) {
                 groupResponse.getChildResponses().clear();
-                for (Map.Entry<UUID, ResponseRequest> entry : groupReq.childResponses().entrySet()) {
-                    AssessmentQuestion childQuestion = assessmentQuestionRepository.findById(entry.getKey())
-                            .orElseThrow(() -> new NoSuchElementException(
-                                    "Child question not found: " + entry.getKey()));
-                    Response child = upsertResponse(null, assessment, childQuestion, entry.getValue());
+                for (String answer : groupReq.childAnswers()) {
+                    TextResponse child = new TextResponse();
+                    child.setAssessment(assessment);
+                    child.setQuestion(question);
+                    child.setAnswer(answer);
                     groupResponse.getChildResponses().add(child);
                 }
             }
