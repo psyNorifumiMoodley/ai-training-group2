@@ -1279,17 +1279,17 @@ INSERT INTO group_question_child (id, group_id, question_text, keywords, marks, 
 SELECT gen_random_uuid(), gq.id,
        'What is the difference between the constructor and ngOnInit? When is each appropriate for initialisation logic?',
        '["constructor","ngOnInit","dependency injection","Angular","lifecycle","initialisation","input","async"]'::jsonb,
-       4, 1, NOW(), NOW() FROM gq
+       4, 0, NOW(), NOW() FROM gq
 UNION ALL
 SELECT gen_random_uuid(), gq.id,
        'When does ngOnChanges fire, and what does the SimpleChanges parameter contain?',
        '["ngOnChanges","SimpleChanges","previousValue","currentValue","firstChange","@Input","reference change","OnPush"]'::jsonb,
-       4, 2, NOW(), NOW() FROM gq
+       4, 1, NOW(), NOW() FROM gq
 UNION ALL
 SELECT gen_random_uuid(), gq.id,
        'What cleanup should always be performed in ngOnDestroy, and why is it critical for memory management?',
        '["ngOnDestroy","unsubscribe","takeUntilDestroyed","memory leak","EventEmitter","timer","clearInterval","subscription"]'::jsonb,
-       4, 3, NOW(), NOW() FROM gq;
+       4, 2, NOW(), NOW() FROM gq;
 
 -- === TypeScript ===
 WITH gq AS (
@@ -1305,12 +1305,12 @@ INSERT INTO group_question_child (id, group_id, question_text, keywords, marks, 
 SELECT gen_random_uuid(), gq.id,
        'What is the difference between interface and type alias in TypeScript? Give one example where each is preferred.',
        '["interface","type alias","extends","intersection","union","declaration merging","object shape","primitive","TypeScript"]'::jsonb,
-       4, 1, NOW(), NOW() FROM gq
+       4, 0, NOW(), NOW() FROM gq
 UNION ALL
 SELECT gen_random_uuid(), gq.id,
        'Explain what a generic constraint (e.g. T extends SomeType) achieves and why it is needed.',
        '["generic","constraint","extends","T extends","keyof","type safety","compile error","flexibility","reusable","narrowing"]'::jsonb,
-       4, 2, NOW(), NOW() FROM gq;
+       4, 1, NOW(), NOW() FROM gq;
 
 -- === Testing & Quality ===
 WITH gq AS (
@@ -1326,17 +1326,17 @@ INSERT INTO group_question_child (id, group_id, question_text, keywords, marks, 
 SELECT gen_random_uuid(), gq.id,
        'What is the Arrange-Act-Assert (AAA) pattern? Describe each phase with a concrete JUnit 5 example.',
        '["AAA","Arrange","Act","Assert","JUnit 5","@Test","given-when-then","test structure","setup","assertion"]'::jsonb,
-       4, 1, NOW(), NOW() FROM gq
+       4, 0, NOW(), NOW() FROM gq
 UNION ALL
 SELECT gen_random_uuid(), gq.id,
        'What makes a unit test brittle? List three common causes and describe how to avoid them.',
        '["brittle","implementation detail","over-specification","mock","tight coupling","test fragility","refactoring","behaviour","black box","verify"]'::jsonb,
-       4, 2, NOW(), NOW() FROM gq
+       4, 1, NOW(), NOW() FROM gq
 UNION ALL
 SELECT gen_random_uuid(), gq.id,
        'When is it appropriate NOT to mock a dependency in a unit test? Give a concrete example.',
        '["value object","pure function","no I/O","in-memory","simple collaborator","real dependency","test double","mock","stub","unit boundary"]'::jsonb,
-       3, 3, NOW(), NOW() FROM gq;
+       3, 2, NOW(), NOW() FROM gq;
 
 -- === Cloud & Infrastructure ===
 WITH gq AS (
@@ -1352,12 +1352,12 @@ INSERT INTO group_question_child (id, group_id, question_text, keywords, marks, 
 SELECT gen_random_uuid(), gq.id,
        'What is a multi-stage Docker build and what problem does it solve for a Spring Boot application?',
        '["multi-stage","Dockerfile","build stage","runtime stage","image size","Maven","JDK","JRE","layer","artifact"]'::jsonb,
-       5, 1, NOW(), NOW() FROM gq
+       5, 0, NOW(), NOW() FROM gq
 UNION ALL
 SELECT gen_random_uuid(), gq.id,
        'What is the difference between a Kubernetes Service of type ClusterIP, NodePort, and LoadBalancer?',
        '["ClusterIP","NodePort","LoadBalancer","internal","external","port","selector","cloud provider","ingress","routing"]'::jsonb,
-       5, 2, NOW(), NOW() FROM gq;
+       5, 1, NOW(), NOW() FROM gq;
 
 -- === Agile & Best Practices ===
 WITH gq AS (
@@ -1373,14 +1373,14 @@ INSERT INTO group_question_child (id, group_id, question_text, keywords, marks, 
 SELECT gen_random_uuid(), gq.id,
        'What is the purpose of sprint planning? Who attends and what are the two main outputs?',
        '["sprint planning","sprint goal","sprint backlog","Product Owner","Scrum Master","Dev team","capacity","velocity","output","commitment"]'::jsonb,
-       4, 1, NOW(), NOW() FROM gq
+       4, 0, NOW(), NOW() FROM gq
 UNION ALL
 SELECT gen_random_uuid(), gq.id,
        'What is the daily standup for? Describe the three standard questions and a common anti-pattern to avoid.',
        '["daily standup","yesterday","today","blocker","anti-pattern","status report","problem solving","15 minutes","Scrum Master","impediment"]'::jsonb,
-       4, 2, NOW(), NOW() FROM gq
+       4, 1, NOW(), NOW() FROM gq
 UNION ALL
 SELECT gen_random_uuid(), gq.id,
        'What is the difference between a sprint review and a sprint retrospective? Who should attend each?',
        '["sprint review","sprint retrospective","stakeholders","increment","feedback","process","inspect","adapt","Product Owner","team"]'::jsonb,
-       4, 3, NOW(), NOW() FROM gq;
+       4, 2, NOW(), NOW() FROM gq;

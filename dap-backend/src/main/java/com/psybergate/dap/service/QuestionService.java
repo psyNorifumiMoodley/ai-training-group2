@@ -296,6 +296,7 @@ public class QuestionService {
                 .map(b -> new QuestionBankResponse(b.getId(), b.getName(), 0L))
                 .toList();
         List<GroupChildResponse> children = q.getChildren().stream()
+                .filter(c -> c != null)
                 .map(c -> new GroupChildResponse(c.getId(), c.getQuestionText(),
                         c.getKeywords() != null ? c.getKeywords() : List.of(), c.getMarks()))
                 .toList();

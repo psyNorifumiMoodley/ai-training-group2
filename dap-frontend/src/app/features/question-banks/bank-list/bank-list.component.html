@@ -19,12 +19,47 @@
       [class]="'w-full text-left bg-white border rounded-card py-[0.6875rem] px-3 cursor-pointer transition-colors ' +
         (selectedBankId() === '' ? 'border-primary' : 'border-gray-200 hover:border-gray-300')">
       <div class="flex items-center justify-between">
-        <span class="text-caption font-medium text-gray-800 truncate">All</span>
+        <span class="text-caption font-medium text-gray-800 truncate">All Questions</span>
         <span class="inline-block rounded-badge px-[0.4375rem] py-0.5 text-[0.6875rem] font-medium bg-primary-fill text-primary-text flex-shrink-0 ml-1">
-          {{ banks().length }}
+          {{ totalQuestionsAll() }}
         </span>
       </div>
     </button>
+
+    <!-- Create bank -->
+    @if (showCreateBankForm()) {
+      <div class="mt-2 border border-dashed border-gray-300 rounded-card py-[0.6875rem] px-3 space-y-1">
+        <input
+          type="text"
+          [ngModel]="newBankName()"
+          (ngModelChange)="newBankName.set($event)"
+          placeholder="Bank name..."
+          class="w-full border border-gray-200 rounded px-2 py-1 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30"
+          (keydown.enter)="submitCreateBank()"
+          (keydown.escape)="showCreateBankForm.set(false)" />
+        @if (createBankError()) {
+          <p class="text-[0.6875rem] text-red-500">{{ createBankError() }}</p>
+        }
+        <div class="flex gap-1">
+          <button type="button" (click)="submitCreateBank()" [disabled]="creatingBank()"
+                  class="px-2 py-0.5 text-[0.6875rem] bg-primary text-white rounded hover:bg-primary-hover transition-colors disabled:opacity-50">
+            Save
+          </button>
+          <button type="button" (click)="showCreateBankForm.set(false)"
+                  class="px-2 py-0.5 text-[0.6875rem] border border-gray-200 text-gray-500 rounded hover:bg-gray-50 transition-colors">
+            Cancel
+          </button>
+        </div>
+      </div>
+    } @else {
+      <button
+        type="button"
+        (click)="showCreateBankForm.set(true)"
+        class="mt-2 w-full flex items-center gap-1.5 text-caption text-primary hover:text-primary-hover px-1 py-1 transition-colors">
+        <i class="pi pi-plus text-[0.6875rem]"></i>
+        New bank
+      </button>
+    }
 
     <hr class="my-2 border-gray-200">
 
@@ -100,40 +135,6 @@
         }
       }
 
-      <!-- Create bank -->
-      @if (showCreateBankForm()) {
-        <div class="border border-dashed border-gray-300 rounded-card py-[0.6875rem] px-3 space-y-1">
-          <input
-            type="text"
-            [ngModel]="newBankName()"
-            (ngModelChange)="newBankName.set($event)"
-            placeholder="Bank name..."
-            class="w-full border border-gray-200 rounded px-2 py-1 text-caption focus:outline-none focus:ring-2 focus:ring-primary/30"
-            (keydown.enter)="submitCreateBank()"
-            (keydown.escape)="showCreateBankForm.set(false)" />
-          @if (createBankError()) {
-            <p class="text-[0.6875rem] text-red-500">{{ createBankError() }}</p>
-          }
-          <div class="flex gap-1">
-            <button type="button" (click)="submitCreateBank()" [disabled]="creatingBank()"
-                    class="px-2 py-0.5 text-[0.6875rem] bg-primary text-white rounded hover:bg-primary-hover transition-colors disabled:opacity-50">
-              Save
-            </button>
-            <button type="button" (click)="showCreateBankForm.set(false)"
-                    class="px-2 py-0.5 text-[0.6875rem] border border-gray-200 text-gray-500 rounded hover:bg-gray-50 transition-colors">
-              Cancel
-            </button>
-          </div>
-        </div>
-      } @else {
-        <button
-          type="button"
-          (click)="showCreateBankForm.set(true)"
-          class="w-full flex items-center gap-1.5 text-caption text-primary hover:text-primary-hover px-1 py-1 transition-colors">
-          <i class="pi pi-plus text-[0.6875rem]"></i>
-          New bank
-        </button>
-      }
     </div>
   </div>
 

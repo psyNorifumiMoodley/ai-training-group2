@@ -32,12 +32,15 @@ export class BankListComponent {
 
   readonly banks = signal<QuestionBankResponse[]>([]);
   readonly allQuestions = signal<QuestionResponse[]>([]);
+  readonly totalQuestionsAll = signal<number>(0);
   readonly selectedBankId = signal<string>('');
   readonly typeFilter = signal<QuestionType | 'ALL'>('ALL');
   readonly openMenuId = signal<string | null>(null);
   readonly openBankMenuId = signal<string | null>(null);
   readonly loading = signal(false);
   readonly banksLoading = signal(false);
+
+  private questionLoadSeq = 0;
 
   // Question form
   readonly showForm = signal(false);
@@ -83,6 +86,7 @@ export class BankListComponent {
   constructor() {
     this.loadBanks();
     this.loadQuestions();
+    this.loadTotalQuestions();
   }
 
   selectBank(bankId: string): void {
@@ -142,6 +146,7 @@ export class BankListComponent {
           this.deletingQuestion.set(null);
           this.loadBanks();
           this.loadQuestions();
+          this.loadTotalQuestions();
         },
         error: () => {
           this.deleting.set(false);
@@ -155,6 +160,7 @@ export class BankListComponent {
     this.editingQuestion.set(null);
     this.loadBanks();
     this.loadQuestions();
+    this.loadTotalQuestions();
   }
 
   // --- Bank CRUD ---
@@ -283,17 +289,29 @@ export class BankListComponent {
       });
   }
 
+  private loadTotalQuestions(): void {
+    this.questionService.getQuestions(0, 1)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: page => this.totalQuestionsAll.set(page.totalElements) });
+  }
+
   private loadQuestions(): void {
-    this.loading.set(true);
+    const seq = ++this.questionLoadSeq;
+    this.allQuestions.set([]);
     const bankId = this.selectedBankId() || undefined;
-    this.questionService.getQuestions(0, 100, bankId)
+    this.loading.set(true);
+    this.questionService.getQuestions(0, 1000, bankId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: page => {
-          this.allQuestions.set(page.content);
-          this.loading.set(false);
+          if (seq === this.questionLoadSeq) {
+            this.allQuestions.set(page.content);
+            this.loading.set(false);
+          }
         },
-        error: () => this.loading.set(false),
+        error: () => {
+          if (seq === this.questionLoadSeq) this.loading.set(false);
+        },
       });
   }
 }

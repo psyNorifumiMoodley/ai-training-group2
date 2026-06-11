@@ -31,5 +31,6 @@
     <include file="db/changelog/changesets/2026-06-10-009-replace-group-follow-up-with-children.xml"/>
     <include file="db/changelog/changesets/2026-06-10-010-create-mcq-plus-question-table.xml"/>
     <include file="db/changelog/changesets/2026-06-10-011-create-mcq-plus-response-table.xml"/>
+    <include file="db/changelog/changesets/2026-06-10-012-fix-group-question-child-display-order.xml"/>
 
 </databaseChangeLog>
