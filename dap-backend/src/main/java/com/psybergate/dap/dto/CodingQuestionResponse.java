@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public record CodingQuestionResponse(
         UUID id,
-        String category,
+        List<QuestionBankResponse> questionBanks,
         String question,
         CodingQuestionLanguage language,
         List<TestCaseResponse> testCases

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Ensures question_bank has the correct final structure:
+        id UUID PK, name VARCHAR(255) NOT NULL UNIQUE, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ.
+        The baseline created the table without a UNIQUE constraint on name — this changeset adds it.
+        Skipped via MARK_RAN if the constraint already exists.
+    -->
+    <changeSet id="2026-06-10-001-ensure-question-bank-table" author="norifumi.moodley">
+
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <uniqueConstraintExists tableName="question_bank" constraintName="uq_question_bank_name"/>
+            </not>
+        </preConditions>
+
+        <addUniqueConstraint tableName="question_bank"
+                             columnNames="name"
+                             constraintName="uq_question_bank_name"/>
+
+        <rollback>
+            <dropUniqueConstraint tableName="question_bank" constraintName="uq_question_bank_name"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

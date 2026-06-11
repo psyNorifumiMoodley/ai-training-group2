@@ -7,10 +7,10 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { tap } from 'rxjs';
 import { QuestionService } from '../../../../core/services/question.service';
+import { QuestionBankService } from '../../../../core/services/question-bank.service';
 import { ToastService } from '../../../../core/services/toast.service';
-import { QuestionResponse, QuestionType } from '../../../../core/models/question.model';
+import { QuestionBankResponse, QuestionResponse, QuestionType } from '../../../../core/models/question.model';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { TagComponent } from '../../../../shared/components/tag/tag.component';
 import { QuestionFormComponent } from '../question-form/question-form.component';
@@ -25,12 +25,13 @@ import { ConfirmModalComponent } from '../../../../shared/components/confirm-mod
 })
 export class QuestionListComponent {
   private readonly questionService = inject(QuestionService);
+  private readonly questionBankService = inject(QuestionBankService);
   private readonly toastService = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly questions = signal<QuestionResponse[]>([]);
-  readonly categories = ['Java Core', 'Angular', 'Spring Boot', 'SQL Basics'];
-  readonly selectedCategory = signal<string>('');
+  readonly banks = signal<QuestionBankResponse[]>([]);
+  readonly selectedBankId = signal<string>('');
   readonly typeFilter = signal<QuestionType | 'ALL'>('ALL');
   readonly page = signal(0);
   readonly totalPages = signal(0);
@@ -42,7 +43,7 @@ export class QuestionListComponent {
   readonly deleting = signal(false);
 
   readonly PAGE_SIZE = 20;
-  readonly filterTypes: Array<QuestionType | 'ALL'> = ['ALL', 'MCQ', 'TEXT', 'DOC', 'GROUP'];
+  readonly filterTypes: Array<QuestionType | 'ALL'> = ['ALL', 'MCQ', 'MCQ_PLUS', 'TEXT', 'DOC', 'GROUP'];
 
   readonly filteredQuestions = computed(() => {
     const type = this.typeFilter();
@@ -51,6 +52,9 @@ export class QuestionListComponent {
   });
 
   constructor() {
+    this.questionBankService.getQuestionBanks()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: banks => this.banks.set(banks) });
     this.loadQuestions();
   }
 
@@ -73,25 +77,14 @@ export class QuestionListComponent {
     if (!q) return;
     this.deleting.set(true);
     this.questionService.deleteQuestion(q.id)
-      .pipe(
-        tap({
-          next: () => console.log('[confirmDelete] HTTP response arrived (before takeUntilDestroyed)'),
-          error: e => console.log('[confirmDelete] HTTP error (before takeUntilDestroyed)', e),
-        }),
-        takeUntilDestroyed(this.destroyRef),
-      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          console.log('[confirmDelete] next() fired (after takeUntilDestroyed)');
           this.deleting.set(false);
           this.deletingQuestion.set(null);
           this.page.set(0);
           this.loadQuestions();
-          // Use success() temporarily to rule out the removed/delete type
-          setTimeout(() => {
-            console.log('[confirmDelete] setTimeout fired');
-            this.toastService.success('Question deleted.');
-          });
+          this.toastService.success('Question deleted.');
         },
         error: () => {
           this.deleting.set(false);
@@ -108,8 +101,9 @@ export class QuestionListComponent {
     this.loadQuestions();
   }
 
-  onCategoryChange(category: string): void {
-    this.selectedCategory.set(category);
+  selectBank(bankId: string): void {
+    this.selectedBankId.set(bankId);
+    this.typeFilter.set('ALL');
     this.page.set(0);
     this.loadQuestions();
   }
@@ -124,7 +118,7 @@ export class QuestionListComponent {
 
   typeTagVariant(type: QuestionType): 'mcq' | 'text' | 'doc' | 'info' | 'coding' {
     const map: Record<QuestionType, 'mcq' | 'text' | 'doc' | 'info' | 'coding'> = {
-      MCQ: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info', CODING: 'coding',
+      MCQ: 'mcq', MCQ_PLUS: 'mcq', TEXT: 'text', DOC: 'doc', GROUP: 'info', CODING: 'coding',
     };
     return map[type];
   }
@@ -132,15 +126,15 @@ export class QuestionListComponent {
   resolveType(q: QuestionResponse): QuestionType {
     if (q.type) return q.type;
     if ('correctAnswers' in q) return 'MCQ';
-    if ('followUpQuestions' in q) return 'GROUP';
+    if ('children' in q) return 'GROUP';
     if ('keywords' in q) return 'TEXT';
     return 'DOC';
   }
 
   private loadQuestions(): void {
     this.loading.set(true);
-    const cat = this.selectedCategory() || undefined;
-    this.questionService.getQuestions(this.page(), this.PAGE_SIZE, cat)
+    const bankId = this.selectedBankId() || undefined;
+    this.questionService.getQuestions(this.page(), this.PAGE_SIZE, bankId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: page => {

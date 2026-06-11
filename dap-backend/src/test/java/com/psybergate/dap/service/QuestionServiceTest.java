@@ -8,7 +8,9 @@ import com.psybergate.dap.dto.*;
 import com.psybergate.dap.repository.*;
 import com.psybergate.dap.repository.AssessmentQuestionRepository;
 import com.psybergate.dap.repository.GroupQuestionRepository;
+import com.psybergate.dap.repository.QuestionBankRepository;
 import com.psybergate.dap.repository.TextQuestionRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -18,10 +20,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -43,16 +45,33 @@ class QuestionServiceTest {
     @Mock
     private GroupQuestionRepository groupQuestionRepository;
 
+    @Mock
+    private QuestionBankRepository questionBankRepository;
+
+    @Mock
+    private McqPlusQuestionRepository mcqPlusQuestionRepository;
+
     @InjectMocks
     private QuestionService questionService;
 
+    @BeforeEach
+    void setUpBankMock() {
+        QuestionBank bank = new QuestionBank("Test Bank");
+        bank.setId(UUID.randomUUID());
+        when(questionBankRepository.findById(any(UUID.class))).thenReturn(Optional.of(bank));
+    }
+
     @Test
     void createMcq_persistsMcqQuestion() {
-        McqQuestionRequest request = new McqQuestionRequest("Java", "Which keyword declares a variable?", List.of("int", "for", "class"), List.of("int"));
+        McqQuestionRequest request = new McqQuestionRequest(
+                List.of(UUID.randomUUID()),
+                "Which keyword declares a variable?",
+                List.of("int", "for", "class"),
+                List.of("int")
+        );
 
         McqQuestion saved = new McqQuestion();
         saved.setId(UUID.randomUUID());
-        saved.setCategory("Java");
         saved.setQuestion("Which keyword declares a variable?");
         saved.setOptions(List.of("int", "for", "class"));
         saved.setCorrectAnswers(List.of("int"));
@@ -68,27 +87,34 @@ class QuestionServiceTest {
 
     @Test
     void createDoc_persistsDocQuestion() {
-        DocQuestionRequest request = new DocQuestionRequest("Java", "Upload your design document");
+        DocQuestionRequest request = new DocQuestionRequest(
+                List.of(UUID.randomUUID()),
+                "Upload your design document",
+                3
+        );
 
         DocQuestion saved = new DocQuestion();
         saved.setId(UUID.randomUUID());
-        saved.setCategory("Java");
         saved.setQuestion("Upload your design document");
         when(docQuestionRepository.save(any(DocQuestion.class))).thenReturn(saved);
 
         QuestionResponse response = questionService.create(request);
 
         assertThat(response).isInstanceOf(DocQuestionResponse.class);
-        assertThat(((DocQuestionResponse) response).category()).isEqualTo("Java");
+        assertThat(((DocQuestionResponse) response).question()).isEqualTo("Upload your design document");
     }
 
     @Test
     void createText_withKeywords_persistsAndReturnsResponse() {
-        TextQuestionRequest request = new TextQuestionRequest("Java", "Describe OOP", List.of("encapsulation", "polymorphism"));
+        TextQuestionRequest request = new TextQuestionRequest(
+                List.of(UUID.randomUUID()),
+                "Describe OOP",
+                List.of("encapsulation", "polymorphism"),
+                5
+        );
 
         TextQuestion saved = new TextQuestion();
         saved.setId(UUID.randomUUID());
-        saved.setCategory("Java");
         saved.setQuestion("Describe OOP");
         saved.setKeywords(List.of("encapsulation", "polymorphism"));
         when(textQuestionRepository.save(any(TextQuestion.class))).thenReturn(saved);
@@ -98,17 +124,21 @@ class QuestionServiceTest {
         assertThat(response).isInstanceOf(TextQuestionResponse.class);
         TextQuestionResponse textResponse = (TextQuestionResponse) response;
         assertThat(textResponse.keywords()).containsExactly("encapsulation", "polymorphism");
-        assertThat(textResponse.category()).isEqualTo("Java");
+        assertThat(textResponse.questionBanks()).isEmpty();
     }
 
     @Test
     void createText_withEmptyKeywords_persistsWithEmptyList() {
-        TextQuestionRequest request = new TextQuestionRequest("Java", "Describe OOP", List.of());
+        TextQuestionRequest request = new TextQuestionRequest(
+                List.of(UUID.randomUUID()),
+                "Describe OOP",
+                List.of(),
+                5
+        );
 
         ArgumentCaptor<TextQuestion> captor = ArgumentCaptor.forClass(TextQuestion.class);
         TextQuestion saved = new TextQuestion();
         saved.setId(UUID.randomUUID());
-        saved.setCategory("Java");
         saved.setQuestion("Describe OOP");
         saved.setKeywords(List.of());
         when(textQuestionRepository.save(captor.capture())).thenReturn(saved);
@@ -119,71 +149,26 @@ class QuestionServiceTest {
     }
 
     @Test
-    void createGroup_withUnknownFollowUpId_throwsValidationException() {
-        UUID unknownId = UUID.randomUUID();
-        GroupQuestionRequest request = new GroupQuestionRequest("Java", "OOP concepts", true, List.of(unknownId));
-
-        when(assessmentQuestionRepository.findTextQuestionsByIds(List.of(unknownId))).thenReturn(List.of());
-
-        assertThatThrownBy(() -> questionService.create(request))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("invalid or not text questions");
-    }
-
-    @Test
-    void createGroup_withGroupQuestionId_throwsValidationException() {
-        UUID groupId = UUID.randomUUID();
-        GroupQuestionRequest request = new GroupQuestionRequest("Java", "OOP concepts", true, List.of(groupId));
-
-        GroupQuestion existingGroup = new GroupQuestion();
-        existingGroup.setId(groupId);
-        existingGroup.setCategory("Java");
-        existingGroup.setQuestion("Some group question");
-        existingGroup.setOrdered(false);
-        existingGroup.setFollowUpQuestions(new ArrayList<>());
-
-        when(assessmentQuestionRepository.findTextQuestionsByIds(List.of(groupId)))
-                .thenReturn(List.of(existingGroup));
-
-        assertThatThrownBy(() -> questionService.create(request))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("Group questions cannot be used as follow-up questions");
-    }
-
-    @Test
-    void createGroup_withValidFollowUpQuestions_preservesOrder() {
-        UUID id1 = UUID.randomUUID();
-        UUID id2 = UUID.randomUUID();
-        GroupQuestionRequest request = new GroupQuestionRequest("Java", "OOP concepts", true, List.of(id1, id2));
-
-        TextQuestion t1 = new TextQuestion();
-        t1.setId(id1);
-        t1.setCategory("Java");
-        t1.setQuestion("Q1");
-        t1.setKeywords(List.of());
-
-        TextQuestion t2 = new TextQuestion();
-        t2.setId(id2);
-        t2.setCategory("Java");
-        t2.setQuestion("Q2");
-        t2.setKeywords(List.of());
-
-        when(assessmentQuestionRepository.findTextQuestionsByIds(List.of(id1, id2))).thenReturn(List.of(t1, t2));
+    void createGroup_returnsGroupWithEmptyChildren() {
+        GroupQuestionRequest request = new GroupQuestionRequest(
+                List.of(UUID.randomUUID()),
+                "OOP concepts",
+                true,
+                List.of(new GroupChildRequest("What is encapsulation?", List.of(), 2))
+        );
 
         GroupQuestion saved = new GroupQuestion();
         saved.setId(UUID.randomUUID());
-        saved.setCategory("Java");
         saved.setQuestion("OOP concepts");
         saved.setOrdered(true);
-        saved.setFollowUpQuestions(List.of(t1, t2));
+        saved.setChildren(new ArrayList<>());
         when(groupQuestionRepository.save(any(GroupQuestion.class))).thenReturn(saved);
 
         QuestionResponse response = questionService.create(request);
 
         assertThat(response).isInstanceOf(GroupQuestionResponse.class);
         GroupQuestionResponse groupResponse = (GroupQuestionResponse) response;
-        assertThat(groupResponse.followUpQuestions()).hasSize(2);
-        assertThat(groupResponse.followUpQuestions().get(0).id()).isEqualTo(id1);
-        assertThat(groupResponse.followUpQuestions().get(1).id()).isEqualTo(id2);
+        assertThat(groupResponse.children()).isEmpty();
+        assertThat(groupResponse.ordered()).isTrue();
     }
 }

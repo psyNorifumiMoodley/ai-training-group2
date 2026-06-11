@@ -13,18 +13,13 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(callSuper = true)
-public class GroupQuestion extends TextQuestion {
+public class GroupQuestion extends AssessmentQuestion {
 
     @Column(nullable = false)
     private boolean ordered;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "group_question_follow_up",
-            joinColumns = @JoinColumn(name = "group_id"),
-            inverseJoinColumns = @JoinColumn(name = "question_id")
-    )
+    @OneToMany(mappedBy = "groupQuestion", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderColumn(name = "display_order")
     @ToString.Exclude
-    private List<TextQuestion> followUpQuestions = new ArrayList<>();
+    private List<GroupQuestionChild> children = new ArrayList<>();
 }

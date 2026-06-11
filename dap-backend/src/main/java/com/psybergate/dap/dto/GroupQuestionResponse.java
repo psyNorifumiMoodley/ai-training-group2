@@ -5,9 +5,10 @@ import java.util.UUID;
 
 public record GroupQuestionResponse(
         UUID id,
-        String category,
+        List<QuestionBankResponse> questionBanks,
         String question,
         boolean ordered,
-        List<TextQuestionResponse> followUpQuestions
+        List<GroupChildResponse> children,
+        int totalMarks
 ) implements QuestionResponse {
 }

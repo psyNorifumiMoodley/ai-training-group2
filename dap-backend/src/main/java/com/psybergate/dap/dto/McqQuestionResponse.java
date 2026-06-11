@@ -5,7 +5,7 @@ import java.util.UUID;
 
 public record McqQuestionResponse(
         UUID id,
-        String category,
+        List<QuestionBankResponse> questionBanks,
         String question,
         List<String> options,
         List<String> correctAnswers,

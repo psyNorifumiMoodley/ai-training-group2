@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        GroupQuestion inherits category from AssessmentQuestion (TABLE_PER_CLASS) and
+        has its own keywords column — both are dropped in this refactor.
+        keywords was always null for group rows; category is replaced by QuestionBank.
+    -->
+    <changeSet id="2026-06-10-006-drop-category-and-keywords-from-group-question" author="norifumi.moodley">
+
+        <dropColumn tableName="group_question" columnName="category"/>
+        <dropColumn tableName="group_question" columnName="keywords"/>
+
+        <rollback>
+            <addColumn tableName="group_question">
+                <column name="category" type="VARCHAR(255)"/>
+            </addColumn>
+            <addColumn tableName="group_question">
+                <column name="keywords" type="JSONB"/>
+            </addColumn>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

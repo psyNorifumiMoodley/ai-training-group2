@@ -196,20 +196,17 @@ public class AssessmentService {
 
     private QuestionResponse toQuestionResponse(AssessmentQuestion q) {
         if (q instanceof McqQuestion mq) {
-            return new McqQuestionResponse(mq.getId(), mq.getCategory(), mq.getQuestion(),
-                    mq.getOptions(), List.of(), mq.getCorrectAnswers().size() > 1);
+            return new McqQuestionResponse(mq.getId(), List.of(), mq.getQuestion(),
+                    mq.getOptions(), mq.getCorrectAnswers(), mq.getCorrectAnswers().size() > 1);
         }
         if (q instanceof DocQuestion dq) {
-            return new DocQuestionResponse(dq.getId(), dq.getCategory(), dq.getQuestion());
+            return new DocQuestionResponse(dq.getId(), List.of(), dq.getQuestion(), 0);
         }
         if (q instanceof GroupQuestion gq) {
-            List<TextQuestionResponse> followUps = gq.getFollowUpQuestions().stream()
-                    .map(fq -> new TextQuestionResponse(fq.getId(), fq.getCategory(), fq.getQuestion(), fq.getKeywords()))
-                    .collect(Collectors.toList());
-            return new GroupQuestionResponse(gq.getId(), gq.getCategory(), gq.getQuestion(), gq.isOrdered(), followUps);
+            return new GroupQuestionResponse(gq.getId(), List.of(), gq.getQuestion(), gq.isOrdered(), List.of(), 0);
         }
         if (q instanceof TextQuestion tq) {
-            return new TextQuestionResponse(tq.getId(), tq.getCategory(), tq.getQuestion(), tq.getKeywords());
+            return new TextQuestionResponse(tq.getId(), List.of(), tq.getQuestion(), tq.getKeywords(), 0);
         }
         throw new UnsupportedOperationException("Unmapped question type: " + q.getClass());
     }
@@ -292,7 +289,7 @@ public class AssessmentService {
 
     private List<TextQuestion> availablePureText(Set<UUID> seenIds) {
         return textQuestionRepository.findAll().stream()
-                .filter(q -> !(q instanceof GroupQuestion) && !seenIds.contains(q.getId()))
+                .filter(q -> !seenIds.contains(q.getId()))
                 .collect(Collectors.toList());
     }
 

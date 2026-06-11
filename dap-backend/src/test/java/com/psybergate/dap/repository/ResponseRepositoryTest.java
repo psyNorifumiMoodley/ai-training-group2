@@ -63,14 +63,12 @@ class ResponseRepositoryTest {
 
     private McqQuestion persistMcq() {
         McqQuestion q = new McqQuestion(List.of("A", "B"), List.of("A"));
-        q.setCategory("Java");
         q.setQuestion("What is Java?");
         return mcqQuestionRepository.save(q);
     }
 
     private TextQuestion persistText() {
-        TextQuestion q = new TextQuestion(null);
-        q.setCategory("Java");
+        TextQuestion q = new TextQuestion();
         q.setQuestion("Explain OOP.");
         return textQuestionRepository.save(q);
     }

@@ -1,25 +1,15 @@
 package com.psybergate.dap.service;
 
 import com.psybergate.dap.domain.*;
-import com.psybergate.dap.domain.AssessmentQuestion;
-import com.psybergate.dap.domain.GroupQuestion;
-import com.psybergate.dap.domain.TextQuestion;
-import com.psybergate.dap.domain.ValidationException;
 import com.psybergate.dap.dto.*;
 import com.psybergate.dap.repository.*;
-import com.psybergate.dap.repository.AssessmentQuestionRepository;
-import com.psybergate.dap.repository.GroupQuestionRepository;
-import com.psybergate.dap.repository.TextQuestionRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class QuestionService {
@@ -29,21 +19,30 @@ public class QuestionService {
     private final DocQuestionRepository docQuestionRepository;
     private final TextQuestionRepository textQuestionRepository;
     private final GroupQuestionRepository groupQuestionRepository;
+    private final QuestionBankRepository questionBankRepository;
+    private final McqPlusQuestionRepository mcqPlusQuestionRepository;
 
     public QuestionService(AssessmentQuestionRepository assessmentQuestionRepository,
                            McqQuestionRepository mcqQuestionRepository,
                            DocQuestionRepository docQuestionRepository,
                            TextQuestionRepository textQuestionRepository,
-                           GroupQuestionRepository groupQuestionRepository) {
+                           GroupQuestionRepository groupQuestionRepository,
+                           QuestionBankRepository questionBankRepository,
+                           McqPlusQuestionRepository mcqPlusQuestionRepository) {
         this.assessmentQuestionRepository = assessmentQuestionRepository;
         this.mcqQuestionRepository = mcqQuestionRepository;
         this.docQuestionRepository = docQuestionRepository;
         this.textQuestionRepository = textQuestionRepository;
         this.groupQuestionRepository = groupQuestionRepository;
+        this.questionBankRepository = questionBankRepository;
+        this.mcqPlusQuestionRepository = mcqPlusQuestionRepository;
     }
 
     @Transactional
     public QuestionResponse create(QuestionRequest request) {
+        if (request instanceof McqPlusQuestionRequest r) {
+            return toResponse(createMcqPlus(r));
+        }
         if (request instanceof McqQuestionRequest r) {
             return toResponse(createMcq(r));
         }
@@ -60,11 +59,13 @@ public class QuestionService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<QuestionResponse> list(int page, int size, String category) {
-        Page<AssessmentQuestion> questions = (category != null && !category.isBlank())
-                ? assessmentQuestionRepository.findByCategory(category, PageRequest.of(page, size))
-                : assessmentQuestionRepository.findAll(PageRequest.of(page, size));
-
+    public PageResponse<QuestionResponse> list(int page, int size, UUID questionBankId) {
+        Page<AssessmentQuestion> questions;
+        if (questionBankId != null) {
+            questions = assessmentQuestionRepository.findAllByQuestionBanks_Id(questionBankId, PageRequest.of(page, size));
+        } else {
+            questions = assessmentQuestionRepository.findAll(PageRequest.of(page, size));
+        }
         return new PageResponse<>(
                 questions.getContent().stream().map(this::toResponse).toList(),
                 questions.getTotalElements(),
@@ -86,36 +87,54 @@ public class QuestionService {
         AssessmentQuestion existing = assessmentQuestionRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Question not found: " + id));
 
+        if (request instanceof McqPlusQuestionRequest r && existing instanceof McqPlusQuestion mpq) {
+            validateMcq(r.options(), r.correctAnswers());
+            mpq.setQuestion(r.question());
+            mpq.setOptions(r.options());
+            mpq.setCorrectAnswers(r.correctAnswers());
+            mpq.setFollowUpQuestion(r.followUpQuestion());
+            mpq.setFollowUpKeywords(r.followUpKeywords() != null ? r.followUpKeywords() : List.of());
+            mpq.setFollowUpMarks(r.followUpMarks());
+            mpq.getQuestionBanks().clear();
+            mpq.getQuestionBanks().addAll(resolveQuestionBanks(r.questionBankIds()));
+            return toResponse(mcqPlusQuestionRepository.save(mpq));
+        }
+
         if (request instanceof McqQuestionRequest r && existing instanceof McqQuestion mq) {
             validateMcq(r.options(), r.correctAnswers());
-            mq.setCategory(r.category());
             mq.setQuestion(r.question());
             mq.setOptions(r.options());
             mq.setCorrectAnswers(r.correctAnswers());
+            mq.getQuestionBanks().clear();
+            mq.getQuestionBanks().addAll(resolveQuestionBanks(r.questionBankIds()));
             return toResponse(mcqQuestionRepository.save(mq));
         }
 
         if (request instanceof DocQuestionRequest r && existing instanceof DocQuestion dq) {
-            dq.setCategory(r.category());
             dq.setQuestion(r.question());
+            dq.setMarks(r.marks());
+            dq.getQuestionBanks().clear();
+            dq.getQuestionBanks().addAll(resolveQuestionBanks(r.questionBankIds()));
             return toResponse(docQuestionRepository.save(dq));
         }
 
         if (request instanceof TextQuestionRequest r && isExactTextQuestion(existing)) {
             TextQuestion tq = (TextQuestion) existing;
-            tq.setCategory(r.category());
             tq.setQuestion(r.question());
-            tq.setKeywords(r.keywords());
+            tq.setKeywords(r.keywords() != null ? r.keywords() : List.of());
+            tq.setMarks(r.marks());
+            tq.getQuestionBanks().clear();
+            tq.getQuestionBanks().addAll(resolveQuestionBanks(r.questionBankIds()));
             return toResponse(textQuestionRepository.save(tq));
         }
 
         if (request instanceof GroupQuestionRequest r && existing instanceof GroupQuestion gq) {
-            gq.setCategory(r.category());
             gq.setQuestion(r.question());
             gq.setOrdered(r.ordered());
-            List<TextQuestion> followUps = resolveFollowUpQuestions(r.followUpQuestionIds());
-            gq.getFollowUpQuestions().clear();
-            gq.getFollowUpQuestions().addAll(followUps);
+            gq.getQuestionBanks().clear();
+            gq.getQuestionBanks().addAll(resolveQuestionBanks(r.questionBankIds()));
+            gq.getChildren().clear();
+            gq.getChildren().addAll(buildChildren(r.children(), gq));
             return toResponse(groupQuestionRepository.save(gq));
         }
 
@@ -132,37 +151,72 @@ public class QuestionService {
     McqQuestion createMcq(McqQuestionRequest request) {
         validateMcq(request.options(), request.correctAnswers());
         McqQuestion q = new McqQuestion();
-        q.setCategory(request.category());
         q.setQuestion(request.question());
         q.setOptions(request.options());
         q.setCorrectAnswers(request.correctAnswers());
+        q.getQuestionBanks().addAll(resolveQuestionBanks(request.questionBankIds()));
         return mcqQuestionRepository.save(q);
     }
 
     DocQuestion createDoc(DocQuestionRequest request) {
         DocQuestion q = new DocQuestion();
-        q.setCategory(request.category());
         q.setQuestion(request.question());
+        q.setMarks(request.marks());
+        q.getQuestionBanks().addAll(resolveQuestionBanks(request.questionBankIds()));
         return docQuestionRepository.save(q);
     }
 
     private TextQuestion createText(TextQuestionRequest request) {
         TextQuestion q = new TextQuestion();
-        q.setCategory(request.category());
         q.setQuestion(request.question());
         q.setKeywords(request.keywords() != null ? request.keywords() : new ArrayList<>());
+        q.setMarks(request.marks());
+        q.getQuestionBanks().addAll(resolveQuestionBanks(request.questionBankIds()));
         return textQuestionRepository.save(q);
     }
 
     private GroupQuestion createGroup(GroupQuestionRequest request) {
-        List<TextQuestion> followUps = resolveFollowUpQuestions(request.followUpQuestionIds());
-
         GroupQuestion q = new GroupQuestion();
-        q.setCategory(request.category());
         q.setQuestion(request.question());
         q.setOrdered(request.ordered());
-        q.setFollowUpQuestions(new ArrayList<>(followUps));
+        q.getQuestionBanks().addAll(resolveQuestionBanks(request.questionBankIds()));
+        q.setChildren(buildChildren(request.children(), q));
         return groupQuestionRepository.save(q);
+    }
+
+    private McqPlusQuestion createMcqPlus(McqPlusQuestionRequest request) {
+        validateMcq(request.options(), request.correctAnswers());
+        McqPlusQuestion q = new McqPlusQuestion();
+        q.setQuestion(request.question());
+        q.setOptions(request.options());
+        q.setCorrectAnswers(request.correctAnswers());
+        q.setFollowUpQuestion(request.followUpQuestion());
+        q.setFollowUpKeywords(request.followUpKeywords() != null ? request.followUpKeywords() : List.of());
+        q.setFollowUpMarks(request.followUpMarks());
+        q.getQuestionBanks().addAll(resolveQuestionBanks(request.questionBankIds()));
+        return mcqPlusQuestionRepository.save(q);
+    }
+
+    private Set<QuestionBank> resolveQuestionBanks(List<UUID> ids) {
+        return ids.stream()
+                .map(id -> questionBankRepository.findById(id)
+                        .orElseThrow(() -> new NoSuchElementException("Question bank not found: " + id)))
+                .collect(Collectors.toSet());
+    }
+
+    private List<GroupQuestionChild> buildChildren(List<GroupChildRequest> childRequests, GroupQuestion parent) {
+        List<GroupQuestionChild> children = new ArrayList<>();
+        for (int i = 0; i < childRequests.size(); i++) {
+            GroupChildRequest cr = childRequests.get(i);
+            GroupQuestionChild child = new GroupQuestionChild();
+            child.setGroupQuestion(parent);
+            child.setQuestionText(cr.questionText());
+            child.setKeywords(cr.keywords() != null ? cr.keywords() : List.of());
+            child.setMarks(cr.marks());
+            child.setDisplayOrder(i);
+            children.add(child);
+        }
+        return children;
     }
 
     private void validateMcq(List<String> options, List<String> correctAnswers) {
@@ -177,21 +231,10 @@ public class QuestionService {
         }
     }
 
-    private List<TextQuestion> resolveFollowUpQuestions(List<UUID> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return new ArrayList<>();
-        }
-        List<TextQuestion> found = assessmentQuestionRepository.findTextQuestionsByIds(ids);
-        if (found.size() != ids.size()) {
-            throw new ValidationException("One or more follow-up question IDs are invalid or not text questions");
-        }
-        if (found.stream().anyMatch(GroupQuestion.class::isInstance)) {
-            throw new ValidationException("Group questions cannot be used as follow-up questions");
-        }
-        return found;
-    }
-
     private QuestionResponse toResponse(AssessmentQuestion q) {
+        if (q instanceof McqPlusQuestion mpq) {
+            return toMcqPlusResponse(mpq);
+        }
         if (q instanceof McqQuestion mq) {
             return toMcqResponse(mq);
         }
@@ -208,24 +251,57 @@ public class QuestionService {
     }
 
     private McqQuestionResponse toMcqResponse(McqQuestion q) {
-        return new McqQuestionResponse(q.getId(), q.getCategory(), q.getQuestion(), q.getOptions(),
+        List<QuestionBankResponse> banks = q.getQuestionBanks().stream()
+                .map(b -> new QuestionBankResponse(b.getId(), b.getName(), 0L))
+                .toList();
+        return new McqQuestionResponse(q.getId(), banks, q.getQuestion(), q.getOptions(),
                 q.getCorrectAnswers(), q.getCorrectAnswers().size() > 1);
     }
 
+    private McqPlusQuestionResponse toMcqPlusResponse(McqPlusQuestion q) {
+        List<QuestionBankResponse> banks = q.getQuestionBanks().stream()
+                .map(b -> new QuestionBankResponse(b.getId(), b.getName(), 0L))
+                .toList();
+        return new McqPlusQuestionResponse(
+                q.getId(),
+                banks,
+                q.getQuestion(),
+                q.getOptions(),
+                q.getCorrectAnswers(),
+                q.getCorrectAnswers().size() > 1,
+                q.getFollowUpQuestion(),
+                q.getFollowUpKeywords() != null ? q.getFollowUpKeywords() : List.of(),
+                q.getFollowUpMarks(),
+                1 + q.getFollowUpMarks()
+        );
+    }
+
     private DocQuestionResponse toDocResponse(DocQuestion q) {
-        return new DocQuestionResponse(q.getId(), q.getCategory(), q.getQuestion());
+        List<QuestionBankResponse> banks = q.getQuestionBanks().stream()
+                .map(b -> new QuestionBankResponse(b.getId(), b.getName(), 0L))
+                .toList();
+        return new DocQuestionResponse(q.getId(), banks, q.getQuestion(), q.getMarks());
     }
 
     private TextQuestionResponse toTextResponse(TextQuestion q) {
-        return new TextQuestionResponse(q.getId(), q.getCategory(), q.getQuestion(), q.getKeywords());
+        List<QuestionBankResponse> banks = q.getQuestionBanks().stream()
+                .map(b -> new QuestionBankResponse(b.getId(), b.getName(), 0L))
+                .toList();
+        return new TextQuestionResponse(q.getId(), banks, q.getQuestion(),
+                q.getKeywords() != null ? q.getKeywords() : List.of(), q.getMarks());
     }
 
     private GroupQuestionResponse toGroupResponse(GroupQuestion q) {
-        List<TextQuestionResponse> followUps = q.getFollowUpQuestions().stream()
-                .filter(java.util.Objects::nonNull)
-                .map(this::toTextResponse)
+        List<QuestionBankResponse> banks = q.getQuestionBanks().stream()
+                .map(b -> new QuestionBankResponse(b.getId(), b.getName(), 0L))
                 .toList();
-        return new GroupQuestionResponse(q.getId(), q.getCategory(), q.getQuestion(), q.isOrdered(), followUps);
+        List<GroupChildResponse> children = q.getChildren().stream()
+                .filter(c -> c != null)
+                .map(c -> new GroupChildResponse(c.getId(), c.getQuestionText(),
+                        c.getKeywords() != null ? c.getKeywords() : List.of(), c.getMarks()))
+                .toList();
+        int totalMarks = children.stream().mapToInt(GroupChildResponse::marks).sum();
+        return new GroupQuestionResponse(q.getId(), banks, q.getQuestion(), q.isOrdered(), children, totalMarks);
     }
 
     private boolean isExactTextQuestion(AssessmentQuestion q) {

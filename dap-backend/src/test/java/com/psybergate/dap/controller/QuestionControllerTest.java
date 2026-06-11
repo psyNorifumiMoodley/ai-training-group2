@@ -82,12 +82,13 @@ class QuestionControllerTest {
     @Test
     void createMcqQuestion_asMarker_returns201() throws Exception {
         UUID id = UUID.randomUUID();
-        McqQuestionResponse response = new McqQuestionResponse(id, "Java", "Which is a keyword?", List.of("int", "for"), List.of("int"), false);
+        UUID bankId = UUID.randomUUID();
+        McqQuestionResponse response = new McqQuestionResponse(id, List.of(), "Which is a keyword?", List.of("int", "for"), List.of("int"), false);
         when(questionService.create(any())).thenReturn(response);
 
         Map<String, Object> body = Map.of(
                 "type", "MCQ",
-                "category", "Java",
+                "questionBankIds", List.of(bankId.toString()),
                 "question", "Which is a keyword?",
                 "options", List.of("int", "for"),
                 "correctAnswers", List.of("int")
@@ -104,24 +105,19 @@ class QuestionControllerTest {
     }
 
     @Test
-    void createDocQuestion_asMarker_returns201() throws Exception {
-        UUID id = UUID.randomUUID();
-        DocQuestionResponse response = new DocQuestionResponse(id, "Java", "Upload your design document");
-        when(questionService.create(any())).thenReturn(response);
-
+    void createDocQuestion_asMarker_returns410() throws Exception {
         Map<String, Object> body = Map.of(
                 "type", "DOC",
-                "category", "Java",
-                "question", "Upload your design document"
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
+                "question", "Upload your design document",
+                "marks", 5
         );
 
         mockMvc.perform(post("/api/questions")
                         .header("Authorization", "Bearer " + markerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(id.toString()))
-                .andExpect(jsonPath("$.type").value("DOC"));
+                .andExpect(status().isGone());
     }
 
     @Test
@@ -130,7 +126,7 @@ class QuestionControllerTest {
 
         Map<String, Object> body = Map.of(
                 "type", "MCQ",
-                "category", "Java",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
                 "question", "Which is a keyword?",
                 "options", List.of("int", "for"),
                 "correctAnswers", List.of()
@@ -147,7 +143,7 @@ class QuestionControllerTest {
     void createMcqQuestion_asCandidate_returns403() throws Exception {
         Map<String, Object> body = Map.of(
                 "type", "MCQ",
-                "category", "Java",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
                 "question", "Which is a keyword?",
                 "options", List.of("int", "for"),
                 "correctAnswers", List.of("int")
@@ -163,14 +159,15 @@ class QuestionControllerTest {
     @Test
     void createTextQuestion_asMarker_returns201() throws Exception {
         UUID id = UUID.randomUUID();
-        TextQuestionResponse response = new TextQuestionResponse(id, "Java", "Describe OOP", List.of("encapsulation"));
+        TextQuestionResponse response = new TextQuestionResponse(id, List.of(), "Describe OOP", List.of("encapsulation"), 5);
         when(questionService.create(any())).thenReturn(response);
 
         Map<String, Object> body = Map.of(
                 "type", "TEXT",
-                "category", "Java",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
                 "question", "Describe OOP",
-                "keywords", List.of("encapsulation")
+                "keywords", List.of("encapsulation"),
+                "marks", 5
         );
 
         mockMvc.perform(post("/api/questions")
@@ -180,23 +177,23 @@ class QuestionControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.type").value("TEXT"))
-                .andExpect(jsonPath("$.category").value("Java"));
+                .andExpect(jsonPath("$.marks").value(5));
     }
 
     @Test
-    void createGroupQuestion_withValidFollowUpIds_returns201() throws Exception {
+    void createGroupQuestion_withChildren_returns201() throws Exception {
         UUID groupId = UUID.randomUUID();
-        UUID followUpId = UUID.randomUUID();
-        TextQuestionResponse followUp = new TextQuestionResponse(followUpId, "Java", "What is encapsulation?", List.of());
-        GroupQuestionResponse response = new GroupQuestionResponse(groupId, "Java", "OOP concepts", true, List.of(followUp));
+        UUID childId = UUID.randomUUID();
+        GroupChildResponse child = new GroupChildResponse(childId, "What is encapsulation?", List.of(), 2);
+        GroupQuestionResponse response = new GroupQuestionResponse(groupId, List.of(), "OOP concepts", true, List.of(child), 2);
         when(questionService.create(any())).thenReturn(response);
 
         Map<String, Object> body = Map.of(
                 "type", "GROUP",
-                "category", "Java",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
                 "question", "OOP concepts",
                 "ordered", true,
-                "followUpQuestionIds", List.of(followUpId.toString())
+                "children", List.of(Map.of("questionText", "What is encapsulation?", "marks", 2))
         );
 
         mockMvc.perform(post("/api/questions")
@@ -205,19 +202,17 @@ class QuestionControllerTest {
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.type").value("GROUP"))
-                .andExpect(jsonPath("$.followUpQuestions[0].id").value(followUpId.toString()));
+                .andExpect(jsonPath("$.children[0].questionText").value("What is encapsulation?"));
     }
 
     @Test
-    void createGroupQuestion_withInvalidFollowUpId_returns400() throws Exception {
-        when(questionService.create(any())).thenThrow(new ValidationException("One or more follow-up question IDs are invalid or not text questions"));
-
+    void createGroupQuestion_withEmptyChildren_returns400() throws Exception {
         Map<String, Object> body = Map.of(
                 "type", "GROUP",
-                "category", "Java",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
                 "question", "OOP concepts",
                 "ordered", false,
-                "followUpQuestionIds", List.of(UUID.randomUUID().toString())
+                "children", List.of()
         );
 
         mockMvc.perform(post("/api/questions")
@@ -229,11 +224,12 @@ class QuestionControllerTest {
     }
 
     @Test
-    void createQuestion_missingCategory_returns400() throws Exception {
+    void createQuestion_missingQuestionBankIds_returns400() throws Exception {
         Map<String, Object> body = Map.of(
                 "type", "TEXT",
                 "question", "Describe OOP",
-                "keywords", List.of()
+                "keywords", List.of(),
+                "marks", 5
         );
 
         mockMvc.perform(post("/api/questions")
@@ -247,9 +243,10 @@ class QuestionControllerTest {
     void createQuestion_asCandidate_returns403() throws Exception {
         Map<String, Object> body = Map.of(
                 "type", "TEXT",
-                "category", "Java",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
                 "question", "Describe OOP",
-                "keywords", List.of()
+                "keywords", List.of(),
+                "marks", 5
         );
 
         mockMvc.perform(post("/api/questions")
@@ -263,9 +260,10 @@ class QuestionControllerTest {
     void createQuestion_withoutToken_returns401() throws Exception {
         Map<String, Object> body = Map.of(
                 "type", "TEXT",
-                "category", "Java",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
                 "question", "Describe OOP",
-                "keywords", List.of()
+                "keywords", List.of(),
+                "marks", 5
         );
 
         mockMvc.perform(post("/api/questions")
@@ -277,7 +275,7 @@ class QuestionControllerTest {
     @Test
     void getQuestion_asMarker_returns200() throws Exception {
         UUID id = UUID.randomUUID();
-        TextQuestionResponse response = new TextQuestionResponse(id, "Java", "Describe OOP", List.of());
+        TextQuestionResponse response = new TextQuestionResponse(id, List.of(), "Describe OOP", List.of(), 0);
         when(questionService.getById(id)).thenReturn(response);
 
         mockMvc.perform(get("/api/questions/{id}", id)
@@ -293,5 +291,172 @@ class QuestionControllerTest {
         mockMvc.perform(delete("/api/questions/{id}", id)
                         .header("Authorization", "Bearer " + markerToken))
                 .andExpect(status().isNoContent());
+    }
+
+    // --- Task 7.3: MCQ_PLUS stub → 201 ---
+
+    @Test
+    void createMcqPlusQuestion_asMarker_returns201() throws Exception {
+        UUID id = UUID.randomUUID();
+        McqPlusQuestionResponse response = new McqPlusQuestionResponse(
+                id, List.of(), "Which is a keyword?",
+                List.of("int", "for"), List.of("int"), false,
+                "Explain why.", List.of(), 2, 3
+        );
+        when(questionService.create(any())).thenReturn(response);
+
+        Map<String, Object> body = Map.of(
+                "type", "MCQ_PLUS",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
+                "question", "Which is a keyword?",
+                "options", List.of("int", "for"),
+                "correctAnswers", List.of("int"),
+                "followUpQuestion", "Explain why.",
+                "followUpMarks", 2
+        );
+
+        mockMvc.perform(post("/api/questions")
+                        .header("Authorization", "Bearer " + markerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.type").value("MCQ_PLUS"))
+                .andExpect(jsonPath("$.totalMarks").value(3));
+    }
+
+    // --- Task 7.4: TEXT without marks → 400 ---
+
+    @Test
+    void createTextQuestion_withoutMarks_returns400() throws Exception {
+        Map<String, Object> body = Map.of(
+                "type", "TEXT",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
+                "question", "Describe OOP",
+                "keywords", List.of()
+        );
+
+        mockMvc.perform(post("/api/questions")
+                        .header("Authorization", "Bearer " + markerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // --- Task 7.5: GROUP without children → 400 ---
+
+    @Test
+    void createGroupQuestion_withoutChildren_returns400() throws Exception {
+        Map<String, Object> body = Map.of(
+                "type", "GROUP",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
+                "question", "OOP concepts",
+                "ordered", true
+        );
+
+        mockMvc.perform(post("/api/questions")
+                        .header("Authorization", "Bearer " + markerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // --- Task 7.6: GET /api/questions/categories → 404 ---
+
+    @Test
+    void getCategories_returns404() throws Exception {
+        mockMvc.perform(get("/api/questions/categories")
+                        .header("Authorization", "Bearer " + markerToken))
+                .andExpect(status().isNotFound());
+    }
+
+    // --- Task 7.4: questionBankId filter ---
+
+    @Test
+    void listQuestions_withQuestionBankIdFilter_returns200() throws Exception {
+        UUID bankId = UUID.randomUUID();
+        UUID qId = UUID.randomUUID();
+        QuestionBankResponse bank = new QuestionBankResponse(bankId, "Java Core", 0L);
+        McqQuestionResponse q = new McqQuestionResponse(qId, List.of(bank), "What is Java?", List.of("A", "B"), List.of("A"), false);
+        PageResponse<QuestionResponse> page = new PageResponse<>(List.of(q), 1, 1, 20, 0);
+        when(questionService.list(0, 20, bankId)).thenReturn(page);
+
+        mockMvc.perform(get("/api/questions")
+                        .param("questionBankId", bankId.toString())
+                        .header("Authorization", "Bearer " + markerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].questionBanks[0].id").value(bankId.toString()));
+    }
+
+    // --- Task 7.5: MCQ_PLUS validation ---
+
+    @Test
+    void createMcqPlusQuestion_followUpMarksZero_returns400() throws Exception {
+        Map<String, Object> body = Map.of(
+                "type", "MCQ_PLUS",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
+                "question", "Which is a keyword?",
+                "options", List.of("int", "for"),
+                "correctAnswers", List.of("int"),
+                "followUpQuestion", "Explain why.",
+                "followUpMarks", 0
+        );
+
+        mockMvc.perform(post("/api/questions")
+                        .header("Authorization", "Bearer " + markerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createMcqPlusQuestion_missingFollowUpQuestion_returns400() throws Exception {
+        Map<String, Object> body = Map.of(
+                "type", "MCQ_PLUS",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
+                "question", "Which is a keyword?",
+                "options", List.of("int", "for"),
+                "correctAnswers", List.of("int"),
+                "followUpMarks", 2
+        );
+
+        mockMvc.perform(post("/api/questions")
+                        .header("Authorization", "Bearer " + markerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // --- Task 7.7: marks validation for TEXT and DOC ---
+
+    @Test
+    void createTextQuestion_marksLessThanOne_returns400() throws Exception {
+        Map<String, Object> body = Map.of(
+                "type", "TEXT",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
+                "question", "Describe OOP",
+                "marks", 0
+        );
+
+        mockMvc.perform(post("/api/questions")
+                        .header("Authorization", "Bearer " + markerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createDocQuestion_marksLessThanOne_returns400() throws Exception {
+        Map<String, Object> body = Map.of(
+                "type", "DOC",
+                "questionBankIds", List.of(UUID.randomUUID().toString()),
+                "question", "Upload your design",
+                "marks", 0
+        );
+
+        mockMvc.perform(post("/api/questions")
+                        .header("Authorization", "Bearer " + markerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
     }
 }

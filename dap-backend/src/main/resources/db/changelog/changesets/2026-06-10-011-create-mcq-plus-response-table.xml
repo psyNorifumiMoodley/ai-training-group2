@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Creates mcq_plus_response for the JOINED response hierarchy.
+        McqPlusResponse extends McqResponse — the id column FKs to mcq_response(id),
+        consistent with how all other JOINED response subtypes reference their direct parent.
+    -->
+    <changeSet id="2026-06-10-011-create-mcq-plus-response-table" author="norifumi.moodley">
+
+        <createTable tableName="mcq_plus_response">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"
+                             foreignKeyName="fk_mcq_plus_response_mcq_response"
+                             references="mcq_response(id)"/>
+            </column>
+            <column name="follow_up_answer" type="TEXT"/>
+            <column name="follow_up_score" type="INTEGER"/>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="mcq_plus_response"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>
