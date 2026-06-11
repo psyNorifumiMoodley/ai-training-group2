@@ -66,7 +66,7 @@ export class MarkingComponent implements OnInit {
 
   readonly markedCount = computed(() => {
     const map = this.feedbackMap();
-    return this.reviewItems().filter(i => (map[i.responseId] ?? '').trim().length > 0).length;
+    return this.reviewItems().filter(i => (map[i.questionId] ?? '').trim().length > 0).length;
   });
 
   readonly canFinalise = computed(() => {
@@ -74,8 +74,8 @@ export class MarkingComponent implements OnInit {
     if (!items.length) return false;
     const map = this.feedbackMap();
     return items
-      .filter(i => i.questionType === 'TEXT' || i.questionType === 'DOC')
-      .every(i => (map[i.responseId] ?? '').trim().length > 0);
+      .filter(i => (i.questionType === 'TEXT' || i.questionType === 'DOC') && i.responseId !== null)
+      .every(i => (map[i.questionId] ?? '').trim().length > 0);
   });
 
   readonly mcqScore = computed(() =>
@@ -125,11 +125,13 @@ export class MarkingComponent implements OnInit {
           this.reviewItems.set(items);
           const map: Record<string, string> = {};
           for (const item of items) {
-            map[item.responseId] = item.feedbackDraft?.trim()
-              ? item.feedbackDraft
-              : item.questionType === 'MCQ'
-                ? (item.correct === true ? 'Correct.' : 'Incorrect.')
-                : '';
+            if (item.responseId !== null) {
+              map[item.questionId] = item.feedbackDraft?.trim()
+                ? item.feedbackDraft
+                : item.questionType === 'MCQ'
+                  ? (item.correct === true ? 'Correct.' : 'Incorrect.')
+                  : '';
+            }
           }
           this.feedbackMap.set(map);
           this.loading.set(false);
@@ -138,22 +140,26 @@ export class MarkingComponent implements OnInit {
       });
   }
 
-  onFeedbackChanged(event: { responseId: string; feedbackText: string }): void {
-    this.feedbackMap.update(m => ({ ...m, [event.responseId]: event.feedbackText }));
-    this.markingService
-      .updateResponseFeedback(this.assessmentId(), event.responseId, { feedbackText: event.feedbackText })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe();
+  onFeedbackChanged(event: { questionId: string; responseId: string | null; feedbackText: string }): void {
+    this.feedbackMap.update(m => ({ ...m, [event.questionId]: event.feedbackText }));
+    if (event.responseId) {
+      this.markingService
+        .updateResponseFeedback(this.assessmentId(), event.responseId, { feedbackText: event.feedbackText })
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe();
+    }
   }
 
-  onScoreChanged(event: { responseId: string; score: number }): void {
+  onScoreChanged(event: { questionId: string; responseId: string | null; score: number }): void {
     this.reviewItems.update(items =>
-      items.map(i => i.responseId === event.responseId ? { ...i, score: event.score } : i)
+      items.map(i => i.questionId === event.questionId ? { ...i, score: event.score } : i)
     );
-    this.markingService
-      .updateResponseScore(this.assessmentId(), event.responseId, event.score)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe();
+    if (event.responseId) {
+      this.markingService
+        .updateResponseScore(this.assessmentId(), event.responseId, event.score)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe();
+    }
   }
 
   setFeedbackTemplate(key: keyof typeof FEEDBACK_TEMPLATES): void {

@@ -24,7 +24,7 @@ export interface AssessmentSummaryResponse {
 }
 
 export interface ResponseReviewItem {
-  responseId: string;
+  responseId: string | null;
   questionId: string;
   questionBody: string;
   questionType: 'MCQ' | 'TEXT' | 'DOC' | 'GROUP';

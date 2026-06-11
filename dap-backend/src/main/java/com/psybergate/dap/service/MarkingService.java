@@ -35,8 +35,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class MarkingService {
@@ -91,9 +93,21 @@ public class MarkingService {
 
     @Transactional
     public List<ResponseReviewItem> getResponsesForReview(UUID assessmentId) {
+        Assessment assessment = assessmentRepository.findById(assessmentId)
+                .orElseThrow(() -> new NoSuchElementException("Assessment not found: " + assessmentId));
+
         List<Response> responses = responseRepository.findTopLevelByAssessmentId(assessmentId);
-        return responses.stream()
-                .map(response -> mapToReviewItem(assessmentId, response))
+        Map<UUID, Response> responseByQuestionId = responses.stream()
+                .collect(Collectors.toMap(r -> r.getQuestion().getId(), r -> r));
+
+        return assessment.getQuestions().stream()
+                .map(question -> {
+                    AssessmentQuestion q = (AssessmentQuestion) Hibernate.unproxy(question);
+                    Response response = responseByQuestionId.get(q.getId());
+                    return response != null
+                            ? mapToReviewItem(assessmentId, response)
+                            : mapUnansweredQuestion(assessmentId, q);
+                })
                 .toList();
     }
 
@@ -211,6 +225,38 @@ public class MarkingService {
                     childItems
             );
         }
+    }
+
+    private ResponseReviewItem mapUnansweredQuestion(UUID assessmentId, AssessmentQuestion question) {
+        var feedback = feedbackService.getOrCreateDraft(assessmentId, question.getId());
+        String feedbackDraft = feedback.getDraft();
+
+        if (question instanceof McqPlusQuestion mq) {
+            int marks = 1 + mq.getFollowUpMarks();
+            return new ResponseReviewItem(null, question.getId(), question.getQuestion(),
+                    "MCQ", new McqAnswerPayload(List.of(), mq.getOptions(), mq.getCorrectAnswers()),
+                    null, feedbackDraft, marks, null, null);
+        } else if (question instanceof McqQuestion mq) {
+            return new ResponseReviewItem(null, question.getId(), question.getQuestion(),
+                    "MCQ", new McqAnswerPayload(List.of(), mq.getOptions(), mq.getCorrectAnswers()),
+                    null, feedbackDraft, 1, null, null);
+        } else if (question instanceof TextQuestion tq) {
+            return new ResponseReviewItem(null, question.getId(), question.getQuestion(),
+                    "TEXT", new TextAnswerPayload(null), null, feedbackDraft, tq.getMarks(), null, null);
+        } else if (question instanceof DocQuestion dq) {
+            return new ResponseReviewItem(null, question.getId(), question.getQuestion(),
+                    "DOC", new DocAnswerPayload(null), null, feedbackDraft, dq.getMarks(), null, null);
+        } else if (question instanceof GroupQuestion gq) {
+            List<GroupQuestionChild> childDefs = gq.getChildren();
+            int totalMarks = childDefs.stream().mapToInt(GroupQuestionChild::getMarks).sum();
+            List<ResponseReviewItem> childItems = childDefs.stream()
+                    .map(child -> new ResponseReviewItem(null, null, child.getQuestionText(),
+                            "TEXT", new TextAnswerPayload(null), null, null, child.getMarks(), null, null))
+                    .toList();
+            return new ResponseReviewItem(null, question.getId(), question.getQuestion(),
+                    "GROUP", null, null, feedbackDraft, totalMarks, null, childItems);
+        }
+        throw new UnsupportedOperationException("Unmapped question type: " + question.getClass());
     }
 
     @Transactional

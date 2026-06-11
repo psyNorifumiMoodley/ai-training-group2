@@ -10,6 +10,13 @@
   <!-- Question stem -->
   <p class="text-caption font-medium text-gray-800 mb-4">{{ item().questionBody }}</p>
 
+  @if (isUnanswered()) {
+    <div class="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-input px-3 py-2 mb-3 text-caption text-amber-700">
+      <i class="pi pi-exclamation-triangle text-amber-500 text-[0.875rem]"></i>
+      <span>Candidate did not answer this question</span>
+    </div>
+  }
+
   <!-- MCQ response -->
   @if (item().questionType === 'MCQ') {
     <div class="space-y-1.5 mb-3">
@@ -44,7 +51,7 @@
       <p class="text-caption text-gray-700 whitespace-pre-wrap">{{ textAnswerText() || 'No answer provided.' }}</p>
     </div>
     <div class="mb-4">
-      <dap-score-input [max]="item().marks" [value]="item().score ?? 0" (scoreChanged)="onScoreChanged($event)" />
+      <dap-score-input [max]="item().marks" [value]="item().score ?? 0" [readonly]="isUnanswered()" (scoreChanged)="onScoreChanged($event)" />
     </div>
   }
 
@@ -55,7 +62,7 @@
       <span>{{ docFileName() || 'No file submitted.' }}</span>
     </div>
     <div class="mb-4">
-      <dap-score-input [max]="item().marks" [value]="item().score ?? 0" (scoreChanged)="onScoreChanged($event)" />
+      <dap-score-input [max]="item().marks" [value]="item().score ?? 0" [readonly]="isUnanswered()" (scoreChanged)="onScoreChanged($event)" />
     </div>
   }
 
@@ -73,7 +80,7 @@
       }
     </div>
     <div class="mb-4">
-      <dap-score-input [max]="item().marks" [value]="item().score ?? 0" (scoreChanged)="onScoreChanged($event)" />
+      <dap-score-input [max]="item().marks" [value]="item().score ?? 0" [readonly]="isUnanswered()" (scoreChanged)="onScoreChanged($event)" />
     </div>
   }
 
@@ -88,8 +95,9 @@
       [value]="feedbackText()"
       (input)="onFeedbackInput($event)"
       (blur)="onFeedbackBlur()"
+      [attr.disabled]="isUnanswered() ? '' : null"
       [placeholder]="item().questionType === 'MCQ' ? 'Pre-filled — edit if needed…' : 'Add feedback for this question…'"
-      class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-gray-400">
+      [class]="'w-full border rounded-input px-3 py-2 text-caption resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-gray-400 ' + (isUnanswered() ? 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed' : 'border-gray-200')">
     </textarea>
   </div>
 </div>
