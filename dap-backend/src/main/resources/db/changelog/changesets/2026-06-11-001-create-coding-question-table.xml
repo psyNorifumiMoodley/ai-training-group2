@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Creates the coding_question table for TABLE_PER_CLASS inheritance.
+        CodingQuestion extends AssessmentQuestion — this table owns ALL inherited columns
+        (id, question, created_at, updated_at) plus its own language field.
+        No FK to assessment_question (TABLE_PER_CLASS pattern).
+        QB associations use the question_question_bank join table (no FK on question_id).
+    -->
+    <changeSet id="2026-06-11-001-create-coding-question-table" author="gregory.robson">
+
+        <createTable tableName="coding_question">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="question" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="language" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ"/>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="coding_question"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

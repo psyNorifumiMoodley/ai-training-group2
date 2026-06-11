@@ -98,10 +98,11 @@ public class AssessmentService {
             questions = selectMarkerPickedQuestions(request.questionIds(), seenIds);
         }
 
-        long docCount = questions.stream().filter(q -> q instanceof DocQuestion).count();
+        // Count both DocQuestion (legacy) and CodingQuestion against the doc/coding limit
+        long docCount = questions.stream().filter(q -> q instanceof DocQuestion || q instanceof CodingQuestion).count();
         if (docCount > docQuestionLimit) {
             throw new ValidationException(
-                    "Assessment contains " + docCount + " document questions but limit is " + docQuestionLimit);
+                    "Assessment contains " + docCount + " doc/coding questions but limit is " + docQuestionLimit);
         }
 
         Assessment assessment = Assessment.builder()
