@@ -196,7 +196,7 @@ public class MarkingService {
             List<ResponseReviewItem> childItems = new ArrayList<>();
             for (int i = 0; i < childResponseList.size(); i++) {
                 Response child = childResponseList.get(i);
-                String childBody = child.getQuestion() != null ? child.getQuestion().getQuestion() : "";
+                String childBody = (i < childDefs.size()) ? childDefs.get(i).getQuestionText() : "";
                 String childAnswer = child instanceof TextResponse textChild ? textChild.getAnswer() : null;
                 int childMarks = (i < childDefs.size()) ? childDefs.get(i).getMarks() : 1;
                 childItems.add(new ResponseReviewItem(

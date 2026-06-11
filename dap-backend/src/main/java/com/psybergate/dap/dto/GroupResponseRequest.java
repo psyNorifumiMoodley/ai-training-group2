@@ -1,7 +1,6 @@
 package com.psybergate.dap.dto;
 
-import java.util.Map;
-import java.util.UUID;
+import java.util.List;
 
-public record GroupResponseRequest(Map<UUID, ResponseRequest> childResponses) implements ResponseRequest {
+public record GroupResponseRequest(List<String> childAnswers) implements ResponseRequest {
 }
