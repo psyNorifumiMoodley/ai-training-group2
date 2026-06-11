@@ -1,0 +1,80 @@
+<div class="space-y-3">
+  @for (row of rows(); track $index; let i = $index) {
+    <div class="border border-gray-200 rounded-card p-3 space-y-2 bg-gray-50">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500">Test case {{ i + 1 }}</span>
+        <button
+          type="button"
+          (click)="removeRow(i)"
+          class="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+          <i class="pi pi-trash text-[0.6875rem]"></i>
+        </button>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Input
+          <span class="text-gray-400 font-normal">(optional)</span>
+        </label>
+        <textarea
+          rows="2"
+          [value]="row.input"
+          (input)="updateRow(i, { input: $any($event.target).value })"
+          placeholder="Enter test case input..."
+          class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+        ></textarea>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Expected output
+          <span class="text-red-400">*</span>
+        </label>
+        <textarea
+          rows="2"
+          [value]="row.expectedOutput"
+          (input)="updateRow(i, { expectedOutput: $any($event.target).value })"
+          placeholder="Enter expected output..."
+          class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+        ></textarea>
+        @if (touched() && !row.expectedOutput.trim()) {
+          <p class="text-[0.6875rem] text-red-500 mt-1">Expected output is required.</p>
+        }
+      </div>
+
+      <div class="flex gap-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Timeout (seconds)</label>
+          <input
+            type="number"
+            min="1"
+            max="60"
+            [value]="row.timeoutSeconds"
+            (change)="updateRow(i, { timeoutSeconds: +$any($event.target).value })"
+            class="w-24 border border-gray-200 rounded-input px-3 py-[0.4375rem] text-caption focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+          />
+          @if (touched() && (row.timeoutSeconds < 1 || row.timeoutSeconds > 60)) {
+            <p class="text-[0.6875rem] text-red-500 mt-1">Must be between 1 and 60.</p>
+          }
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Memory (MB)</label>
+          <input
+            type="number"
+            min="64"
+            max="1024"
+            [value]="row.memoryMb"
+            (change)="updateRow(i, { memoryMb: +$any($event.target).value })"
+            class="w-24 border border-gray-200 rounded-input px-3 py-[0.4375rem] text-caption focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+          />
+          @if (touched() && (row.memoryMb < 64 || row.memoryMb > 1024)) {
+            <p class="text-[0.6875rem] text-red-500 mt-1">Must be between 64 and 1024.</p>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <dap-button type="button" variant="ghost" iconLeft="pi-plus" (clicked)="addRow()">
+    Add row
+  </dap-button>
+</div>
