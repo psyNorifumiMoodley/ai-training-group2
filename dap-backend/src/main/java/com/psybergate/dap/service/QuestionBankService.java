@@ -9,6 +9,7 @@ import com.psybergate.dap.dto.QuestionBankResponse;
 import com.psybergate.dap.repository.QuestionBankRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +36,7 @@ public class QuestionBankService {
 
     @Transactional(readOnly = true)
     public PageResponse<QuestionBankResponse> list(int page, int size) {
-        Page<QuestionBank> result = questionBankRepository.findAll(PageRequest.of(page, size));
+        Page<QuestionBank> result = questionBankRepository.findAll(PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name")));
         return new PageResponse<>(
                 result.getContent().stream().map(this::toResponse).toList(),
                 result.getTotalElements(),

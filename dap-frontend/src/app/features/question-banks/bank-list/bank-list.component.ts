@@ -270,6 +270,7 @@ export class BankListComponent {
 
   resolveType(q: QuestionResponse): QuestionType {
     if (q.type) return q.type;
+    if ('followUpQuestion' in q) return 'MCQ_PLUS';
     if ('correctAnswers' in q) return 'MCQ';
     if ('children' in q) return 'GROUP';
     if ('keywords' in q) return 'TEXT';
