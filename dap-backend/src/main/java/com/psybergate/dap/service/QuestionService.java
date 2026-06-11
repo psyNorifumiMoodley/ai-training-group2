@@ -252,7 +252,7 @@ public class QuestionService {
 
     private McqQuestionResponse toMcqResponse(McqQuestion q) {
         List<QuestionBankResponse> banks = q.getQuestionBanks().stream()
-                .map(b -> new QuestionBankResponse(b.getId(), b.getName()))
+                .map(b -> new QuestionBankResponse(b.getId(), b.getName(), 0L))
                 .toList();
         return new McqQuestionResponse(q.getId(), banks, q.getQuestion(), q.getOptions(),
                 q.getCorrectAnswers(), q.getCorrectAnswers().size() > 1);
@@ -260,7 +260,7 @@ public class QuestionService {
 
     private McqPlusQuestionResponse toMcqPlusResponse(McqPlusQuestion q) {
         List<QuestionBankResponse> banks = q.getQuestionBanks().stream()
-                .map(b -> new QuestionBankResponse(b.getId(), b.getName()))
+                .map(b -> new QuestionBankResponse(b.getId(), b.getName(), 0L))
                 .toList();
         return new McqPlusQuestionResponse(
                 q.getId(),
@@ -278,14 +278,14 @@ public class QuestionService {
 
     private DocQuestionResponse toDocResponse(DocQuestion q) {
         List<QuestionBankResponse> banks = q.getQuestionBanks().stream()
-                .map(b -> new QuestionBankResponse(b.getId(), b.getName()))
+                .map(b -> new QuestionBankResponse(b.getId(), b.getName(), 0L))
                 .toList();
         return new DocQuestionResponse(q.getId(), banks, q.getQuestion(), q.getMarks());
     }
 
     private TextQuestionResponse toTextResponse(TextQuestion q) {
         List<QuestionBankResponse> banks = q.getQuestionBanks().stream()
-                .map(b -> new QuestionBankResponse(b.getId(), b.getName()))
+                .map(b -> new QuestionBankResponse(b.getId(), b.getName(), 0L))
                 .toList();
         return new TextQuestionResponse(q.getId(), banks, q.getQuestion(),
                 q.getKeywords() != null ? q.getKeywords() : List.of(), q.getMarks());
@@ -293,9 +293,10 @@ public class QuestionService {
 
     private GroupQuestionResponse toGroupResponse(GroupQuestion q) {
         List<QuestionBankResponse> banks = q.getQuestionBanks().stream()
-                .map(b -> new QuestionBankResponse(b.getId(), b.getName()))
+                .map(b -> new QuestionBankResponse(b.getId(), b.getName(), 0L))
                 .toList();
         List<GroupChildResponse> children = q.getChildren().stream()
+                .filter(c -> c != null)
                 .map(c -> new GroupChildResponse(c.getId(), c.getQuestionText(),
                         c.getKeywords() != null ? c.getKeywords() : List.of(), c.getMarks()))
                 .toList();

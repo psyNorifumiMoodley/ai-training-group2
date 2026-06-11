@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record QuestionBankResponse(
         UUID id,
-        String name
+        String name,
+        long questionCount
 ) {
 }

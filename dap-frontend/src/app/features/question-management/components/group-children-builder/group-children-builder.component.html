@@ -1,0 +1,50 @@
+<div class="space-y-3">
+  @for (child of children(); track $index) {
+    <div class="border border-gray-200 rounded-card p-3 space-y-2 bg-gray-50">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500">Child {{ $index + 1 }}</span>
+        <button
+          type="button"
+          (click)="removeChild($index)"
+          class="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+          <i class="pi pi-trash text-[0.6875rem]"></i>
+        </button>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Question text</label>
+        <textarea
+          rows="2"
+          [value]="child.questionText"
+          (input)="updateChildText($index, $any($event.target).value)"
+          placeholder="Enter child question text..."
+          class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+        ></textarea>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Keywords
+          <span class="text-gray-400 font-normal">(optional)</span>
+        </label>
+        <dap-keyword-list
+          [initialKeywords]="child.keywords"
+          (keywordsChange)="updateChildKeywords($index, $event)" />
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Marks</label>
+        <input
+          type="number"
+          min="1"
+          [value]="child.marks"
+          (change)="updateChildMarks($index, +$any($event.target).value)"
+          class="w-24 border border-gray-200 rounded-input px-3 py-[0.4375rem] text-caption focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white"
+        />
+      </div>
+    </div>
+  }
+
+  <dap-button type="button" variant="ghost" iconLeft="pi-plus" (clicked)="addChild()">
+    Add child
+  </dap-button>
+</div>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Seed data inserted display_order starting at 1; Hibernate @OrderColumn expects 0-based
+        indices. A 1-based list causes Hibernate to create a null entry at position 0, which
+        triggers a NullPointerException when mapping GroupQuestion children to DTOs.
+    -->
+    <changeSet id="2026-06-10-012-fix-group-question-child-display-order" author="kwabena.awuah">
+
+        <update tableName="group_question_child">
+            <column name="display_order" valueComputed="display_order - 1"/>
+        </update>
+
+        <rollback>
+            <update tableName="group_question_child">
+                <column name="display_order" valueComputed="display_order + 1"/>
+            </update>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

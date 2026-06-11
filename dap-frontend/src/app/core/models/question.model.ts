@@ -5,6 +5,7 @@ export type CodingQuestionLanguage = 'JAVA' | 'PYTHON' | 'CSHARP';
 export interface QuestionBankResponse {
   id: string;
   name: string;
+  questionCount: number;
 }
 
 export interface TestCaseRequest {

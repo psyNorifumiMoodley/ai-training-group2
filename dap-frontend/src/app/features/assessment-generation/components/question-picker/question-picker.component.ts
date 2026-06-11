@@ -10,11 +10,10 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuestionService } from '../../../../core/services/question.service';
-import { QuestionResponse, QuestionType } from '../../../../core/models/question.model';
+import { QuestionBankService } from '../../../../core/services/question-bank.service';
+import { QuestionBankResponse, QuestionResponse, QuestionType } from '../../../../core/models/question.model';
 import { TagComponent } from '../../../../shared/components/tag/tag.component';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
-
-interface Bank { name: string; questionCount: number; }
 
 @Component({
   selector: 'dap-question-picker',
@@ -25,54 +24,46 @@ interface Bank { name: string; questionCount: number; }
 })
 export class QuestionPickerComponent {
   private readonly questionService = inject(QuestionService);
-  private readonly destroyRef      = inject(DestroyRef);
+  private readonly questionBankService = inject(QuestionBankService);
+  private readonly destroyRef = inject(DestroyRef);
 
-  readonly seenQuestionIds  = input.required<string[]>();
+  readonly seenQuestionIds   = input.required<string[]>();
   readonly questionsSelected = output<string[]>();
 
+  readonly banks           = signal<QuestionBankResponse[]>([]);
   readonly allQuestions    = signal<QuestionResponse[]>([]);
-  readonly selectedCategory = signal('');
-  readonly checkedIds       = signal<Set<string>>(new Set());
-  readonly loading          = signal(false);
+  readonly selectedBankId  = signal('');
+  readonly checkedIds      = signal<Set<string>>(new Set());
+  readonly loading         = signal(false);
+  readonly banksLoading    = signal(false);
 
   readonly seenSet = computed(() => new Set(this.seenQuestionIds()));
-
-  readonly banks = computed<Bank[]>(() => {
-    const counts = new Map<string, number>();
-    for (const q of this.allQuestions()) {
-      const bankName = q.questionBanks?.[0]?.name ?? '';
-      counts.set(bankName, (counts.get(bankName) ?? 0) + 1);
-    }
-    return Array.from(counts.entries()).map(([name, questionCount]) => ({ name, questionCount }));
-  });
-
-  readonly filteredQuestions = computed(() => {
-    const cat = this.selectedCategory();
-    return cat
-      ? this.allQuestions().filter(q => (q.questionBanks?.[0]?.name ?? '') === cat)
-      : this.allQuestions();
-  });
-
+  readonly filteredQuestions = computed(() => this.allQuestions());
   readonly checkedCount = computed(() => this.checkedIds().size);
+  readonly selectedBankName = computed(() =>
+    this.banks().find(b => b.id === this.selectedBankId())?.name ?? 'Questions'
+  );
 
   constructor() {
-    this.loading.set(true);
-    this.questionService.getQuestions(0, 1000)
+    this.banksLoading.set(true);
+    this.questionBankService.getQuestionBanks()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: page => {
-          this.allQuestions.set(page.content);
-          if (!this.selectedCategory() && page.content.length > 0) {
-            this.selectedCategory.set(page.content[0].questionBanks?.[0]?.name ?? '');
+        next: banks => {
+          this.banks.set(banks);
+          this.banksLoading.set(false);
+          if (banks.length > 0) {
+            this.loadQuestionsForBank(banks[0].id);
+            this.selectedBankId.set(banks[0].id);
           }
-          this.loading.set(false);
         },
-        error: () => this.loading.set(false),
+        error: () => this.banksLoading.set(false),
       });
   }
 
-  selectBank(name: string): void {
-    this.selectedCategory.set(name);
+  selectBank(id: string): void {
+    this.selectedBankId.set(id);
+    this.loadQuestionsForBank(id);
   }
 
   toggle(id: string): void {
@@ -93,5 +84,18 @@ export class QuestionPickerComponent {
 
   confirm(): void {
     this.questionsSelected.emit(Array.from(this.checkedIds()));
+  }
+
+  private loadQuestionsForBank(bankId: string): void {
+    this.loading.set(true);
+    this.questionService.getQuestions(0, 100, bankId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: page => {
+          this.allQuestions.set(page.content);
+          this.loading.set(false);
+        },
+        error: () => this.loading.set(false),
+      });
   }
 }
