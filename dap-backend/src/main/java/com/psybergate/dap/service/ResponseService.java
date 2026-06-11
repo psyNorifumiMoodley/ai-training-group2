@@ -5,6 +5,7 @@ import com.psybergate.dap.domain.AssessmentQuestion;
 import com.psybergate.dap.domain.AssessmentStatus;
 import com.psybergate.dap.domain.ConflictException;
 import com.psybergate.dap.domain.DocResponse;
+import com.psybergate.dap.domain.McqPlusResponse;
 import com.psybergate.dap.domain.McqQuestion;
 import com.psybergate.dap.domain.McqResponse;
 import com.psybergate.dap.domain.QuestionGroupResponse;
@@ -12,6 +13,7 @@ import com.psybergate.dap.domain.Response;
 import com.psybergate.dap.domain.TextResponse;
 import com.psybergate.dap.dto.DocResponseRequest;
 import com.psybergate.dap.dto.GroupResponseRequest;
+import com.psybergate.dap.dto.McqPlusResponseRequest;
 import com.psybergate.dap.dto.McqResponseRequest;
 import com.psybergate.dap.dto.ResponseRequest;
 import com.psybergate.dap.dto.TextResponseRequest;
@@ -66,6 +68,15 @@ public class ResponseService {
 
     private Response upsertResponse(Response existing, Assessment assessment,
                                     AssessmentQuestion question, ResponseRequest request) {
+        if (request instanceof McqPlusResponseRequest mcqPlusReq) {
+            McqPlusResponse mcqPlusResponse = existing instanceof McqPlusResponse m ? m : new McqPlusResponse();
+            mcqPlusResponse.setAssessment(assessment);
+            mcqPlusResponse.setQuestion(question);
+            mcqPlusResponse.setSelectedAnswers(mcqPlusReq.selectedAnswers());
+            mcqPlusResponse.setCorrect(null);
+            mcqPlusResponse.setFollowUpAnswer(mcqPlusReq.followUpAnswer());
+            return mcqPlusResponse;
+        }
         if (request instanceof McqResponseRequest mcqReq) {
             McqResponse mcqResponse = existing instanceof McqResponse m ? m : new McqResponse();
             mcqResponse.setAssessment(assessment);
