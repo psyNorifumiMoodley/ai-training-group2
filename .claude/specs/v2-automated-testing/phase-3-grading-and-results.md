@@ -1,8 +1,8 @@
-# Phase 8 — Grading & Results
+# Phase 3 — Grading & Results
 
-> **Epic:** Phase 8 — Grading & Results
+> **Epic:** Phase 3 — Grading & Results
 > **Delivery:** Slice 0 merges first; Slices A–D run in parallel (one dev each).
-> **Dependency:** Phase 6 (`CodingQuestion`, `TestCase`) and Phase 7 (`ExecutionEngine`, `ExecutionResultEntity`) fully merged.
+> **Dependency:** Phase 1 (`CodingQuestion`, `TestCase`) and Phase 2 (`ExecutionEngine`, `ExecutionResultEntity`) fully merged.
 > **Jira Epic:** ATG-55
 
 ### Key Design Decisions
