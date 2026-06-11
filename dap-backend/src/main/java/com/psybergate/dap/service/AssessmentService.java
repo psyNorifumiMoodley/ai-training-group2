@@ -29,6 +29,9 @@ public class AssessmentService {
     @Value("${assessment.required-mcq}")
     private int requiredMcq;
 
+    @Value("${assessment.required-mcq-plus}")
+    private int requiredMcqPlus;
+
     @Value("${assessment.required-text}")
     private int requiredText;
 
@@ -48,6 +51,7 @@ public class AssessmentService {
     private final AssessmentRepository assessmentRepository;
     private final AssessmentQuestionRepository assessmentQuestionRepository;
     private final McqQuestionRepository mcqQuestionRepository;
+    private final McqPlusQuestionRepository mcqPlusQuestionRepository;
     private final TextQuestionRepository textQuestionRepository;
     private final DocQuestionRepository docQuestionRepository;
     private final GroupQuestionRepository groupQuestionRepository;
@@ -62,6 +66,7 @@ public class AssessmentService {
                              AssessmentRepository assessmentRepository,
                              AssessmentQuestionRepository assessmentQuestionRepository,
                              McqQuestionRepository mcqQuestionRepository,
+                             McqPlusQuestionRepository mcqPlusQuestionRepository,
                              TextQuestionRepository textQuestionRepository,
                              DocQuestionRepository docQuestionRepository,
                              GroupQuestionRepository groupQuestionRepository,
@@ -74,6 +79,7 @@ public class AssessmentService {
         this.assessmentRepository = assessmentRepository;
         this.assessmentQuestionRepository = assessmentQuestionRepository;
         this.mcqQuestionRepository = mcqQuestionRepository;
+        this.mcqPlusQuestionRepository = mcqPlusQuestionRepository;
         this.textQuestionRepository = textQuestionRepository;
         this.docQuestionRepository = docQuestionRepository;
         this.groupQuestionRepository = groupQuestionRepository;
@@ -196,6 +202,11 @@ public class AssessmentService {
     }
 
     private QuestionResponse toQuestionResponse(AssessmentQuestion q) {
+        if (q instanceof McqPlusQuestion mq) {
+            return new McqPlusQuestionResponse(mq.getId(), List.of(), mq.getQuestion(),
+                    mq.getOptions(), mq.getCorrectAnswers(), mq.getCorrectAnswers().size() > 1,
+                    mq.getFollowUpQuestion(), mq.getFollowUpKeywords(), mq.getFollowUpMarks(), 0);
+        }
         if (q instanceof McqQuestion mq) {
             return new McqQuestionResponse(mq.getId(), List.of(), mq.getQuestion(),
                     mq.getOptions(), mq.getCorrectAnswers(), mq.getCorrectAnswers().size() > 1);
@@ -223,6 +234,7 @@ public class AssessmentService {
     private List<AssessmentQuestion> selectRandomQuestions(Set<UUID> seenIds) {
         List<AssessmentQuestion> selected = new ArrayList<>();
         selected.addAll(pickRandom(availableMcq(seenIds), requiredMcq, "MCQ"));
+        selected.addAll(pickRandom(availableMcqPlus(seenIds), requiredMcqPlus, "MCQ+"));
         selected.addAll(pickRandom(availablePureText(seenIds), requiredText, "Text"));
         selected.addAll(pickRandom(availableDoc(seenIds), requiredDoc, "Document"));
         selected.addAll(pickRandom(availableGroup(seenIds), requiredGroup, "Group"));
@@ -241,12 +253,13 @@ public class AssessmentService {
                 .filter(q -> !seenIds.contains(q.getId()))
                 .collect(Collectors.toList());
 
-        List<McqQuestion>   pickedMcq   = picked.stream().filter(McqQuestion.class::isInstance).map(McqQuestion.class::cast).collect(Collectors.toList());
-        List<TextQuestion>  pickedText  = picked.stream().filter(q -> q.getClass() == TextQuestion.class).map(TextQuestion.class::cast).collect(Collectors.toList());
-        List<DocQuestion>   pickedDoc   = picked.stream().filter(DocQuestion.class::isInstance).map(DocQuestion.class::cast).collect(Collectors.toList());
-        List<GroupQuestion> pickedGroup = picked.stream().filter(GroupQuestion.class::isInstance).map(GroupQuestion.class::cast).collect(Collectors.toList());
+        List<McqQuestion>     pickedMcq     = picked.stream().filter(q -> q.getClass() == McqQuestion.class).map(McqQuestion.class::cast).collect(Collectors.toList());
+        List<McqPlusQuestion> pickedMcqPlus = picked.stream().filter(McqPlusQuestion.class::isInstance).map(McqPlusQuestion.class::cast).collect(Collectors.toList());
+        List<TextQuestion>    pickedText    = picked.stream().filter(q -> q.getClass() == TextQuestion.class).map(TextQuestion.class::cast).collect(Collectors.toList());
+        List<DocQuestion>     pickedDoc     = picked.stream().filter(DocQuestion.class::isInstance).map(DocQuestion.class::cast).collect(Collectors.toList());
+        List<GroupQuestion>   pickedGroup   = picked.stream().filter(GroupQuestion.class::isInstance).map(GroupQuestion.class::cast).collect(Collectors.toList());
 
-        validateNoTypeExceedsLimit(pickedMcq.size(), pickedText.size(), pickedDoc.size(), pickedGroup.size());
+        validateNoTypeExceedsLimit(pickedMcq.size(), pickedMcqPlus.size(), pickedText.size(), pickedDoc.size(), pickedGroup.size());
 
         Set<UUID> pickedIds = picked.stream().map(AssessmentQuestion::getId).collect(Collectors.toSet());
         List<AssessmentQuestion> result = new ArrayList<>(picked);
@@ -254,6 +267,10 @@ public class AssessmentService {
         if (pickedMcq.size() < requiredMcq) {
             List<McqQuestion> available = availableMcq(seenIds).stream().filter(q -> !pickedIds.contains(q.getId())).collect(Collectors.toList());
             result.addAll(pickRandom(available, requiredMcq - pickedMcq.size(), "MCQ"));
+        }
+        if (pickedMcqPlus.size() < requiredMcqPlus) {
+            List<McqPlusQuestion> available = availableMcqPlus(seenIds).stream().filter(q -> !pickedIds.contains(q.getId())).collect(Collectors.toList());
+            result.addAll(pickRandom(available, requiredMcqPlus - pickedMcqPlus.size(), "MCQ+"));
         }
         if (pickedText.size() < requiredText) {
             List<TextQuestion> available = availablePureText(seenIds).stream().filter(q -> !pickedIds.contains(q.getId())).collect(Collectors.toList());
@@ -271,12 +288,13 @@ public class AssessmentService {
         return result;
     }
 
-    private void validateNoTypeExceedsLimit(int mcq, int text, int doc, int group) {
+    private void validateNoTypeExceedsLimit(int mcq, int mcqPlus, int text, int doc, int group) {
         List<String> violations = new ArrayList<>();
-        if (mcq   > requiredMcq)   violations.add(String.format("MCQ: max %d, selected %d",      requiredMcq,   mcq));
-        if (text  > requiredText)  violations.add(String.format("Text: max %d, selected %d",     requiredText,  text));
-        if (doc   > requiredDoc)   violations.add(String.format("Document: max %d, selected %d", requiredDoc,   doc));
-        if (group > requiredGroup) violations.add(String.format("Group: max %d, selected %d",    requiredGroup, group));
+        if (mcq     > requiredMcq)     violations.add(String.format("MCQ: max %d, selected %d",      requiredMcq,     mcq));
+        if (mcqPlus > requiredMcqPlus) violations.add(String.format("MCQ+: max %d, selected %d",     requiredMcqPlus, mcqPlus));
+        if (text    > requiredText)    violations.add(String.format("Text: max %d, selected %d",     requiredText,    text));
+        if (doc     > requiredDoc)     violations.add(String.format("Document: max %d, selected %d", requiredDoc,     doc));
+        if (group   > requiredGroup)   violations.add(String.format("Group: max %d, selected %d",    requiredGroup,   group));
         if (!violations.isEmpty()) {
             throw new ValidationException("Too many questions selected — " + String.join(", ", violations));
         }
@@ -284,6 +302,13 @@ public class AssessmentService {
 
     private List<McqQuestion> availableMcq(Set<UUID> seenIds) {
         return mcqQuestionRepository.findAll().stream()
+                .filter(q -> q.getClass() == McqQuestion.class)
+                .filter(q -> !seenIds.contains(q.getId()))
+                .collect(Collectors.toList());
+    }
+
+    private List<McqPlusQuestion> availableMcqPlus(Set<UUID> seenIds) {
+        return mcqPlusQuestionRepository.findAll().stream()
                 .filter(q -> !seenIds.contains(q.getId()))
                 .collect(Collectors.toList());
     }
