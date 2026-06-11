@@ -16,8 +16,8 @@ export class FeedbackItemEditorComponent {
   readonly isActive       = input(false);
 
   readonly cardClicked     = output<void>();
-  readonly feedbackChanged = output<{ responseId: string; feedbackText: string }>();
-  readonly scoreChanged    = output<{ responseId: string; score: number }>();
+  readonly feedbackChanged = output<{ questionId: string; responseId: string | null; feedbackText: string }>();
+  readonly scoreChanged    = output<{ questionId: string; responseId: string | null; score: number }>();
 
   readonly feedbackText = linkedSignal(() => {
     const item = this.item();
@@ -63,11 +63,25 @@ export class FeedbackItemEditorComponent {
     this.feedbackText.set((event.target as HTMLTextAreaElement).value);
   }
 
+  isUnanswered(): boolean {
+    return this.item().responseId === null;
+  }
+
   onFeedbackBlur(): void {
-    this.feedbackChanged.emit({ responseId: this.item().responseId, feedbackText: this.feedbackText() });
+    if (this.isUnanswered()) return;
+    this.feedbackChanged.emit({
+      questionId: this.item().questionId,
+      responseId: this.item().responseId,
+      feedbackText: this.feedbackText(),
+    });
   }
 
   onScoreChanged(score: number): void {
-    this.scoreChanged.emit({ responseId: this.item().responseId, score });
+    if (this.isUnanswered()) return;
+    this.scoreChanged.emit({
+      questionId: this.item().questionId,
+      responseId: this.item().responseId,
+      score,
+    });
   }
 }
