@@ -10,7 +10,13 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QuestionService } from '../../../../core/services/question.service';
 import { QuestionBankService } from '../../../../core/services/question-bank.service';
 import { ToastService } from '../../../../core/services/toast.service';
-import { QuestionBankResponse, QuestionResponse, QuestionType } from '../../../../core/models/question.model';
+import {
+  CodingQuestionLanguage,
+  CodingQuestionResponse,
+  QuestionBankResponse,
+  QuestionResponse,
+  QuestionType,
+} from '../../../../core/models/question.model';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { TagComponent } from '../../../../shared/components/tag/tag.component';
 import { QuestionFormComponent } from '../question-form/question-form.component';
@@ -41,9 +47,16 @@ export class QuestionListComponent {
   readonly editingQuestion = signal<QuestionResponse | null>(null);
   readonly deletingQuestion = signal<QuestionResponse | null>(null);
   readonly deleting = signal(false);
+  readonly expandedQuestionId = signal<string | null>(null);
 
   readonly PAGE_SIZE = 20;
-  readonly filterTypes: Array<QuestionType | 'ALL'> = ['ALL', 'MCQ', 'MCQ_PLUS', 'TEXT', 'DOC', 'GROUP'];
+  readonly filterTypes: Array<QuestionType | 'ALL'> = ['ALL', 'MCQ', 'MCQ_PLUS', 'TEXT', 'DOC', 'GROUP', 'CODING'];
+
+  private readonly LANGUAGE_LABELS: Record<CodingQuestionLanguage, string> = {
+    JAVA: 'Java',
+    PYTHON: 'Python',
+    CSHARP: 'C#',
+  };
 
   readonly filteredQuestions = computed(() => {
     const type = this.typeFilter();
@@ -129,6 +142,18 @@ export class QuestionListComponent {
     if ('children' in q) return 'GROUP';
     if ('keywords' in q) return 'TEXT';
     return 'DOC';
+  }
+
+  languageLabel(language: CodingQuestionLanguage): string {
+    return this.LANGUAGE_LABELS[language];
+  }
+
+  asCoding(q: QuestionResponse): CodingQuestionResponse {
+    return q as CodingQuestionResponse;
+  }
+
+  toggleExpand(id: string): void {
+    this.expandedQuestionId.update(current => current === id ? null : id);
   }
 
   private loadQuestions(): void {
