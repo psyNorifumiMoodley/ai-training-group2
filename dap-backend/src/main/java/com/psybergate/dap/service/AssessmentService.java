@@ -214,7 +214,11 @@ public class AssessmentService {
             return new DocQuestionResponse(dq.getId(), List.of(), dq.getQuestion(), 0);
         }
         if (q instanceof GroupQuestion gq) {
-            return new GroupQuestionResponse(gq.getId(), List.of(), gq.getQuestion(), gq.isOrdered(), List.of(), 0);
+            List<GroupChildResponse> children = gq.getChildren().stream()
+                    .filter(c -> c != null)
+                    .map(c -> new GroupChildResponse(c.getId(), c.getQuestionText(), c.getKeywords(), c.getMarks()))
+                    .toList();
+            return new GroupQuestionResponse(gq.getId(), List.of(), gq.getQuestion(), gq.isOrdered(), children, 0);
         }
         if (q instanceof TextQuestion tq) {
             return new TextQuestionResponse(tq.getId(), List.of(), tq.getQuestion(), tq.getKeywords(), 0);
