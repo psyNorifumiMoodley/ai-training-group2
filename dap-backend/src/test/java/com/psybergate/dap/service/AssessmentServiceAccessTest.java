@@ -36,6 +36,8 @@ class AssessmentServiceAccessTest {
     @Mock
     private McqQuestionRepository mcqQuestionRepository;
     @Mock
+    private McqPlusQuestionRepository mcqPlusQuestionRepository;
+    @Mock
     private TextQuestionRepository textQuestionRepository;
     @Mock
     private DocQuestionRepository docQuestionRepository;
@@ -60,11 +62,12 @@ class AssessmentServiceAccessTest {
     void setUp() {
         assessmentService = new AssessmentService(
                 candidateRepository, assessmentRepository, assessmentQuestionRepository,
-                mcqQuestionRepository, textQuestionRepository, docQuestionRepository,
+                mcqQuestionRepository, mcqPlusQuestionRepository, textQuestionRepository, docQuestionRepository,
                 groupQuestionRepository, invitationTokenUtil, jwtUtil, emailService, responseService,
                 feedbackRepository);
         lenient().when(jwtUtil.generateToken(any())).thenReturn("candidate.jwt.token");
         ReflectionTestUtils.setField(assessmentService, "requiredMcq", 5);
+        ReflectionTestUtils.setField(assessmentService, "requiredMcqPlus", 2);
         ReflectionTestUtils.setField(assessmentService, "requiredText", 3);
         ReflectionTestUtils.setField(assessmentService, "requiredDoc", 1);
         ReflectionTestUtils.setField(assessmentService, "requiredGroup", 1);

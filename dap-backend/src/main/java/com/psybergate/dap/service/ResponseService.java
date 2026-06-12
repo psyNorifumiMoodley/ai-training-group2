@@ -5,6 +5,7 @@ import com.psybergate.dap.domain.AssessmentQuestion;
 import com.psybergate.dap.domain.AssessmentStatus;
 import com.psybergate.dap.domain.ConflictException;
 import com.psybergate.dap.domain.DocResponse;
+import com.psybergate.dap.domain.McqPlusResponse;
 import com.psybergate.dap.domain.McqQuestion;
 import com.psybergate.dap.domain.McqResponse;
 import com.psybergate.dap.domain.QuestionGroupResponse;
@@ -12,6 +13,7 @@ import com.psybergate.dap.domain.Response;
 import com.psybergate.dap.domain.TextResponse;
 import com.psybergate.dap.dto.DocResponseRequest;
 import com.psybergate.dap.dto.GroupResponseRequest;
+import com.psybergate.dap.dto.McqPlusResponseRequest;
 import com.psybergate.dap.dto.McqResponseRequest;
 import com.psybergate.dap.dto.ResponseRequest;
 import com.psybergate.dap.dto.TextResponseRequest;
@@ -22,7 +24,12 @@ import com.psybergate.dap.repository.ResponseRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 @Service
 public class ResponseService {
@@ -66,6 +73,15 @@ public class ResponseService {
 
     private Response upsertResponse(Response existing, Assessment assessment,
                                     AssessmentQuestion question, ResponseRequest request) {
+        if (request instanceof McqPlusResponseRequest mcqPlusReq) {
+            McqPlusResponse mcqPlusResponse = existing instanceof McqPlusResponse m ? m : new McqPlusResponse();
+            mcqPlusResponse.setAssessment(assessment);
+            mcqPlusResponse.setQuestion(question);
+            mcqPlusResponse.setSelectedAnswers(mcqPlusReq.selectedAnswers());
+            mcqPlusResponse.setCorrect(null);
+            mcqPlusResponse.setFollowUpAnswer(mcqPlusReq.followUpAnswer());
+            return mcqPlusResponse;
+        }
         if (request instanceof McqResponseRequest mcqReq) {
             McqResponse mcqResponse = existing instanceof McqResponse m ? m : new McqResponse();
             mcqResponse.setAssessment(assessment);
@@ -93,13 +109,13 @@ public class ResponseService {
                     ? g : new QuestionGroupResponse();
             groupResponse.setAssessment(assessment);
             groupResponse.setQuestion(question);
-            if (groupReq.childResponses() != null) {
+            if (groupReq.childAnswers() != null) {
                 groupResponse.getChildResponses().clear();
-                for (Map.Entry<UUID, ResponseRequest> entry : groupReq.childResponses().entrySet()) {
-                    AssessmentQuestion childQuestion = assessmentQuestionRepository.findById(entry.getKey())
-                            .orElseThrow(() -> new NoSuchElementException(
-                                    "Child question not found: " + entry.getKey()));
-                    Response child = upsertResponse(null, assessment, childQuestion, entry.getValue());
+                for (String answer : groupReq.childAnswers()) {
+                    TextResponse child = new TextResponse();
+                    child.setAssessment(assessment);
+                    child.setQuestion(question);
+                    child.setAnswer(answer);
                     groupResponse.getChildResponses().add(child);
                 }
             }
