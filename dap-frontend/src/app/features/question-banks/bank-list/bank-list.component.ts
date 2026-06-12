@@ -71,6 +71,7 @@ export class BankListComponent {
     { value: 'TEXT',  label: 'Text' },
     { value: 'DOC',   label: 'Doc' },
     { value: 'GROUP', label: 'Group' },
+    { value: 'CODING', label: 'Coding' },
   ];
 
   readonly activeBank = computed(() =>
@@ -274,6 +275,7 @@ export class BankListComponent {
     if ('correctAnswers' in q) return 'MCQ';
     if ('children' in q) return 'GROUP';
     if ('keywords' in q) return 'TEXT';
+    if ('testCases' in q) return 'CODING';
     return 'DOC';
   }
 

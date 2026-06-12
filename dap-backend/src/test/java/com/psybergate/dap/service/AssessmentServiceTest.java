@@ -105,6 +105,14 @@ class AssessmentServiceTest {
         return q;
     }
 
+    private CodingQuestion codingQuestionWithId(UUID id) {
+        CodingQuestion q = new CodingQuestion();
+        q.setId(id);
+        q.setQuestion("Write a function.");
+        q.setLanguage(CodingQuestionLanguage.JAVA);
+        return q;
+    }
+
     private GroupQuestion groupWithId(UUID id) {
         GroupQuestion q = new GroupQuestion(false, new ArrayList<>());
         q.setId(id);
@@ -369,7 +377,55 @@ class AssessmentServiceTest {
 
         assertThatThrownBy(() -> assessmentService.generate(new AssessmentRequest(candidateId, List.of(), 60)))
                 .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("document");
+                .hasMessageContaining("doc/coding");
+    }
+
+    @Test
+    void generate_docAndCodingQuestion_exceedsDocCodingLimit_throwsValidationException() {
+        ReflectionTestUtils.setField(assessmentService, "requiredMcq", 0);
+        ReflectionTestUtils.setField(assessmentService, "requiredText", 0);
+        ReflectionTestUtils.setField(assessmentService, "requiredDoc", 1);
+        ReflectionTestUtils.setField(assessmentService, "requiredGroup", 0);
+
+        UUID candidateId = UUID.randomUUID();
+        Candidate candidate = candidateWithId(candidateId);
+        DocQuestion doc = docWithId(UUID.randomUUID());
+        CodingQuestion coding = codingQuestionWithId(UUID.randomUUID());
+
+        when(candidateRepository.findById(candidateId)).thenReturn(Optional.of(candidate));
+        when(assessmentRepository.findSeenQuestionIdsByCandidateAndYear(eq(candidateId), any(), any(), any()))
+                .thenReturn(List.of());
+        when(assessmentQuestionRepository.findById(doc.getId())).thenReturn(Optional.of(doc));
+        when(assessmentQuestionRepository.findById(coding.getId())).thenReturn(Optional.of(coding));
+
+        assertThatThrownBy(() -> assessmentService.generate(
+                new AssessmentRequest(candidateId, List.of(doc.getId(), coding.getId()), 60)))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("limit");
+    }
+
+    @Test
+    void generate_twoCodingQuestions_exceedsDocCodingLimit_throwsValidationException() {
+        ReflectionTestUtils.setField(assessmentService, "requiredMcq", 0);
+        ReflectionTestUtils.setField(assessmentService, "requiredText", 0);
+        ReflectionTestUtils.setField(assessmentService, "requiredDoc", 0);
+        ReflectionTestUtils.setField(assessmentService, "requiredGroup", 0);
+
+        UUID candidateId = UUID.randomUUID();
+        Candidate candidate = candidateWithId(candidateId);
+        CodingQuestion coding1 = codingQuestionWithId(UUID.randomUUID());
+        CodingQuestion coding2 = codingQuestionWithId(UUID.randomUUID());
+
+        when(candidateRepository.findById(candidateId)).thenReturn(Optional.of(candidate));
+        when(assessmentRepository.findSeenQuestionIdsByCandidateAndYear(eq(candidateId), any(), any(), any()))
+                .thenReturn(List.of());
+        when(assessmentQuestionRepository.findById(coding1.getId())).thenReturn(Optional.of(coding1));
+        when(assessmentQuestionRepository.findById(coding2.getId())).thenReturn(Optional.of(coding2));
+
+        assertThatThrownBy(() -> assessmentService.generate(
+                new AssessmentRequest(candidateId, List.of(coding1.getId(), coding2.getId()), 60)))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("limit");
     }
 
     @Test

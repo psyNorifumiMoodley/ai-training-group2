@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="2026-06-11-002-create-test-case-table" author="gregory.robson">
+
+        <createTable tableName="test_case">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coding_question_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="input" type="TEXT"/>
+            <column name="expected_output" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="timeout_seconds" type="INTEGER" defaultValueNumeric="10">
+                <constraints nullable="false"/>
+            </column>
+            <column name="memory_mb" type="INTEGER" defaultValueNumeric="256">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ordinal" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ"/>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="test_case"
+                baseColumnNames="coding_question_id"
+                referencedTableName="coding_question"
+                referencedColumnNames="id"
+                constraintName="fk_test_case_coding_question"
+                onDelete="CASCADE"/>
+
+        <rollback>
+            <dropTable tableName="test_case"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

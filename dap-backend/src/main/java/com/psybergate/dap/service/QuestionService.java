@@ -21,6 +21,7 @@ public class QuestionService {
     private final GroupQuestionRepository groupQuestionRepository;
     private final QuestionBankRepository questionBankRepository;
     private final McqPlusQuestionRepository mcqPlusQuestionRepository;
+    private final CodingQuestionRepository codingQuestionRepository;
 
     public QuestionService(AssessmentQuestionRepository assessmentQuestionRepository,
                            McqQuestionRepository mcqQuestionRepository,
@@ -28,7 +29,8 @@ public class QuestionService {
                            TextQuestionRepository textQuestionRepository,
                            GroupQuestionRepository groupQuestionRepository,
                            QuestionBankRepository questionBankRepository,
-                           McqPlusQuestionRepository mcqPlusQuestionRepository) {
+                           McqPlusQuestionRepository mcqPlusQuestionRepository,
+                           CodingQuestionRepository codingQuestionRepository) {
         this.assessmentQuestionRepository = assessmentQuestionRepository;
         this.mcqQuestionRepository = mcqQuestionRepository;
         this.docQuestionRepository = docQuestionRepository;
@@ -36,6 +38,7 @@ public class QuestionService {
         this.groupQuestionRepository = groupQuestionRepository;
         this.questionBankRepository = questionBankRepository;
         this.mcqPlusQuestionRepository = mcqPlusQuestionRepository;
+        this.codingQuestionRepository = codingQuestionRepository;
     }
 
     @Transactional
@@ -54,6 +57,9 @@ public class QuestionService {
         }
         if (request instanceof GroupQuestionRequest r) {
             return toResponse(createGroup(r));
+        }
+        if (request instanceof CodingQuestionRequest r) {
+            return toCodingQuestionResponse(createCodingQuestion(r));
         }
         throw new UnsupportedOperationException("Unsupported question type: " + request.getClass());
     }
@@ -138,6 +144,28 @@ public class QuestionService {
             return toResponse(groupQuestionRepository.save(gq));
         }
 
+        if (request instanceof CodingQuestionRequest r && existing instanceof CodingQuestion cq) {
+            cq.setQuestion(r.question());
+            cq.setLanguage(r.language());
+            cq.getQuestionBanks().clear();
+            cq.getQuestionBanks().addAll(resolveQuestionBanks(r.questionBankIds()));
+            cq.getTestCases().clear();
+            if (r.testCases() != null) {
+                int ordinal = 1;
+                for (TestCaseRequest tcr : r.testCases()) {
+                    TestCase tc = new TestCase();
+                    tc.setCodingQuestion(cq);
+                    tc.setInput(tcr.input());
+                    tc.setExpectedOutput(tcr.expectedOutput());
+                    tc.setTimeoutSeconds(tcr.timeoutSeconds());
+                    tc.setMemoryMb(tcr.memoryMb());
+                    tc.setOrdinal(ordinal++);
+                    cq.getTestCases().add(tc);
+                }
+            }
+            return toCodingQuestionResponse(codingQuestionRepository.save(cq));
+        }
+
         throw new ValidationException("Request type does not match the existing question type");
     }
 
@@ -197,10 +225,31 @@ public class QuestionService {
         return mcqPlusQuestionRepository.save(q);
     }
 
+    private CodingQuestion createCodingQuestion(CodingQuestionRequest request) {
+        CodingQuestion q = new CodingQuestion();
+        q.getQuestionBanks().addAll(resolveQuestionBanks(request.questionBankIds()));
+        q.setQuestion(request.question());
+        q.setLanguage(request.language());
+        if (request.testCases() != null) {
+            int ordinal = 1;
+            for (TestCaseRequest tcr : request.testCases()) {
+                TestCase tc = new TestCase();
+                tc.setCodingQuestion(q);
+                tc.setInput(tcr.input());
+                tc.setExpectedOutput(tcr.expectedOutput());
+                tc.setTimeoutSeconds(tcr.timeoutSeconds());
+                tc.setMemoryMb(tcr.memoryMb());
+                tc.setOrdinal(ordinal++);
+                q.getTestCases().add(tc);
+            }
+        }
+        return codingQuestionRepository.save(q);
+    }
+
     private Set<QuestionBank> resolveQuestionBanks(List<UUID> ids) {
         return ids.stream()
                 .map(id -> questionBankRepository.findById(id)
-                        .orElseThrow(() -> new NoSuchElementException("Question bank not found: " + id)))
+                        .orElseThrow(() -> new ValidationException("Question bank not found: " + id)))
                 .collect(Collectors.toSet());
     }
 
@@ -246,6 +295,9 @@ public class QuestionService {
         }
         if (q instanceof TextQuestion tq) {
             return toTextResponse(tq);
+        }
+        if (q instanceof CodingQuestion cq) {
+            return toCodingQuestionResponse(cq);
         }
         throw new UnsupportedOperationException("Unmapped question type: " + q.getClass());
     }
@@ -302,6 +354,17 @@ public class QuestionService {
                 .toList();
         int totalMarks = children.stream().mapToInt(GroupChildResponse::marks).sum();
         return new GroupQuestionResponse(q.getId(), banks, q.getQuestion(), q.isOrdered(), children, totalMarks);
+    }
+
+    private CodingQuestionResponse toCodingQuestionResponse(CodingQuestion q) {
+        List<QuestionBankResponse> banks = q.getQuestionBanks().stream()
+                .map(b -> new QuestionBankResponse(b.getId(), b.getName(), 0L))
+                .toList();
+        List<TestCaseResponse> testCases = q.getTestCases().stream()
+                .map(tc -> new TestCaseResponse(tc.getId(), tc.getInput(), tc.getExpectedOutput(),
+                        tc.getTimeoutSeconds(), tc.getMemoryMb(), tc.getOrdinal()))
+                .toList();
+        return new CodingQuestionResponse(q.getId(), banks, q.getQuestion(), q.getLanguage(), testCases);
     }
 
     private boolean isExactTextQuestion(AssessmentQuestion q) {

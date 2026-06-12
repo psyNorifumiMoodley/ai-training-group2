@@ -16,6 +16,7 @@
 - `QuestionService.createCodingQuestion()` iterates inline `testCases`, assigns ordinals (1, 2, 3…), and saves via `CascadeType.ALL` on `CodingQuestion.testCases`
 - The doc/coding question limit (`assessment.doc-question-limit`, default 1) counts both `DocQuestion` (legacy) and `CodingQuestion` rows
 - Like every other question type, `CodingQuestion` is scoped by `Set<QuestionBank>` (min 1 required) via the `question_question_bank` join table — there is no `category` column on `coding_question`
+- `QuestionBankResponse` carries `questionCount: long` (backend) / `questionCount: number` (frontend) — added during Question Model Refactor implementation and present in all QB-referencing responses
 
 ---
 
@@ -87,6 +88,11 @@ Return body for 410:
 ```
 
 ### DTOs
+
+**`QuestionBankResponse`** — record (defined in Question Model Refactor; `questionCount` added during implementation)
+```java
+public record QuestionBankResponse(UUID id, String name, long questionCount) {}
+```
 
 **`CodingQuestionLanguage`** — enum in `domain/`
 ```java
@@ -172,15 +178,21 @@ public sealed interface QuestionResponse
 
 ### Frontend Type Definitions
 
-**`question.model.ts`** — updated (additions only)
+**`question.model.ts`** — already complete (implemented as a full replacement by the Question Model Refactor)
 
-> By the time this slice merges, `BaseQuestionRequest { type, questionBankIds, question }`, `BaseQuestionResponse { id, type, questionBanks, question }`, `QuestionBankResponse { id, name }`, and `'MCQ_PLUS'` will already exist via the Question Model Refactor. `CodingQuestionRequest`/`CodingQuestionResponse` extend those base types — no `category` field.
+> The Question Model Refactor implemented `question.model.ts` as a full file replacement, not an incremental addition. All coding types are already present. The actual shapes deviate from the original plan in three ways: (1) request types are flat interfaces — there is no `BaseQuestionRequest` interface to extend; (2) `QuestionBankResponse` has a `questionCount: number` field added during implementation; (3) a `QuestionRequest` union type is defined in the model alongside `QuestionResponse`.
+
+Final shape of the relevant types in `question.model.ts`:
 
 ```typescript
-// Add CODING to the union type
 export type QuestionType = 'MCQ' | 'MCQ_PLUS' | 'TEXT' | 'DOC' | 'GROUP' | 'CODING';
 
-// New type (inline — no separate file)
+export interface QuestionBankResponse {
+  id: string;
+  name: string;
+  questionCount: number;   // added during implementation — not in original spec
+}
+
 export type CodingQuestionLanguage = 'JAVA' | 'PYTHON' | 'CSHARP';
 
 export interface TestCaseRequest {
@@ -199,37 +211,43 @@ export interface TestCase {
   ordinal: number;
 }
 
-// Add request interface
-export interface CodingQuestionRequest extends BaseQuestionRequest {
+// Flat interface — does NOT extend BaseQuestionRequest
+export interface CodingQuestionRequest {
   type: 'CODING';
+  questionBankIds: string[];
+  question: string;
   language: CodingQuestionLanguage;
   testCases?: TestCaseRequest[];
 }
 
-// Add response interface
+export interface BaseQuestionResponse {
+  type: QuestionType;
+  id: string;
+  questionBanks: QuestionBankResponse[];
+  question: string;
+}
+
 export interface CodingQuestionResponse extends BaseQuestionResponse {
   type: 'CODING';
   language: CodingQuestionLanguage;
   testCases: TestCase[];
 }
 
-// Update the QuestionResponse union
+export type QuestionRequest =
+  | McqQuestionRequest | McqPlusQuestionRequest | TextQuestionRequest
+  | DocQuestionRequest | GroupQuestionRequest   | CodingQuestionRequest;
+
 export type QuestionResponse =
-  | McqQuestionResponse
-  | McqPlusQuestionResponse
-  | TextQuestionResponse
-  | DocQuestionResponse
-  | GroupQuestionResponse
-  | CodingQuestionResponse;    // ← new
+  | McqQuestionResponse | McqPlusQuestionResponse | TextQuestionResponse
+  | DocQuestionResponse | GroupQuestionResponse   | CodingQuestionResponse;
 ```
 
 ### Frontend Services
 
-**`question.service.ts`** — update union types only
+**`question.service.ts`** — use `QuestionRequest` type alias (already includes all types from the model)
 ```typescript
-// Update createQuestion and updateQuestion signatures to include CodingQuestionRequest:
-createQuestion(request: McqQuestionRequest | TextQuestionRequest | DocQuestionRequest | GroupQuestionRequest | CodingQuestionRequest): Observable<QuestionResponse>
-updateQuestion(id: string, request: McqQuestionRequest | TextQuestionRequest | DocQuestionRequest | GroupQuestionRequest | CodingQuestionRequest): Observable<QuestionResponse>
+createQuestion(request: QuestionRequest): Observable<QuestionResponse>
+updateQuestion(id: string, request: QuestionRequest): Observable<QuestionResponse>
 ```
 
 ### Frontend Components
@@ -246,10 +264,12 @@ None in this slice.
 - Angular `question.model.ts` compiles with no TypeScript errors; `CodingQuestionLanguage`, `TestCase`, `CodingQuestionRequest`, `CodingQuestionResponse` all accessible from the same file
 
 ### Done When
-- All backend stubs compile and return hardcoded responses
-- `POST /api/questions` with `"type": "DOC"` returns 410
-- `QuestionType` in Angular includes `'CODING'`
-- Angular `question.model.ts` compiles with no TypeScript errors
+- ✅ All backend DTOs compile (`CodingQuestionRequest`, `CodingQuestionResponse`, `TestCaseRequest`, `TestCaseResponse`, `CodingQuestionLanguage`, `QuestionBankResponse` with `questionCount`)
+- ✅ `QuestionRequest`/`QuestionResponse` sealed interfaces include `CODING` subtype
+- ✅ `POST /api/questions` with `"type": "DOC"` returns 410
+- ✅ `QuestionType` in Angular includes `'CODING'`
+- ✅ Angular `question.model.ts` compiles with all coding types present; `QuestionRequest` union includes `CodingQuestionRequest`
+- `question.service.ts` uses `QuestionRequest` type alias for `createQuestion`/`updateQuestion` signatures
 - Merged to `main` before any other Phase 1 slice begins
 
 ---
