@@ -249,6 +249,7 @@ export class QuestionFormComponent implements OnInit {
     if ('correctAnswers' in q) return 'MCQ';
     if ('children' in q) return 'GROUP';
     if ('keywords' in q) return 'TEXT';
+    if ('testCases' in q) return 'CODING';
     return 'DOC';
   }
 
