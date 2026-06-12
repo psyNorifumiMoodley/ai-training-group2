@@ -141,15 +141,16 @@ export class QuestionListComponent {
     if ('correctAnswers' in q) return 'MCQ';
     if ('children' in q) return 'GROUP';
     if ('keywords' in q) return 'TEXT';
+    if ('testCases' in q) return 'CODING';
     return 'DOC';
+  }
+
+  isCoding(q: QuestionResponse): q is CodingQuestionResponse {
+    return this.resolveType(q) === 'CODING';
   }
 
   languageLabel(language: CodingQuestionLanguage): string {
     return this.LANGUAGE_LABELS[language];
-  }
-
-  asCoding(q: QuestionResponse): CodingQuestionResponse {
-    return q as CodingQuestionResponse;
   }
 
   toggleExpand(id: string): void {

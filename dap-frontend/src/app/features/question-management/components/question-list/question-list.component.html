@@ -79,10 +79,10 @@
             </div>
             <div class="flex items-center gap-1.5 mt-2">
               <dap-tag [label]="resolveType(q)" [variant]="typeTagVariant(resolveType(q))" />
-              @if (resolveType(q) === 'CODING') {
-                <dap-tag [label]="languageLabel(asCoding(q).language)" variant="coding" />
+              @if (isCoding(q)) {
+                <dap-tag [label]="languageLabel(q.language)" variant="coding" />
                 <span class="text-[0.6875rem] text-gray-400">
-                  {{ asCoding(q).testCases.length }} test case{{ asCoding(q).testCases.length !== 1 ? 's' : '' }}
+                  {{ q.testCases.length }} test case{{ q.testCases.length !== 1 ? 's' : '' }}
                 </span>
                 <button (click)="toggleExpand(q.id)"
                         class="text-[0.6875rem] text-primary hover:underline">
@@ -92,12 +92,12 @@
               <span class="text-[0.6875rem] text-gray-400">{{ q.questionBanks[0]?.name }}</span>
             </div>
 
-            @if (resolveType(q) === 'CODING' && expandedQuestionId() === q.id) {
+            @if (isCoding(q) && expandedQuestionId() === q.id) {
               <div class="mt-2 pt-2 border-t border-gray-100 space-y-2">
-                @if (asCoding(q).testCases.length === 0) {
+                @if (q.testCases.length === 0) {
                   <p class="text-[0.6875rem] text-gray-400 italic">No test cases.</p>
                 } @else {
-                  @for (tc of asCoding(q).testCases; track tc.id) {
+                  @for (tc of q.testCases; track tc.id) {
                     <div class="bg-gray-50 border border-gray-100 rounded-card p-2 text-[0.6875rem] text-gray-600 space-y-1">
                       <div><span class="font-medium text-gray-500">Input:</span> <span class="whitespace-pre-wrap">{{ tc.input || '(empty)' }}</span></div>
                       <div><span class="font-medium text-gray-500">Expected output:</span> <span class="whitespace-pre-wrap">{{ tc.expectedOutput }}</span></div>
