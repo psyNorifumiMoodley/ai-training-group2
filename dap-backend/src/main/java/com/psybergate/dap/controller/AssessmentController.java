@@ -5,6 +5,7 @@ import com.psybergate.dap.dto.AssessmentAccessResponse;
 import com.psybergate.dap.dto.AssessmentRequest;
 import com.psybergate.dap.dto.AssessmentResponse;
 import com.psybergate.dap.dto.AssessmentSummaryResponse;
+import com.psybergate.dap.dto.CodeExecuteResponse;
 import com.psybergate.dap.dto.FeedbackItem;
 import com.psybergate.dap.dto.FeedbackUpdateRequest;
 import com.psybergate.dap.dto.FinaliseRequest;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -63,6 +65,14 @@ public class AssessmentController {
     @GetMapping("/access/{token}")
     public ResponseEntity<AssessmentAccessResponse> accessAssessment(@PathVariable String token) {
         return ResponseEntity.ok(assessmentService.access(token));
+    }
+
+    @PostMapping("/{id}/responses/{questionId}/execute")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ResponseEntity<CodeExecuteResponse> executeCode(
+            @PathVariable UUID id,
+            @PathVariable UUID questionId) {
+        return ResponseEntity.ok(new CodeExecuteResponse(List.of(), Instant.now()));
     }
 
     @PutMapping("/{id}/responses/{questionId}")

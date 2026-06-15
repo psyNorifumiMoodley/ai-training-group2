@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { AssessmentAccessResponse, ResponseRequest } from '../models/assessment-session.model';
+import { EMPTY, Observable } from 'rxjs';
+import { AssessmentAccessResponse, CodeExecuteResponse, ResponseRequest } from '../models/assessment-session.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -23,5 +23,9 @@ export class CandidateAssessmentService {
 
   submitAssessment(assessmentId: string): Observable<void> {
     return this.http.post<void>(`${this.base}/assessments/${assessmentId}/submit`, {});
+  }
+
+  executeCode(assessmentId: string, questionId: string, code: string): Observable<CodeExecuteResponse> {
+    return EMPTY as unknown as Observable<CodeExecuteResponse>;
   }
 }

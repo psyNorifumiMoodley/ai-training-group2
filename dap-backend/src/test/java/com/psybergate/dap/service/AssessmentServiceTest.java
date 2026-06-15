@@ -324,7 +324,7 @@ class AssessmentServiceTest {
         when(assessmentQuestionRepository.findById(group.getId())).thenReturn(Optional.of(group));
 
         assertThatThrownBy(() -> assessmentService.generate(new AssessmentRequest(candidateId, ids, 60)))
-                .isInstanceOf(ValidationException.class);
+                .isInstanceOf(UnprocessableException.class);
     }
 
     @Test
@@ -513,7 +513,7 @@ class AssessmentServiceTest {
                 .thenReturn(seenIds);
 
         assertThatThrownBy(() -> assessmentService.generate(new AssessmentRequest(candidateId, ids, 60)))
-                .isInstanceOf(ValidationException.class)
+                .isInstanceOf(UnprocessableException.class)
                 .hasMessageContaining("MCQ");
     }
 

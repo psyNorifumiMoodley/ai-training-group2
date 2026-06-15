@@ -196,21 +196,13 @@ class AssessmentServiceAccessTest {
         Assessment pending = pendingAssessment();
         when(assessmentRepository.findByInvitationToken(VALID_TOKEN)).thenReturn(Optional.of(pending));
 
-        // After save, assessment must have startTime set (simulated by returning same object)
-        when(assessmentRepository.save(any(Assessment.class))).thenAnswer(inv -> {
-            Assessment saved = inv.getArgument(0);
-            // Ensure the startTime was set before save was called
-            assertThat(saved.getStatus()).isEqualTo(AssessmentStatus.IN_PROGRESS);
-            assertThat(saved.getStartTime()).isNotNull();
-            return saved;
-        });
-
         AssessmentAccessResponse response = assessmentService.access(VALID_TOKEN);
 
-        verify(assessmentRepository).save(any(Assessment.class));
+        verify(assessmentRepository, never()).save(any());
         assertThat(response).isNotNull();
         assertThat(response.assessmentId()).isEqualTo(pending.getId());
-        assertThat(response.remainingSeconds()).isGreaterThan(0);
+        assertThat(response.alreadyStarted()).isFalse();
+        assertThat(response.remainingSeconds()).isEqualTo(3600);
     }
 
     // --- Already IN_PROGRESS (re-access) ---
