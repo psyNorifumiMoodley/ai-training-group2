@@ -200,7 +200,16 @@
 
                 @if (openMenuId() === q.id) {
                   <div class="fixed inset-0 z-10" (click)="closeMenu()"></div>
-                  <div class="absolute right-0 top-8 z-20 bg-white border border-gray-200 rounded-card shadow-md w-32 py-1">
+                  <div class="absolute right-0 top-8 z-20 bg-white border border-gray-200 rounded-card shadow-md w-36 py-1">
+                    @if (isCoding(q)) {
+                      <button
+                        (click)="togglePreview(q.id)"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-caption text-purple-700 hover:bg-purple-50 transition-colors">
+                        <i class="pi pi-play text-[0.6875rem] text-purple-400"></i>
+                        {{ testingQuestionId() === q.id ? 'Close test' : 'Test question' }}
+                      </button>
+                      <hr class="border-gray-100 my-1">
+                    }
                     <button
                       (click)="openEdit(q)"
                       class="w-full flex items-center gap-2 px-3 py-2 text-caption text-gray-700 hover:bg-gray-50 transition-colors">
@@ -224,6 +233,10 @@
                 <span class="text-[0.6875rem] text-gray-400">{{ bank.name }}</span>
               }
             </div>
+
+            @if (isCoding(q) && testingQuestionId() === q.id) {
+              <dap-coding-question-preview [question]="q" />
+            }
           </div>
         }
       }
