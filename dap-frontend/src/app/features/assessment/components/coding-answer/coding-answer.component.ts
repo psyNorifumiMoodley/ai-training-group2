@@ -3,6 +3,7 @@ import { CodingQuestionResponse } from '../../../../core/models/question.model';
 import { CodingResponseRequest, TestCaseResult } from '../../../../core/models/assessment-session.model';
 import { CandidateAssessmentService } from '../../../../core/services/candidate-assessment.service';
 import { AnswerChangedEvent } from '../question-renderer/question-renderer.component';
+import { CODING_SCAFFOLDS } from '../../../question-management/components/coding-question-preview/coding-question-preview.component';
 
 @Component({
   selector: 'dap-coding-answer',
@@ -28,6 +29,8 @@ export class CodingAnswerComponent {
       const saved = this.savedAnswer();
       if (saved?.code) {
         this.code.set(saved.code);
+      } else {
+        this.code.set(CODING_SCAFFOLDS[this.question().language]);
       }
     }, { allowSignalWrites: true });
   }
