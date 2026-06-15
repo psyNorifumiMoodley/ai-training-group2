@@ -195,6 +195,9 @@ class AssessmentControllerTest {
         UUID assessmentId = UUID.randomUUID();
         UUID questionId = UUID.randomUUID();
 
+        when(responseService.executeCode(any(), any(), any()))
+                .thenReturn(new com.psybergate.dap.dto.CodeExecuteResponse(List.of(), Instant.now()));
+
         mockMvc.perform(post("/api/assessments/{id}/responses/{questionId}/execute", assessmentId, questionId)
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())

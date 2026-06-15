@@ -408,6 +408,11 @@ public class AssessmentService {
         Assessment saved = assessmentRepository.save(assessment);
 
         responseService.autoMarkMcqResponses(assessmentId);
+        try {
+            responseService.autoExecuteCodingResponses(assessmentId);
+        } catch (Exception ex) {
+            log.error("Failed to auto-execute coding responses for assessment {}: {}", assessmentId, ex.getMessage(), ex);
+        }
 
         return toResponse(saved);
     }
