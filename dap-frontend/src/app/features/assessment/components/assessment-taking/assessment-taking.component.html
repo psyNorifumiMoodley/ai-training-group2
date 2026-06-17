@@ -93,6 +93,7 @@
             <dap-question-renderer
               [question]="q"
               [savedAnswer]="savedAnswers()[q.id]"
+              [assessmentId]="session()!.assessmentId"
               (answerChanged)="onAnswerChanged($event)" />
           </div>
 

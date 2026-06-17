@@ -19,7 +19,7 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 import { AssessmentConfirmationComponent } from '../assessment-confirmation/assessment-confirmation.component';
 
 type TypeFilter = 'ALL' | QuestionType;
-const TYPE_FILTERS: TypeFilter[] = ['ALL', 'MCQ', 'MCQ_PLUS', 'TEXT', 'DOC', 'GROUP'];
+const TYPE_FILTERS: TypeFilter[] = ['ALL', 'MCQ', 'MCQ_PLUS', 'TEXT', 'DOC', 'GROUP', 'CODING'];
 
 @Component({
   selector: 'dap-question-selection',

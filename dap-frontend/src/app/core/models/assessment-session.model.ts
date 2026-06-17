@@ -13,9 +13,26 @@ export interface McqPlusResponseRequest { selectedAnswers: string[]; followUpAns
 export interface TextResponseRequest { answer: string; }
 export interface DocResponseRequest  { filePath: string; }
 export interface GroupResponseRequest { childAnswers: string[]; }
+export interface CodingResponseRequest { code: string; }
 export type ResponseRequest =
   | McqResponseRequest
   | McqPlusResponseRequest
   | TextResponseRequest
   | DocResponseRequest
-  | GroupResponseRequest;
+  | GroupResponseRequest
+  | CodingResponseRequest;
+
+export interface TestCaseResult {
+  testCaseId: string | null;
+  passed: boolean;
+  actualOutput: string | null;
+  executionTimeMs: number | null;
+  memoryUsedMb: number | null;
+  errorMessage: string | null;
+  ordinal: number;
+}
+
+export interface CodeExecuteResponse {
+  results: TestCaseResult[];
+  executedAt: string;
+}

@@ -7,6 +7,7 @@ import com.psybergate.dap.domain.Candidate;
 import com.psybergate.dap.domain.Feedback;
 import com.psybergate.dap.domain.McqQuestion;
 import com.psybergate.dap.domain.Role;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -24,6 +25,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@Disabled("Requires Docker — run integration tests manually")
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers
@@ -128,7 +130,7 @@ class FeedbackRepositoryTest {
         Assessment assessment = persistAssessment(candidate);
 
         persistFeedback(assessment, question1, "Correct");
-        persistFeedback(assessment, question2, "Incorrect — please review this topic");
+        persistFeedback(assessment, question2, "Incorrect â€” please review this topic");
 
         List<Feedback> results = feedbackRepository.findByAssessmentId(assessment.getId());
 
@@ -190,3 +192,4 @@ class FeedbackRepositoryTest {
         assertThat(exists).isFalse();
     }
 }
+

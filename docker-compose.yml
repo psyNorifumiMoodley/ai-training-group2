@@ -27,9 +27,12 @@ services:
       SPRING_DATASOURCE_PASSWORD: dap
       MAIL_USERNAME: your-gmail@gmail.com
       MAIL_PASSWORD: your-app-password
+      PISTON_BASE_URL: http://piston:2000
     depends_on:
       postgres:
         condition: service_healthy
+      piston:
+        condition: service_started
 
   frontend:
     build:
@@ -40,5 +43,14 @@ services:
     depends_on:
       - backend
 
+  piston:
+    image: ghcr.io/engineer-man/piston
+    ports:
+      - "2000:2000"
+    privileged: true
+    volumes:
+      - piston_data:/piston
+
 volumes:
   postgres_data:
+  piston_data:

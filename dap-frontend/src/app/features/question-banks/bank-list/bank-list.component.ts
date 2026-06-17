@@ -11,16 +11,17 @@ import { FormsModule } from '@angular/forms';
 import { QuestionService } from '../../../core/services/question.service';
 import { QuestionBankService } from '../../../core/services/question-bank.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { QuestionBankResponse, QuestionResponse, QuestionType } from '../../../core/models/question.model';
+import { CodingQuestionResponse, QuestionBankResponse, QuestionResponse, QuestionType } from '../../../core/models/question.model';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { TagComponent } from '../../../shared/components/tag/tag.component';
 import { QuestionFormComponent } from '../../question-management/components/question-form/question-form.component';
 import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
+import { CodingQuestionPreviewComponent } from '../../question-management/components/coding-question-preview/coding-question-preview.component';
 
 @Component({
   selector: 'dap-bank-list',
   standalone: true,
-  imports: [FormsModule, ButtonComponent, TagComponent, QuestionFormComponent, ConfirmModalComponent],
+  imports: [FormsModule, ButtonComponent, TagComponent, QuestionFormComponent, ConfirmModalComponent, CodingQuestionPreviewComponent],
   templateUrl: './bank-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -37,6 +38,7 @@ export class BankListComponent {
   readonly typeFilter = signal<QuestionType | 'ALL'>('ALL');
   readonly openMenuId = signal<string | null>(null);
   readonly openBankMenuId = signal<string | null>(null);
+  readonly testingQuestionId = signal<string | null>(null);
   readonly loading = signal(false);
   readonly banksLoading = signal(false);
 
@@ -108,6 +110,15 @@ export class BankListComponent {
 
   closeMenu(): void {
     this.openMenuId.set(null);
+  }
+
+  isCoding(q: QuestionResponse): q is CodingQuestionResponse {
+    return this.resolveType(q) === 'CODING';
+  }
+
+  togglePreview(id: string): void {
+    this.openMenuId.set(null);
+    this.testingQuestionId.update(current => current === id ? null : id);
   }
 
   toggleBankMenu(id: string): void {

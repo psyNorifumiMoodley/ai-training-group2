@@ -5,6 +5,7 @@ import com.psybergate.dap.domain.GroupQuestion;
 import com.psybergate.dap.domain.TextQuestion;
 import com.psybergate.dap.domain.ValidationException;
 import com.psybergate.dap.dto.*;
+import com.psybergate.dap.service.CodeExecutionService;
 import com.psybergate.dap.repository.*;
 import com.psybergate.dap.repository.AssessmentQuestionRepository;
 import com.psybergate.dap.repository.GroupQuestionRepository;
@@ -20,11 +21,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,6 +56,12 @@ class QuestionServiceTest {
     @Mock
     private McqPlusQuestionRepository mcqPlusQuestionRepository;
 
+    @Mock
+    private CodingQuestionRepository codingQuestionRepository;
+
+    @Mock
+    private CodeExecutionService codeExecutionService;
+
     @InjectMocks
     private QuestionService questionService;
 
@@ -58,7 +69,7 @@ class QuestionServiceTest {
     void setUpBankMock() {
         QuestionBank bank = new QuestionBank("Test Bank");
         bank.setId(UUID.randomUUID());
-        when(questionBankRepository.findById(any(UUID.class))).thenReturn(Optional.of(bank));
+        lenient().when(questionBankRepository.findById(any(UUID.class))).thenReturn(Optional.of(bank));
     }
 
     @Test
@@ -170,5 +181,47 @@ class QuestionServiceTest {
         GroupQuestionResponse groupResponse = (GroupQuestionResponse) response;
         assertThat(groupResponse.children()).isEmpty();
         assertThat(groupResponse.ordered()).isTrue();
+    }
+
+    @Test
+    void executeQuestion_delegatesToCodeExecutionService_andReturnsResult() {
+        UUID questionId = UUID.randomUUID();
+        CodingQuestion codingQ = new CodingQuestion();
+        codingQ.setId(questionId);
+        codingQ.setQuestion("Write a function.");
+        codingQ.setLanguage(CodingQuestionLanguage.JAVA);
+        codingQ.setTestCases(new ArrayList<>());
+
+        TestCaseResultResponse result = new TestCaseResultResponse(UUID.randomUUID(), true, "42", null, null, null, 1);
+        when(assessmentQuestionRepository.findById(questionId)).thenReturn(Optional.of(codingQ));
+        when(codeExecutionService.execute(eq(codingQ), eq("System.out.println(42);"))).thenReturn(List.of(result));
+
+        CodeExecuteResponse response = questionService.executeQuestion(questionId, "System.out.println(42);");
+
+        assertThat(response.results()).hasSize(1);
+        assertThat(response.results().get(0).passed()).isTrue();
+    }
+
+    @Test
+    void executeQuestion_unknownId_throwsNoSuchElementException() {
+        UUID questionId = UUID.randomUUID();
+        when(assessmentQuestionRepository.findById(questionId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> questionService.executeQuestion(questionId, "code"))
+                .isInstanceOf(NoSuchElementException.class)
+                .hasMessageContaining(questionId.toString());
+    }
+
+    @Test
+    void executeQuestion_nonCodingQuestion_throwsValidationException() {
+        UUID questionId = UUID.randomUUID();
+        McqQuestion mcq = new McqQuestion(List.of("A", "B"), List.of("A"));
+        mcq.setId(questionId);
+        mcq.setQuestion("MCQ question");
+        when(assessmentQuestionRepository.findById(questionId)).thenReturn(Optional.of(mcq));
+
+        assertThatThrownBy(() -> questionService.executeQuestion(questionId, "code"))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("not a coding question");
     }
 }
