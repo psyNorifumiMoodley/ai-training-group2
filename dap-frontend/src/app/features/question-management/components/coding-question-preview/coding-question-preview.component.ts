@@ -24,6 +24,7 @@ export class CodingQuestionPreviewComponent {
   readonly code = signal('');
   readonly running = signal(false);
   readonly results = signal<TestCaseResult[] | null>(null);
+  readonly runError = signal<string | null>(null);
 
   constructor() {
     effect(() => {
@@ -39,13 +40,15 @@ export class CodingQuestionPreviewComponent {
   runCode(): void {
     if (this.running()) return;
     this.running.set(true);
+    this.runError.set(null);
     this.questionService.executeQuestion(this.question().id, this.code())
       .subscribe({
         next: (response: CodeExecuteResponse) => {
           this.results.set(response.results);
           this.running.set(false);
         },
-        error: () => {
+        error: (err) => {
+          this.runError.set(err?.error?.message ?? 'Code execution failed. Please try again.');
           this.running.set(false);
         },
       });

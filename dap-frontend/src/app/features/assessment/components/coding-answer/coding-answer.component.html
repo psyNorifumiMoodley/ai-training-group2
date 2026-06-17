@@ -18,7 +18,12 @@
     class="w-full border border-gray-200 rounded-input px-3 py-2 text-caption font-mono resize-y focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-gray-400 bg-gray-50">
   </textarea>
 
-  <div class="flex justify-end">
+  <div class="flex items-center justify-end gap-3">
+    @if (runError()) {
+      <span class="text-[0.75rem] text-red-600">
+        <i class="pi pi-exclamation-circle mr-1"></i>{{ runError() }}
+      </span>
+    }
     <button
       type="button"
       [disabled]="running()"
@@ -64,9 +69,9 @@
           </tr>
         </thead>
         <tbody>
-          @for (result of results()!; track result.testCaseId) {
+          @for (result of results()!; track (result.testCaseId ?? $index)) {
             <tr class="border-b border-gray-100 last:border-0">
-              <td class="px-3 py-2 text-gray-500">{{ result.ordinal }}</td>
+              <td class="px-3 py-2 text-gray-500">{{ result.testCaseId ? result.ordinal : '—' }}</td>
               <td class="px-3 py-2">
                 @if (result.passed) {
                   <span class="inline-flex items-center gap-1 text-green-700 font-medium">
