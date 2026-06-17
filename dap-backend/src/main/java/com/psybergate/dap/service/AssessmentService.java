@@ -41,6 +41,9 @@ public class AssessmentService {
     @Value("${assessment.required-group}")
     private int requiredGroup;
 
+    @Value("${assessment.required-coding}")
+    private int requiredCoding;
+
     @Value("${assessment.doc-question-limit}")
     private int docQuestionLimit;
 
@@ -55,6 +58,7 @@ public class AssessmentService {
     private final TextQuestionRepository textQuestionRepository;
     private final DocQuestionRepository docQuestionRepository;
     private final GroupQuestionRepository groupQuestionRepository;
+    private final CodingQuestionRepository codingQuestionRepository;
     private final FeedbackRepository feedbackRepository;
     private final InvitationTokenUtil invitationTokenUtil;
     private final JwtUtil jwtUtil;
@@ -70,6 +74,7 @@ public class AssessmentService {
                              TextQuestionRepository textQuestionRepository,
                              DocQuestionRepository docQuestionRepository,
                              GroupQuestionRepository groupQuestionRepository,
+                             CodingQuestionRepository codingQuestionRepository,
                              InvitationTokenUtil invitationTokenUtil,
                              JwtUtil jwtUtil,
                              EmailService emailService,
@@ -83,6 +88,7 @@ public class AssessmentService {
         this.textQuestionRepository = textQuestionRepository;
         this.docQuestionRepository = docQuestionRepository;
         this.groupQuestionRepository = groupQuestionRepository;
+        this.codingQuestionRepository = codingQuestionRepository;
         this.invitationTokenUtil = invitationTokenUtil;
         this.jwtUtil = jwtUtil;
         this.emailService = emailService;
@@ -104,11 +110,10 @@ public class AssessmentService {
             questions = selectMarkerPickedQuestions(request.questionIds(), seenIds);
         }
 
-        // Count both DocQuestion (legacy) and CodingQuestion against the doc/coding limit
-        long docCount = questions.stream().filter(q -> q instanceof DocQuestion || q instanceof CodingQuestion).count();
+        long docCount = questions.stream().filter(q -> q instanceof DocQuestion).count();
         if (docCount > docQuestionLimit) {
             throw new ValidationException(
-                    "Assessment contains " + docCount + " doc/coding questions but limit is " + docQuestionLimit);
+                    "Assessment contains " + docCount + " doc questions but limit is " + docQuestionLimit);
         }
 
         Assessment assessment = Assessment.builder()
@@ -224,6 +229,13 @@ public class AssessmentService {
         if (q instanceof TextQuestion tq) {
             return new TextQuestionResponse(tq.getId(), List.of(), tq.getQuestion(), tq.getKeywords(), 0);
         }
+        if (q instanceof CodingQuestion cq) {
+            List<TestCaseResponse> testCases = cq.getTestCases().stream()
+                    .map(tc -> new TestCaseResponse(tc.getId(), tc.getInput(), tc.getExpectedOutput(),
+                            tc.getTimeoutSeconds(), tc.getMemoryMb(), tc.getOrdinal()))
+                    .toList();
+            return new CodingQuestionResponse(cq.getId(), List.of(), cq.getQuestion(), cq.getLanguage(), testCases);
+        }
         throw new UnsupportedOperationException("Unmapped question type: " + q.getClass());
     }
 
@@ -241,6 +253,7 @@ public class AssessmentService {
         selected.addAll(pickRandom(availablePureText(seenIds), requiredText, "Text"));
         selected.addAll(pickRandom(availableDoc(seenIds), requiredDoc, "Document"));
         selected.addAll(pickRandom(availableGroup(seenIds), requiredGroup, "Group"));
+        selected.addAll(pickRandom(availableCoding(seenIds), requiredCoding, "Coding"));
         return selected;
     }
 
@@ -261,8 +274,9 @@ public class AssessmentService {
         List<TextQuestion>    pickedText    = picked.stream().filter(q -> q.getClass() == TextQuestion.class).map(TextQuestion.class::cast).collect(Collectors.toList());
         List<DocQuestion>     pickedDoc     = picked.stream().filter(DocQuestion.class::isInstance).map(DocQuestion.class::cast).collect(Collectors.toList());
         List<GroupQuestion>   pickedGroup   = picked.stream().filter(GroupQuestion.class::isInstance).map(GroupQuestion.class::cast).collect(Collectors.toList());
+        List<CodingQuestion>  pickedCoding  = picked.stream().filter(CodingQuestion.class::isInstance).map(CodingQuestion.class::cast).collect(Collectors.toList());
 
-        validateNoTypeExceedsLimit(pickedMcq.size(), pickedMcqPlus.size(), pickedText.size(), pickedDoc.size(), pickedGroup.size());
+        validateNoTypeExceedsLimit(pickedMcq.size(), pickedMcqPlus.size(), pickedText.size(), pickedDoc.size(), pickedGroup.size(), pickedCoding.size());
 
         Set<UUID> pickedIds = picked.stream().map(AssessmentQuestion::getId).collect(Collectors.toSet());
         List<AssessmentQuestion> result = new ArrayList<>(picked);
@@ -284,17 +298,22 @@ public class AssessmentService {
             List<GroupQuestion> available = availableGroup(seenIds).stream().filter(q -> !pickedIds.contains(q.getId())).collect(Collectors.toList());
             result.addAll(pickRandom(available, requiredGroup - pickedGroup.size(), "Group"));
         }
+        if (pickedCoding.size() < requiredCoding) {
+            List<CodingQuestion> available = availableCoding(seenIds).stream().filter(q -> !pickedIds.contains(q.getId())).collect(Collectors.toList());
+            result.addAll(pickRandom(available, requiredCoding - pickedCoding.size(), "Coding"));
+        }
 
         return result;
     }
 
-    private void validateNoTypeExceedsLimit(int mcq, int mcqPlus, int text, int doc, int group) {
+    private void validateNoTypeExceedsLimit(int mcq, int mcqPlus, int text, int doc, int group, int coding) {
         List<String> violations = new ArrayList<>();
         if (mcq + mcqPlus > requiredMcq)    violations.add(String.format("MCQ (total): max %d, selected %d",  requiredMcq,     mcq + mcqPlus));
         if (mcqPlus       > requiredMcqPlus) violations.add(String.format("MCQ+: max %d, selected %d",        requiredMcqPlus, mcqPlus));
         if (text          > requiredText)    violations.add(String.format("Text: max %d, selected %d",        requiredText,    text));
         if (doc           > requiredDoc)     violations.add(String.format("Document: max %d, selected %d",    requiredDoc,     doc));
         if (group         > requiredGroup)   violations.add(String.format("Group: max %d, selected %d",       requiredGroup,   group));
+        if (coding        > requiredCoding)  violations.add(String.format("Coding: max %d, selected %d",      requiredCoding,  coding));
         if (!violations.isEmpty()) {
             throw new ValidationException("Too many questions selected — " + String.join(", ", violations));
         }
@@ -326,6 +345,12 @@ public class AssessmentService {
 
     private List<GroupQuestion> availableGroup(Set<UUID> seenIds) {
         return groupQuestionRepository.findAll().stream()
+                .filter(q -> !seenIds.contains(q.getId()))
+                .collect(Collectors.toList());
+    }
+
+    private List<CodingQuestion> availableCoding(Set<UUID> seenIds) {
+        return codingQuestionRepository.findAll().stream()
                 .filter(q -> !seenIds.contains(q.getId()))
                 .collect(Collectors.toList());
     }
@@ -408,6 +433,11 @@ public class AssessmentService {
         Assessment saved = assessmentRepository.save(assessment);
 
         responseService.autoMarkMcqResponses(assessmentId);
+        try {
+            responseService.autoExecuteCodingResponses(assessmentId);
+        } catch (Exception ex) {
+            log.error("Failed to auto-execute coding responses for assessment {}: {}", assessmentId, ex.getMessage(), ex);
+        }
 
         return toResponse(saved);
     }
