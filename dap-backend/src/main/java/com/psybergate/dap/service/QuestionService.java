@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,6 +23,7 @@ public class QuestionService {
     private final QuestionBankRepository questionBankRepository;
     private final McqPlusQuestionRepository mcqPlusQuestionRepository;
     private final CodingQuestionRepository codingQuestionRepository;
+    private final CodeExecutionService codeExecutionService;
 
     public QuestionService(AssessmentQuestionRepository assessmentQuestionRepository,
                            McqQuestionRepository mcqQuestionRepository,
@@ -30,7 +32,8 @@ public class QuestionService {
                            GroupQuestionRepository groupQuestionRepository,
                            QuestionBankRepository questionBankRepository,
                            McqPlusQuestionRepository mcqPlusQuestionRepository,
-                           CodingQuestionRepository codingQuestionRepository) {
+                           CodingQuestionRepository codingQuestionRepository,
+                           CodeExecutionService codeExecutionService) {
         this.assessmentQuestionRepository = assessmentQuestionRepository;
         this.mcqQuestionRepository = mcqQuestionRepository;
         this.docQuestionRepository = docQuestionRepository;
@@ -39,6 +42,7 @@ public class QuestionService {
         this.questionBankRepository = questionBankRepository;
         this.mcqPlusQuestionRepository = mcqPlusQuestionRepository;
         this.codingQuestionRepository = codingQuestionRepository;
+        this.codeExecutionService = codeExecutionService;
     }
 
     @Transactional
@@ -167,6 +171,17 @@ public class QuestionService {
         }
 
         throw new ValidationException("Request type does not match the existing question type");
+    }
+
+    @Transactional(readOnly = true)
+    public CodeExecuteResponse executeQuestion(UUID id, String code) {
+        AssessmentQuestion q = assessmentQuestionRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Question not found: " + id));
+        if (!(q instanceof CodingQuestion cq)) {
+            throw new ValidationException("Question " + id + " is not a coding question");
+        }
+        List<TestCaseResultResponse> results = codeExecutionService.execute(cq, code);
+        return new CodeExecuteResponse(results, Instant.now());
     }
 
     @Transactional

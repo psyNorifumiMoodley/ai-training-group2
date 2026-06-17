@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal } from '@angular/core';
+import { switchMap } from 'rxjs';
 import { CodingQuestionResponse } from '../../../../core/models/question.model';
 import { CodingResponseRequest, TestCaseResult } from '../../../../core/models/assessment-session.model';
 import { CandidateAssessmentService } from '../../../../core/services/candidate-assessment.service';
 import { AnswerChangedEvent } from '../question-renderer/question-renderer.component';
+import { CODING_SCAFFOLDS } from '../../../question-management/components/coding-question-preview/coding-question-preview.component';
 
 @Component({
   selector: 'dap-coding-answer',
@@ -22,12 +24,15 @@ export class CodingAnswerComponent {
   readonly code = signal('');
   readonly running = signal(false);
   readonly results = signal<TestCaseResult[] | null>(null);
+  readonly runError = signal<string | null>(null);
 
   constructor() {
     effect(() => {
       const saved = this.savedAnswer();
       if (saved?.code) {
         this.code.set(saved.code);
+      } else {
+        this.code.set(CODING_SCAFFOLDS[this.question().language]);
       }
     }, { allowSignalWrites: true });
   }
@@ -40,13 +45,16 @@ export class CodingAnswerComponent {
   runCode(): void {
     if (this.running()) return;
     this.running.set(true);
-    this.service.executeCode(this.assessmentId(), this.question().id, this.code())
+    this.runError.set(null);
+    this.service.saveResponse(this.assessmentId(), this.question().id, { code: this.code() })
+      .pipe(switchMap(() => this.service.executeCode(this.assessmentId(), this.question().id, this.code())))
       .subscribe({
         next: (response) => {
           this.results.set(response.results);
           this.running.set(false);
         },
-        error: () => {
+        error: (err) => {
+          this.runError.set(err?.error?.message ?? 'Code execution failed. Please try again.');
           this.running.set(false);
         },
       });
