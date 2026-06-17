@@ -23,7 +23,7 @@ export type ResponseRequest =
   | CodingResponseRequest;
 
 export interface TestCaseResult {
-  testCaseId: string;
+  testCaseId: string | null;
   passed: boolean;
   actualOutput: string | null;
   executionTimeMs: number | null;

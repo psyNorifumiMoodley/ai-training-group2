@@ -1,5 +1,7 @@
 package com.psybergate.dap.controller;
 
+import com.psybergate.dap.dto.CodeExecuteResponse;
+import com.psybergate.dap.dto.CodingExecuteRequest;
 import com.psybergate.dap.dto.DocQuestionRequest;
 import com.psybergate.dap.dto.ErrorResponse;
 import com.psybergate.dap.dto.PageResponse;
@@ -61,6 +63,13 @@ public class QuestionController {
             @PathVariable UUID id,
             @Valid @RequestBody QuestionRequest request) {
         return ResponseEntity.ok(questionService.update(id, request));
+    }
+
+    @PostMapping("/{id}/execute")
+    public ResponseEntity<CodeExecuteResponse> executeQuestion(
+            @PathVariable UUID id,
+            @Valid @RequestBody CodingExecuteRequest request) {
+        return ResponseEntity.ok(questionService.executeQuestion(id, request.code()));
     }
 
     @DeleteMapping("/{id}")

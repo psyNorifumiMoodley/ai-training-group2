@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, effect, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { QuestionResponse, McqQuestionResponse, McqPlusQuestionResponse, GroupQuestionResponse, QuestionType } from '../../../../core/models/question.model';
-import { ResponseRequest, McqResponseRequest, McqPlusResponseRequest, TextResponseRequest, DocResponseRequest, GroupResponseRequest } from '../../../../core/models/assessment-session.model';
+import { QuestionResponse, McqQuestionResponse, McqPlusQuestionResponse, GroupQuestionResponse, CodingQuestionResponse, QuestionType } from '../../../../core/models/question.model';
+import { ResponseRequest, McqResponseRequest, McqPlusResponseRequest, TextResponseRequest, DocResponseRequest, GroupResponseRequest, CodingResponseRequest } from '../../../../core/models/assessment-session.model';
+import { CodingAnswerComponent } from '../coding-answer/coding-answer.component';
 
 export interface AnswerChangedEvent {
   questionId: string;
@@ -11,13 +12,14 @@ export interface AnswerChangedEvent {
 @Component({
   selector: 'dap-question-renderer',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, CodingAnswerComponent],
   templateUrl: './question-renderer.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuestionRendererComponent {
   readonly question = input.required<QuestionResponse>();
   readonly savedAnswer = input<ResponseRequest | undefined>(undefined);
+  readonly assessmentId = input.required<string>();
   readonly answerChanged = output<AnswerChangedEvent>();
 
   readonly selectedOption = signal<string | null>(null);
@@ -78,6 +80,7 @@ export class QuestionRendererComponent {
   isText(): boolean    { return this.resolveType() === 'TEXT'; }
   isDoc(): boolean     { return this.resolveType() === 'DOC'; }
   isGroup(): boolean   { return this.resolveType() === 'GROUP'; }
+  isCoding(): boolean  { return this.resolveType() === 'CODING'; }
 
   isMultiCorrect(): boolean {
     return (this.question() as McqQuestionResponse).multiCorrect;
@@ -86,6 +89,7 @@ export class QuestionRendererComponent {
   asMcq(): McqQuestionResponse         { return this.question() as McqQuestionResponse; }
   asMcqPlus(): McqPlusQuestionResponse { return this.question() as McqPlusQuestionResponse; }
   asGroup(): GroupQuestionResponse     { return this.question() as GroupQuestionResponse; }
+  asCoding(): CodingQuestionResponse   { return this.question() as CodingQuestionResponse; }
 
   onRadioSelect(option: string): void {
     this.selectedOption.set(option);
