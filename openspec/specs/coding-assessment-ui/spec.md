@@ -33,15 +33,28 @@ Clicking "Run" SHALL call `CandidateAssessmentService.executeCode()` and display
 ---
 
 ### Requirement: Code Is Auto-Saved on Change
-Code typed in the editor SHALL be auto-saved via `CandidateAssessmentService.saveResponse()` using a debounce of 1 second after the last keystroke, exactly as text responses are auto-saved. The auto-save uses `CodingResponseRequest { code }`.
+Code typed in the editor SHALL be auto-saved via `CandidateAssessmentService.saveResponse()` using a debounce of 1.5 seconds after the last keystroke, matching the debounce used by all other response types in `AssessmentTakingComponent`. The auto-save uses `CodingResponseRequest { code }`.
 
 #### Scenario: Code is auto-saved after typing stops
-- **WHEN** the candidate stops typing in the code editor for 1 second
+- **WHEN** the candidate stops typing in the code editor for 1.5 seconds
 - **THEN** `saveResponse()` is called with the current code string
 
 #### Scenario: Auto-save does not re-trigger execution
 - **WHEN** auto-save fires
 - **THEN** no call to `executeCode()` is made; only the `PUT /responses/{questionId}` save endpoint is called
+
+---
+
+### Requirement: CandidateAssessmentService.executeCode() Calls the Execute Endpoint
+`CandidateAssessmentService.executeCode(assessmentId, questionId, code)` SHALL make a `POST /api/assessments/{assessmentId}/responses/{questionId}/execute` HTTP request and return an `Observable<CodeExecuteResponse>`. The stub implementation (`return EMPTY`) is not acceptable in production.
+
+#### Scenario: executeCode() sends POST to execute endpoint
+- **WHEN** `executeCode(assessmentId, questionId, code)` is called with valid IDs
+- **THEN** a `POST` request is sent to `/api/assessments/{assessmentId}/responses/{questionId}/execute` and the returned `Observable` emits the `CodeExecuteResponse`
+
+#### Scenario: executeCode() error propagates to caller
+- **WHEN** the execute endpoint returns a non-2xx response
+- **THEN** the `Observable` errors and the caller (`CodingAnswerComponent`) is responsible for handling it (resetting loading state)
 
 ---
 
@@ -51,3 +64,29 @@ The existing submit confirmation dialog and post-submit confirmation screen SHAL
 #### Scenario: Submit flow proceeds normally with coding questions present
 - **WHEN** a candidate clicks "Submit" on an assessment containing CODING questions
 - **THEN** the existing confirmation dialog appears; on confirm, `submitAssessment()` is called; no coding-specific UI step is injected
+
+---
+
+### Requirement: Code editor is pre-populated with a language-specific scaffold when no saved code exists
+When `CodingAnswerComponent` initialises with no prior saved code (`savedAnswer` is absent or its `code` field is empty), the code editor SHALL be pre-filled with the per-language scaffold string rather than an empty string. If the candidate has previously saved code, the saved code takes precedence and the scaffold is NOT applied.
+
+The scaffolds are:
+- **JAVA**: `public class Solution {\n    public static void main(String[] args) {\n        \n    }\n}`
+- **PYTHON**: `def main():\n    pass\n\nif __name__ == '__main__':\n    main()`
+- **CSHARP**: `using System;\n\nclass Solution {\n    static void Main(string[] args) {\n        \n    }\n}`
+
+#### Scenario: New Java question shows Java scaffold in editor
+- **WHEN** a candidate opens a CODING question with `language = JAVA` and has no previously saved code
+- **THEN** the code editor is pre-filled with the Java scaffold string
+
+#### Scenario: New Python question shows Python scaffold in editor
+- **WHEN** a candidate opens a CODING question with `language = PYTHON` and has no previously saved code
+- **THEN** the code editor is pre-filled with the Python scaffold string
+
+#### Scenario: New C# question shows C# scaffold in editor
+- **WHEN** a candidate opens a CODING question with `language = CSHARP` and has no previously saved code
+- **THEN** the code editor is pre-filled with the C# scaffold string
+
+#### Scenario: Previously saved code takes precedence over scaffold
+- **WHEN** a candidate re-opens a CODING question that already has saved code
+- **THEN** the editor shows the saved code, not the scaffold

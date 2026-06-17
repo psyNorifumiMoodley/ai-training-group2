@@ -6,6 +6,7 @@ import {
   QuestionRequest,
   QuestionResponse,
 } from '../models/question.model';
+import { CodeExecuteResponse } from '../models/assessment-session.model';
 import { PageResponse } from '../models/user.model';
 
 @Injectable({ providedIn: 'root' })
@@ -28,5 +29,12 @@ export class QuestionService {
 
   deleteQuestion(id: string): Observable<void> {
     return this.http.delete<void>(`${environment.apiBaseUrl}/questions/${id}`);
+  }
+
+  executeQuestion(questionId: string, code: string): Observable<CodeExecuteResponse> {
+    return this.http.post<CodeExecuteResponse>(
+      `${environment.apiBaseUrl}/questions/${questionId}/execute`,
+      { code }
+    );
   }
 }

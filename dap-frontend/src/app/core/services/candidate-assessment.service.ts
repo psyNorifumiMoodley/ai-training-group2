@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { EMPTY, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { AssessmentAccessResponse, CodeExecuteResponse, ResponseRequest } from '../models/assessment-session.model';
 import { environment } from '../../../environments/environment';
 
@@ -26,6 +26,6 @@ export class CandidateAssessmentService {
   }
 
   executeCode(assessmentId: string, questionId: string, code: string): Observable<CodeExecuteResponse> {
-    return EMPTY as unknown as Observable<CodeExecuteResponse>;
+    return this.http.post<CodeExecuteResponse>(`${this.base}/assessments/${assessmentId}/responses/${questionId}/execute`, {});
   }
 }

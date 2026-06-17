@@ -33,7 +33,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -71,8 +70,9 @@ public class AssessmentController {
     @PreAuthorize("hasRole('CANDIDATE')")
     public ResponseEntity<CodeExecuteResponse> executeCode(
             @PathVariable UUID id,
-            @PathVariable UUID questionId) {
-        return ResponseEntity.ok(new CodeExecuteResponse(List.of(), Instant.now()));
+            @PathVariable UUID questionId,
+            @AuthenticationPrincipal AppUser currentUser) {
+        return ResponseEntity.ok(responseService.executeCode(id, questionId, currentUser.getId()));
     }
 
     @PutMapping("/{id}/responses/{questionId}")
