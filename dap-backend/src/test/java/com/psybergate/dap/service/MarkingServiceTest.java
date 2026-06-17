@@ -6,6 +6,7 @@ import com.psybergate.dap.domain.AssessmentStatus;
 import com.psybergate.dap.domain.Candidate;
 import com.psybergate.dap.domain.Feedback;
 import com.psybergate.dap.domain.GroupQuestion;
+import com.psybergate.dap.domain.GroupQuestionChild;
 import com.psybergate.dap.domain.McqQuestion;
 import com.psybergate.dap.domain.McqResponse;
 import com.psybergate.dap.domain.QuestionGroupResponse;
@@ -101,6 +102,7 @@ class MarkingServiceTest {
         TextQuestion q = new TextQuestion();
         q.setId(UUID.randomUUID());
         q.setQuestion("Explain OOP.");
+        q.setMarks(1);
         return q;
     }
 
@@ -165,6 +167,8 @@ class MarkingServiceTest {
 
         Feedback feedback = feedbackWithDraft(assessment, "Correct");
 
+        assessment.getQuestions().add(question);
+        when(assessmentRepository.findById(assessmentId)).thenReturn(Optional.of(assessment));
         when(responseRepository.findTopLevelByAssessmentId(assessmentId))
                 .thenReturn(List.of(response));
         when(feedbackService.getOrCreateDraft(assessmentId, question.getId()))
@@ -199,6 +203,8 @@ class MarkingServiceTest {
 
         Feedback feedback = feedbackWithDraft(assessment, "Incorrect — please review this topic");
 
+        assessment.getQuestions().add(question);
+        when(assessmentRepository.findById(assessmentId)).thenReturn(Optional.of(assessment));
         when(responseRepository.findTopLevelByAssessmentId(assessmentId))
                 .thenReturn(List.of(response));
         when(feedbackService.getOrCreateDraft(assessmentId, question.getId()))
@@ -232,6 +238,8 @@ class MarkingServiceTest {
 
         Feedback feedback = feedbackWithDraft(assessment, "");
 
+        assessment.getQuestions().add(question);
+        when(assessmentRepository.findById(assessmentId)).thenReturn(Optional.of(assessment));
         when(responseRepository.findTopLevelByAssessmentId(assessmentId))
                 .thenReturn(List.of(response));
         when(feedbackService.getOrCreateDraft(assessmentId, question.getId()))
@@ -327,6 +335,8 @@ class MarkingServiceTest {
 
         Feedback feedback = feedbackWithDraft(assessment, "");
 
+        assessment.getQuestions().add(groupQuestion);
+        when(assessmentRepository.findById(assessmentId)).thenReturn(Optional.of(assessment));
         when(responseRepository.findTopLevelByAssessmentId(assessmentId))
                 .thenReturn(List.of(groupResponse));
         when(feedbackService.getOrCreateDraft(assessmentId, groupQuestion.getId()))
@@ -419,6 +429,18 @@ class MarkingServiceTest {
         groupQuestion.setId(UUID.randomUUID());
         groupQuestion.setQuestion("Describe patterns.");
 
+        GroupQuestionChild childDef1 = new GroupQuestionChild();
+        childDef1.setQuestionText("What is Singleton?");
+        childDef1.setMarks(1);
+        childDef1.setDisplayOrder(0);
+        groupQuestion.getChildren().add(childDef1);
+
+        GroupQuestionChild childDef2 = new GroupQuestionChild();
+        childDef2.setQuestionText("What is Factory?");
+        childDef2.setMarks(1);
+        childDef2.setDisplayOrder(1);
+        groupQuestion.getChildren().add(childDef2);
+
         TextQuestion followUp1 = new TextQuestion();
         followUp1.setId(UUID.randomUUID());
         followUp1.setQuestion("What is Singleton?");
@@ -444,6 +466,8 @@ class MarkingServiceTest {
 
         Feedback feedback = feedbackWithDraft(assessment, "Good understanding");
 
+        assessment.getQuestions().add(groupQuestion);
+        when(assessmentRepository.findById(assessmentId)).thenReturn(Optional.of(assessment));
         when(responseRepository.findTopLevelByAssessmentId(assessmentId))
                 .thenReturn(List.of(groupResponse));
         when(feedbackService.getOrCreateDraft(assessmentId, groupQuestion.getId()))

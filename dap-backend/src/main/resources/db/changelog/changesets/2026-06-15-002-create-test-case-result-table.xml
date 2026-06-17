@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="2026-06-15-002-create-test-case-result-table" author="gregory.robson">
+
+        <createTable tableName="test_case_result">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coding_response_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="test_case_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="passed" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="actual_output" type="TEXT"/>
+            <column name="execution_time_ms" type="BIGINT"/>
+            <column name="memory_used_mb" type="BIGINT"/>
+            <column name="error_message" type="TEXT"/>
+            <column name="ordinal" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ"/>
+            <column name="updated_at" type="TIMESTAMPTZ"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+                baseTableName="test_case_result"
+                baseColumnNames="coding_response_id"
+                referencedTableName="coding_response"
+                referencedColumnNames="id"
+                constraintName="fk_test_case_result_coding_response"
+                onDelete="CASCADE"/>
+
+        <addForeignKeyConstraint
+                baseTableName="test_case_result"
+                baseColumnNames="test_case_id"
+                referencedTableName="test_case"
+                referencedColumnNames="id"
+                constraintName="fk_test_case_result_test_case"
+                onDelete="CASCADE"/>
+
+        <rollback>
+            <dropTable tableName="test_case_result"/>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

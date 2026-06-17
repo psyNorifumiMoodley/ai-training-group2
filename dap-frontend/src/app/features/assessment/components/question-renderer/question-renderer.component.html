@@ -109,6 +109,15 @@
   </div>
 }
 
+<!-- Coding -->
+@if (isCoding()) {
+  <dap-coding-answer
+    [question]="asCoding()"
+    [savedAnswer]="$any(savedAnswer())"
+    [assessmentId]="assessmentId()"
+    (answerChanged)="answerChanged.emit($event)" />
+}
+
 <!-- Group -->
 @if (isGroup()) {
   <div class="space-y-4">

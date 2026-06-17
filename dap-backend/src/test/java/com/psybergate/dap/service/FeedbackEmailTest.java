@@ -15,6 +15,7 @@ import com.psybergate.dap.repository.AssessmentRepository;
 import com.psybergate.dap.repository.CandidateRepository;
 import com.psybergate.dap.repository.DocQuestionRepository;
 import com.psybergate.dap.repository.FeedbackRepository;
+import com.psybergate.dap.repository.CodingQuestionRepository;
 import com.psybergate.dap.repository.GroupQuestionRepository;
 import com.psybergate.dap.repository.McqPlusQuestionRepository;
 import com.psybergate.dap.repository.McqQuestionRepository;
@@ -48,6 +49,7 @@ class FeedbackEmailTest {
     @Mock private TextQuestionRepository textQuestionRepository;
     @Mock private DocQuestionRepository docQuestionRepository;
     @Mock private GroupQuestionRepository groupQuestionRepository;
+    @Mock private CodingQuestionRepository codingQuestionRepository;
     @Mock private FeedbackRepository feedbackRepository;
     @Mock private InvitationTokenUtil invitationTokenUtil;
     @Mock private JwtUtil jwtUtil;
@@ -64,7 +66,7 @@ class FeedbackEmailTest {
         assessmentService = new AssessmentService(
                 candidateRepository, assessmentRepository, assessmentQuestionRepository,
                 mcqQuestionRepository, mcqPlusQuestionRepository, textQuestionRepository, docQuestionRepository,
-                groupQuestionRepository, invitationTokenUtil, jwtUtil, emailService,
+                groupQuestionRepository, codingQuestionRepository, invitationTokenUtil, jwtUtil, emailService,
                 responseService, feedbackRepository);
     }
 

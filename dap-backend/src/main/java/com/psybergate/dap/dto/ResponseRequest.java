@@ -9,8 +9,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(McqResponseRequest.class),
         @JsonSubTypes.Type(TextResponseRequest.class),
         @JsonSubTypes.Type(DocResponseRequest.class),
-        @JsonSubTypes.Type(GroupResponseRequest.class)
+        @JsonSubTypes.Type(GroupResponseRequest.class),
+        @JsonSubTypes.Type(CodingResponseRequest.class)
 })
 public sealed interface ResponseRequest
-        permits McqPlusResponseRequest, McqResponseRequest, TextResponseRequest, DocResponseRequest, GroupResponseRequest {
+        permits McqPlusResponseRequest, McqResponseRequest, TextResponseRequest, DocResponseRequest, GroupResponseRequest, CodingResponseRequest {
 }

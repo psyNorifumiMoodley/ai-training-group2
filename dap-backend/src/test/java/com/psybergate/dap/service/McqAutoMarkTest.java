@@ -3,8 +3,11 @@ package com.psybergate.dap.service;
 import com.psybergate.dap.domain.*;
 import com.psybergate.dap.repository.AssessmentQuestionRepository;
 import com.psybergate.dap.repository.AssessmentRepository;
+import com.psybergate.dap.repository.CodingQuestionRepository;
+import com.psybergate.dap.repository.CodingResponseRepository;
 import com.psybergate.dap.repository.McqQuestionRepository;
 import com.psybergate.dap.repository.ResponseRepository;
+import com.psybergate.dap.repository.TestCaseResultRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,13 +35,23 @@ class McqAutoMarkTest {
     private AssessmentRepository assessmentRepository;
     @Mock
     private AssessmentQuestionRepository assessmentQuestionRepository;
+    @Mock
+    private CodingResponseRepository codingResponseRepository;
+    @Mock
+    private CodeExecutionService codeExecutionService;
+    @Mock
+    private TestCaseResultRepository testCaseResultRepository;
+    @Mock
+    private CodingQuestionRepository codingQuestionRepository;
 
     private ResponseService responseService;
 
     @BeforeEach
     void setUp() {
         responseService = new ResponseService(responseRepository, mcqQuestionRepository,
-                assessmentRepository, assessmentQuestionRepository);
+                assessmentRepository, assessmentQuestionRepository,
+                codingResponseRepository, codeExecutionService,
+                testCaseResultRepository, codingQuestionRepository);
     }
 
     private McqQuestion questionWithCorrectAnswers(List<String> correctAnswers) {

@@ -2,6 +2,7 @@ package com.psybergate.dap.repository;
 
 import com.psybergate.dap.domain.McqQuestion;
 import com.psybergate.dap.domain.QuestionBank;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -17,6 +18,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Disabled("Requires Docker — run integration tests manually")
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers
@@ -76,3 +78,4 @@ class QuestionBankRepositoryTest {
         assertThat(questionBankRepository.existsByQuestionsId(bank.getId())).isFalse();
     }
 }
+

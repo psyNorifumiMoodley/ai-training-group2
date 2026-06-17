@@ -9,6 +9,7 @@ import com.psybergate.dap.domain.AppUser;
 import com.psybergate.dap.domain.Role;
 import com.psybergate.dap.dto.AssessmentRequest;
 import com.psybergate.dap.dto.AssessmentResponse;
+import com.psybergate.dap.dto.CodingResponseRequest;
 import com.psybergate.dap.service.AssessmentService;
 import com.psybergate.dap.service.AuthService;
 import com.psybergate.dap.service.FeedbackService;
@@ -30,8 +31,10 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -157,5 +160,59 @@ class AssessmentControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void saveResponse_codingRequest_asCandidate_returns204() throws Exception {
+        String token = tokenFor("candidate@example.com", Role.CANDIDATE);
+        UUID assessmentId = UUID.randomUUID();
+        UUID questionId = UUID.randomUUID();
+        doNothing().when(responseService).saveResponse(any(), any(), any());
+
+        mockMvc.perform(put("/api/assessments/{id}/responses/{questionId}", assessmentId, questionId)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CodingResponseRequest("class X{}"))))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void saveResponse_blankCode_returns400() throws Exception {
+        String token = tokenFor("candidate@example.com", Role.CANDIDATE);
+        UUID assessmentId = UUID.randomUUID();
+        UUID questionId = UUID.randomUUID();
+
+        mockMvc.perform(put("/api/assessments/{id}/responses/{questionId}", assessmentId, questionId)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"code\":\"\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void executeCode_asCandidate_returns200WithEmptyResults() throws Exception {
+        String token = tokenFor("candidate@example.com", Role.CANDIDATE);
+        UUID assessmentId = UUID.randomUUID();
+        UUID questionId = UUID.randomUUID();
+
+        when(responseService.executeCode(any(), any(), any()))
+                .thenReturn(new com.psybergate.dap.dto.CodeExecuteResponse(List.of(), Instant.now()));
+
+        mockMvc.perform(post("/api/assessments/{id}/responses/{questionId}/execute", assessmentId, questionId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.results").isArray())
+                .andExpect(jsonPath("$.executedAt").isNotEmpty());
+    }
+
+    @Test
+    void executeCode_asMarker_returns403() throws Exception {
+        String token = tokenFor("marker@example.com", Role.MARKER);
+        UUID assessmentId = UUID.randomUUID();
+        UUID questionId = UUID.randomUUID();
+
+        mockMvc.perform(post("/api/assessments/{id}/responses/{questionId}/execute", assessmentId, questionId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
     }
 }
