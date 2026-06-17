@@ -9,6 +9,7 @@ import com.psybergate.dap.domain.McqResponse;
 import com.psybergate.dap.domain.Response;
 import com.psybergate.dap.domain.Role;
 import com.psybergate.dap.domain.TextQuestion;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -25,6 +26,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Disabled("Requires Docker — run integration tests manually")
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers
@@ -164,3 +166,4 @@ class ResponseRepositoryTest {
         assertThat(responses).hasSize(2);
     }
 }
+

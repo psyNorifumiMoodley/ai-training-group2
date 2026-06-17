@@ -67,6 +67,13 @@
             <div class="flex items-start justify-between gap-3">
               <p class="text-caption text-gray-800 line-clamp-2 flex-1">{{ q.question }}</p>
               <div class="flex items-center gap-1 flex-shrink-0">
+                @if (isCoding(q)) {
+                  <button (click)="togglePreview(q.id)"
+                          class="px-3 py-1 rounded-input bg-white text-purple-700 border border-purple-300 text-caption font-medium hover:bg-purple-50 transition-colors">
+                    <i class="pi pi-play text-[0.625rem] mr-1"></i>
+                    {{ testingQuestionId() === q.id ? 'Close test' : 'Test question' }}
+                  </button>
+                }
                 <button (click)="openEdit(q)"
                         class="px-3 py-1 rounded-input bg-white text-primary border border-primary text-caption font-medium hover:bg-primary-light transition-colors">
                   Edit
@@ -109,6 +116,10 @@
                   }
                 }
               </div>
+            }
+
+            @if (isCoding(q) && testingQuestionId() === q.id) {
+              <dap-coding-question-preview [question]="q" />
             }
           </div>
         }

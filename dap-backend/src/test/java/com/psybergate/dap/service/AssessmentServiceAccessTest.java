@@ -44,6 +44,8 @@ class AssessmentServiceAccessTest {
     @Mock
     private GroupQuestionRepository groupQuestionRepository;
     @Mock
+    private CodingQuestionRepository codingQuestionRepository;
+    @Mock
     private FeedbackRepository feedbackRepository;
     @Mock
     private InvitationTokenUtil invitationTokenUtil;
@@ -63,14 +65,15 @@ class AssessmentServiceAccessTest {
         assessmentService = new AssessmentService(
                 candidateRepository, assessmentRepository, assessmentQuestionRepository,
                 mcqQuestionRepository, mcqPlusQuestionRepository, textQuestionRepository, docQuestionRepository,
-                groupQuestionRepository, invitationTokenUtil, jwtUtil, emailService, responseService,
-                feedbackRepository);
+                groupQuestionRepository, codingQuestionRepository, invitationTokenUtil, jwtUtil, emailService,
+                responseService, feedbackRepository);
         lenient().when(jwtUtil.generateToken(any())).thenReturn("candidate.jwt.token");
         ReflectionTestUtils.setField(assessmentService, "requiredMcq", 5);
         ReflectionTestUtils.setField(assessmentService, "requiredMcqPlus", 2);
         ReflectionTestUtils.setField(assessmentService, "requiredText", 3);
         ReflectionTestUtils.setField(assessmentService, "requiredDoc", 1);
         ReflectionTestUtils.setField(assessmentService, "requiredGroup", 1);
+        ReflectionTestUtils.setField(assessmentService, "requiredCoding", 1);
         ReflectionTestUtils.setField(assessmentService, "docQuestionLimit", 1);
         ReflectionTestUtils.setField(assessmentService, "frontendBaseUrl", "http://localhost:4200");
     }
@@ -196,21 +199,13 @@ class AssessmentServiceAccessTest {
         Assessment pending = pendingAssessment();
         when(assessmentRepository.findByInvitationToken(VALID_TOKEN)).thenReturn(Optional.of(pending));
 
-        // After save, assessment must have startTime set (simulated by returning same object)
-        when(assessmentRepository.save(any(Assessment.class))).thenAnswer(inv -> {
-            Assessment saved = inv.getArgument(0);
-            // Ensure the startTime was set before save was called
-            assertThat(saved.getStatus()).isEqualTo(AssessmentStatus.IN_PROGRESS);
-            assertThat(saved.getStartTime()).isNotNull();
-            return saved;
-        });
-
         AssessmentAccessResponse response = assessmentService.access(VALID_TOKEN);
 
-        verify(assessmentRepository).save(any(Assessment.class));
+        verify(assessmentRepository, never()).save(any());
         assertThat(response).isNotNull();
         assertThat(response.assessmentId()).isEqualTo(pending.getId());
-        assertThat(response.remainingSeconds()).isGreaterThan(0);
+        assertThat(response.alreadyStarted()).isFalse();
+        assertThat(response.remainingSeconds()).isEqualTo(3600);
     }
 
     // --- Already IN_PROGRESS (re-access) ---

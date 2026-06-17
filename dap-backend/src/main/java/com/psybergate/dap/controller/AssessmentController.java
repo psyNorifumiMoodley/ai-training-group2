@@ -5,6 +5,7 @@ import com.psybergate.dap.dto.AssessmentAccessResponse;
 import com.psybergate.dap.dto.AssessmentRequest;
 import com.psybergate.dap.dto.AssessmentResponse;
 import com.psybergate.dap.dto.AssessmentSummaryResponse;
+import com.psybergate.dap.dto.CodeExecuteResponse;
 import com.psybergate.dap.dto.FeedbackItem;
 import com.psybergate.dap.dto.FeedbackUpdateRequest;
 import com.psybergate.dap.dto.FinaliseRequest;
@@ -63,6 +64,15 @@ public class AssessmentController {
     @GetMapping("/access/{token}")
     public ResponseEntity<AssessmentAccessResponse> accessAssessment(@PathVariable String token) {
         return ResponseEntity.ok(assessmentService.access(token));
+    }
+
+    @PostMapping("/{id}/responses/{questionId}/execute")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ResponseEntity<CodeExecuteResponse> executeCode(
+            @PathVariable UUID id,
+            @PathVariable UUID questionId,
+            @AuthenticationPrincipal AppUser currentUser) {
+        return ResponseEntity.ok(responseService.executeCode(id, questionId, currentUser.getId()));
     }
 
     @PutMapping("/{id}/responses/{questionId}")

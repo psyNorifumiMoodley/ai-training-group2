@@ -45,6 +45,8 @@ class AssessmentServiceTest {
     @Mock
     private GroupQuestionRepository groupQuestionRepository;
     @Mock
+    private CodingQuestionRepository codingQuestionRepository;
+    @Mock
     private InvitationTokenUtil invitationTokenUtil;
     @Mock
     private JwtUtil jwtUtil;
@@ -62,8 +64,8 @@ class AssessmentServiceTest {
         assessmentService = new AssessmentService(
                 candidateRepository, assessmentRepository, assessmentQuestionRepository,
                 mcqQuestionRepository, mcqPlusQuestionRepository, textQuestionRepository, docQuestionRepository,
-                groupQuestionRepository, invitationTokenUtil, jwtUtil, emailService, responseService,
-                feedbackRepository);
+                groupQuestionRepository, codingQuestionRepository, invitationTokenUtil, jwtUtil, emailService,
+                responseService, feedbackRepository);
         setCompositionDefaults();
         ReflectionTestUtils.setField(assessmentService, "frontendBaseUrl", "http://localhost:4200");
         // Default stub so token generation does not return null in existing tests
@@ -76,7 +78,9 @@ class AssessmentServiceTest {
         ReflectionTestUtils.setField(assessmentService, "requiredText", 3);
         ReflectionTestUtils.setField(assessmentService, "requiredDoc", 1);
         ReflectionTestUtils.setField(assessmentService, "requiredGroup", 1);
+        ReflectionTestUtils.setField(assessmentService, "requiredCoding", 1);
         ReflectionTestUtils.setField(assessmentService, "docQuestionLimit", 1);
+        lenient().when(codingQuestionRepository.findAll()).thenReturn(List.of(codingQuestionWithId(UUID.randomUUID())));
     }
 
     private Candidate candidateWithId(UUID id) {
@@ -169,11 +173,12 @@ class AssessmentServiceTest {
         ArgumentCaptor<Assessment> captor = ArgumentCaptor.forClass(Assessment.class);
         verify(assessmentRepository, times(2)).save(captor.capture());
         List<AssessmentQuestion> questions = captor.getAllValues().get(0).getQuestions();
-        assertThat(questions).hasSize(10);
+        assertThat(questions).hasSize(11);
         assertThat(questions.stream().filter(q -> q instanceof McqQuestion).count()).isEqualTo(5);
         assertThat(questions.stream().filter(q -> q instanceof TextQuestion && !(q instanceof GroupQuestion)).count()).isEqualTo(3);
         assertThat(questions.stream().filter(q -> q instanceof DocQuestion).count()).isEqualTo(1);
         assertThat(questions.stream().filter(q -> q instanceof GroupQuestion).count()).isEqualTo(1);
+        assertThat(questions.stream().filter(q -> q instanceof CodingQuestion).count()).isEqualTo(1);
     }
 
     @Test
@@ -324,7 +329,7 @@ class AssessmentServiceTest {
         when(assessmentQuestionRepository.findById(group.getId())).thenReturn(Optional.of(group));
 
         assertThatThrownBy(() -> assessmentService.generate(new AssessmentRequest(candidateId, ids, 60)))
-                .isInstanceOf(ValidationException.class);
+                .isInstanceOf(UnprocessableException.class);
     }
 
     @Test
@@ -380,11 +385,12 @@ class AssessmentServiceTest {
 
         assertThatThrownBy(() -> assessmentService.generate(new AssessmentRequest(candidateId, List.of(), 60)))
                 .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("doc/coding");
+                .hasMessageContaining("doc");
     }
 
     @Test
-    void generate_docAndCodingQuestion_exceedsDocCodingLimit_throwsValidationException() {
+    void generate_docAndCodingQuestion_withinSeparateLimits_succeeds() {
+        // One doc + one coding is valid under the new separate per-type limits
         ReflectionTestUtils.setField(assessmentService, "requiredMcq", 0);
         ReflectionTestUtils.setField(assessmentService, "requiredText", 0);
         ReflectionTestUtils.setField(assessmentService, "requiredDoc", 1);
@@ -401,10 +407,13 @@ class AssessmentServiceTest {
         when(assessmentQuestionRepository.findById(doc.getId())).thenReturn(Optional.of(doc));
         when(assessmentQuestionRepository.findById(coding.getId())).thenReturn(Optional.of(coding));
 
-        assertThatThrownBy(() -> assessmentService.generate(
-                new AssessmentRequest(candidateId, List.of(doc.getId(), coding.getId()), 60)))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("limit");
+        Assessment saved = savedAssessmentFor(candidate);
+        when(assessmentRepository.save(any())).thenReturn(saved);
+
+        AssessmentResponse response = assessmentService.generate(
+                new AssessmentRequest(candidateId, List.of(doc.getId(), coding.getId()), 60));
+
+        assertThat(response.status()).isEqualTo("PENDING");
     }
 
     @Test
@@ -428,16 +437,17 @@ class AssessmentServiceTest {
         assertThatThrownBy(() -> assessmentService.generate(
                 new AssessmentRequest(candidateId, List.of(coding1.getId(), coding2.getId()), 60)))
                 .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("limit");
+                .hasMessageContaining("Coding");
     }
 
     @Test
     void generate_compositionCountsConfigurable_alternateValues() {
-        // Reconfigure to require only 1 MCQ, 1 Text, 1 Doc, 1 Group
+        // Reconfigure to require only 1 MCQ, 1 Text, 1 Doc, 1 Group, 0 Coding
         ReflectionTestUtils.setField(assessmentService, "requiredMcq", 1);
         ReflectionTestUtils.setField(assessmentService, "requiredText", 1);
         ReflectionTestUtils.setField(assessmentService, "requiredDoc", 1);
         ReflectionTestUtils.setField(assessmentService, "requiredGroup", 1);
+        ReflectionTestUtils.setField(assessmentService, "requiredCoding", 0);
 
         UUID candidateId = UUID.randomUUID();
         Candidate candidate = candidateWithId(candidateId);
@@ -513,7 +523,7 @@ class AssessmentServiceTest {
                 .thenReturn(seenIds);
 
         assertThatThrownBy(() -> assessmentService.generate(new AssessmentRequest(candidateId, ids, 60)))
-                .isInstanceOf(ValidationException.class)
+                .isInstanceOf(UnprocessableException.class)
                 .hasMessageContaining("MCQ");
     }
 

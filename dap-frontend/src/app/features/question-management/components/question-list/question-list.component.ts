@@ -21,11 +21,12 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 import { TagComponent } from '../../../../shared/components/tag/tag.component';
 import { QuestionFormComponent } from '../question-form/question-form.component';
 import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
+import { CodingQuestionPreviewComponent } from '../coding-question-preview/coding-question-preview.component';
 
 @Component({
   selector: 'dap-question-list',
   standalone: true,
-  imports: [ButtonComponent, TagComponent, QuestionFormComponent, ConfirmModalComponent],
+  imports: [ButtonComponent, TagComponent, QuestionFormComponent, ConfirmModalComponent, CodingQuestionPreviewComponent],
   templateUrl: './question-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -48,6 +49,7 @@ export class QuestionListComponent {
   readonly deletingQuestion = signal<QuestionResponse | null>(null);
   readonly deleting = signal(false);
   readonly expandedQuestionId = signal<string | null>(null);
+  readonly testingQuestionId = signal<string | null>(null);
 
   readonly PAGE_SIZE = 20;
   readonly filterTypes: Array<QuestionType | 'ALL'> = ['ALL', 'MCQ', 'MCQ_PLUS', 'TEXT', 'DOC', 'GROUP', 'CODING'];
@@ -155,6 +157,10 @@ export class QuestionListComponent {
 
   toggleExpand(id: string): void {
     this.expandedQuestionId.update(current => current === id ? null : id);
+  }
+
+  togglePreview(id: string): void {
+    this.testingQuestionId.update(current => current === id ? null : id);
   }
 
   private loadQuestions(): void {
